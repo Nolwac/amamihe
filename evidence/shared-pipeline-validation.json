@@ -1,0 +1,62 @@
+{
+  "recordedAt": "2026-10-09T21:21:57Z",
+  "scope": "Local immutable release packaging and isolated deployment guards",
+  "releaseFormatVersion": 2,
+  "productionDeployment": "not performed",
+  "publicHttpsVerification": "pending",
+  "staticChecks": {
+    "bashSyntax": "passed",
+    "sharedComposeConfiguration": "passed",
+    "markdownAndYamlFormatting": "passed"
+  },
+  "builderFixtureChecks": {
+    "passed": 12,
+    "coverage": [
+      "Explicit local Docker daemon despite hostile inherited selectors",
+      "Preserved Docker configuration directory",
+      "Exact manifest-anchored public file allowlist",
+      "Immutable image-ID archive selection",
+      "Checksums and initializer permissions",
+      "Packaging failure cleanup"
+    ]
+  },
+  "realImagePackage": {
+    "archiveBytes": 153348748,
+    "imageId": "sha256:98ef3755753ae6613dccc00a4f99f12c3d115bf698c98bfe8679f937ad9e4329",
+    "fullBundledValidator": "passed",
+    "bundledScriptMatchesCheckout": true,
+    "negativeChecks": [
+      "Wrong caller-supplied manifest digest rejected",
+      "Changed Compose file rejected after recomputing SHA256SUMS",
+      "Unexpected release file rejected"
+    ],
+    "limits": [
+      "Used an existing local image and an explicitly synthetic commit identifier on an uncommitted checkout",
+      "Private configuration and TLS files were synthetic validation fixtures",
+      "This establishes producer-consumer compatibility, not production image provenance or runtime deployment"
+    ]
+  },
+  "deploymentFixtureChecks": {
+    "passed": 12,
+    "coverage": [
+      "Modified runtime file plus recomputed checksum file rejected before Docker",
+      "Untrusted manifest digest rejected",
+      "World-readable private configuration rejected",
+      "Foreign project collision rejected without startup",
+      "Docker DNAT-only wildcard port claim rejected before startup",
+      "Missing PostgreSQL image rejected without bootstrap residue",
+      "Occupied loopback socket rejected before startup",
+      "First deployment records loopback-only health and stable initializer",
+      "Failed promotion restores only the previous application and retains state/database",
+      "Successful promotion atomically records current and previous releases",
+      "Private configuration/password changes require separate maintenance",
+      "State image mismatch rejected against the authenticated prior release"
+    ],
+    "limits": [
+      "Docker, Compose, health responses, and certificate verification were mocked",
+      "A network-disabled container changed ownership only of a disposable synthetic key",
+      "No application, database, reverse proxy, remote host, DNS, or cloud configuration was modified by these fixture checks"
+    ]
+  },
+  "independentReview": "No remaining material packaging, namespace, bootstrap, rollback, or state issues identified"
+}

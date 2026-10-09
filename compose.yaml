@@ -1,0 +1,149 @@
+x-logging: &bounded_logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  postgres:
+    image: postgres:17-bookworm
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_DB: amamihe
+      POSTGRES_PASSWORD: ${POSTGRES_ADMIN_PASSWORD:?Set POSTGRES_ADMIN_PASSWORD in .env.vps}
+      APP_DATABASE_PASSWORD: ${POSTGRES_APP_PASSWORD:?Set POSTGRES_APP_PASSWORD in .env.vps}
+    command:
+      - postgres
+      - -c
+      - ssl=on
+      - -c
+      - ssl_cert_file=/run/postgres-tls/server.crt
+      - -c
+      - ssl_key_file=/run/postgres-tls/server.key
+      - -c
+      - max_connections=20
+      - -c
+      - shared_buffers=128MB
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./.vps/tls/server.crt:/run/postgres-tls/server.crt:ro
+      - ./.vps/tls/server.key:/run/postgres-tls/server.key:ro
+      - ./deploy/vps/init-db.sh:/docker-entrypoint-initdb.d/01-amamihe.sh:ro
+    networks:
+      - database
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -h 127.0.0.1 -U postgres -d amamihe && psql -U postgres -d amamihe -tAc 'SELECT 1'",
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 30s
+    mem_limit: 768m
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    logging: *bounded_logging
+
+  app:
+    image: amamihe-app:local
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      DATABASE_URL: postgresql://amamihe:${POSTGRES_APP_PASSWORD:?Set POSTGRES_APP_PASSWORD in .env.vps}@postgres:5432/amamihe?sslmode=verify-full
+      NODE_EXTRA_CA_CERTS: /run/postgres-tls/ca.crt
+    volumes:
+      - ./.vps/tls/ca.crt:/run/postgres-tls/ca.crt:ro
+    networks:
+      - edge
+      - database
+    depends_on:
+      postgres:
+        condition: service_healthy
+        restart: true
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3000/api/health').then(async r => { const h = await r.json(); process.exit(r.ok && h.ok ? 0 : 1); }).catch(() => process.exit(1))"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    user: "1000:1000"
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 512m
+    restart: unless-stopped
+    logging: *bounded_logging
+
+  caddy:
+    image: caddy:2-alpine
+    environment:
+      PUBLIC_HOST: ${PUBLIC_HOST:?Set PUBLIC_HOST in .env.vps}
+      ACME_EMAIL: ${ACME_EMAIL:?Set ACME_EMAIL in .env.vps}
+      NO_PROXY: app,localhost,127.0.0.1
+      no_proxy: app,localhost,127.0.0.1
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - edge
+    depends_on:
+      app:
+        condition: service_healthy
+        restart: true
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "-Y",
+          "off",
+          "-q",
+          "-O",
+          "/dev/null",
+          "http://127.0.0.1:2019/config/",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    read_only: true
+    tmpfs:
+      - /tmp:size=32m,mode=1777
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 128m
+    restart: unless-stopped
+    logging: *bounded_logging
+
+networks:
+  edge:
+  database:
+    internal: true
+
+volumes:
+  postgres_data:
+  caddy_data:
+  caddy_config:

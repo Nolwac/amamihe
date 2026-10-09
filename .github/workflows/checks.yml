@@ -1,0 +1,66 @@
+name: Foundation checks
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Validate deployment helper syntax
+        run: |
+          bash -n scripts/build-release.sh scripts/deploy-release.sh \
+            scripts/vps-db-tls.sh deploy/shared/init-db.sh
+      - name: Validate shared Compose configuration
+        run: docker compose --env-file /dev/null --file deploy/shared/compose.yaml config --quiet
+        env:
+          AMAMIHE_SHARED_DIR: /tmp/amamihe-compose-validation
+          APP_LOOPBACK_PORT: '13001'
+          AMAMIHE_IMAGE: amamihe-validation:local
+          POSTGRES_IMAGE: postgres:17-bookworm@sha256:0000000000000000000000000000000000000000000000000000000000000000
+          POSTGRES_ADMIN_PASSWORD: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+          POSTGRES_APP_PASSWORD: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+      - run: npm ci
+      - run: npm run format:check
+      - run: npm run build
+      - run: npm test
+      - run: npx playwright install --with-deps chromium
+      - run: npm start > /tmp/amamihe-api.log 2>&1 &
+      - run: |
+          for i in $(seq 1 30); do
+            if curl --fail http://127.0.0.1:3000/api/health; then exit 0; fi
+            sleep 1
+          done
+          exit 1
+      - run: npm run test:browser
+        env:
+          PLAYWRIGHT_MANAGED_BROWSER: '1'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: browser-evidence
+          path: test-results/
+  release:
+    needs: verify
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build application image
+        run: docker build --tag amamihe-release:"$GITHUB_SHA" .
+      - name: Package immutable release
+        run: |
+          bash scripts/build-release.sh \
+            --image "amamihe-release:$GITHUB_SHA" \
+            --commit "$GITHUB_SHA" \
+            --output "$RUNNER_TEMP/amamihe-release"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: amamihe-release-${{ github.sha }}
+          path: ${{ runner.temp }}/amamihe-release/
+          retention-days: 7
+          if-no-files-found: error

@@ -1,0 +1,108 @@
+name: amamihe
+
+x-logging: &bounded_logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  postgres:
+    image: ${POSTGRES_IMAGE:?Set an approved immutable PostgreSQL image in private shared configuration}
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_DB: amamihe
+      POSTGRES_PASSWORD: ${POSTGRES_ADMIN_PASSWORD:?Set private PostgreSQL administration password}
+      APP_DATABASE_PASSWORD: ${POSTGRES_APP_PASSWORD:?Set private application database password}
+    command:
+      - postgres
+      - -c
+      - ssl=on
+      - -c
+      - ssl_cert_file=/run/postgres-tls/server.crt
+      - -c
+      - ssl_key_file=/run/postgres-tls/server.key
+      - -c
+      - max_connections=20
+      - -c
+      - shared_buffers=128MB
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ${AMAMIHE_SHARED_DIR:?Set private shared directory}/tls/server.crt:/run/postgres-tls/server.crt:ro
+      - ${AMAMIHE_SHARED_DIR:?Set private shared directory}/tls/server.key:/run/postgres-tls/server.key:ro
+      - ${AMAMIHE_SHARED_DIR:?Set private shared directory}/init-db.sh:/docker-entrypoint-initdb.d/01-amamihe.sh:ro
+    networks:
+      - database
+    labels:
+      io.amamihe.deployment: shared-vps-v1
+    healthcheck:
+      test:
+        [
+          CMD-SHELL,
+          "pg_isready -h 127.0.0.1 -U postgres -d amamihe && psql -U postgres -d amamihe -tAc 'SELECT 1'",
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 30s
+    mem_limit: 768m
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    logging: *bounded_logging
+
+  app:
+    image: ${AMAMIHE_IMAGE:?Deployment selects the verified immutable image ID}
+    pull_policy: never
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      DATABASE_URL: postgresql://amamihe:${POSTGRES_APP_PASSWORD:?Set private application database password}@postgres:5432/amamihe?sslmode=verify-full
+      NODE_EXTRA_CA_CERTS: /run/postgres-tls/ca.crt
+    ports:
+      - "127.0.0.1:${APP_LOOPBACK_PORT:?Select an unused explicit loopback port}:3000"
+    volumes:
+      - ${AMAMIHE_SHARED_DIR:?Set private shared directory}/tls/ca.crt:/run/postgres-tls/ca.crt:ro
+    networks:
+      - web
+      - database
+    labels:
+      io.amamihe.deployment: shared-vps-v1
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3000/api/health').then(async r => { const h = await r.json(); process.exit(r.ok && h.ok ? 0 : 1); }).catch(() => process.exit(1))"
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 30s
+    user: "1000:1000"
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 512m
+    restart: unless-stopped
+    logging: *bounded_logging
+
+networks:
+  web:
+    labels:
+      io.amamihe.deployment: shared-vps-v1
+  database:
+    internal: true
+    labels:
+      io.amamihe.deployment: shared-vps-v1
+
+volumes:
+  postgres_data:
+    labels:
+      io.amamihe.deployment: shared-vps-v1

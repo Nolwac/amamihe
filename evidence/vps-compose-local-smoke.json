@@ -1,0 +1,67 @@
+{
+  "completedAt": "2026-10-09T20:28:16.737477+00:00",
+  "image": "sha256:98ef3755753ae6613dccc00a4f99f12c3d115bf698c98bfe8679f937ad9e4329",
+  "conditions": {
+    "environment": "Disposable local Docker Compose project; loopback HTTP/HTTPS only.",
+    "postgresql": "PostgreSQL 17, internal-only database network, persistent named volume, verified private CA and certificate hostname.",
+    "https": "Caddy local CA; Node HTTPS verifies chain and localhost identity. No certificate bypass used.",
+    "appRuntime": "UID 1000, read-only root filesystem, writable temporary directory.",
+    "buildTrust": "Platform CA mounted through BuildKit only for npm installs, with TLS verification enabled."
+  },
+  "checks": {
+    "https": {
+      "httpsVerified": true,
+      "staticBuild": true,
+      "avatarAsset": true,
+      "secureCookie": true,
+      "sameOrigin": true,
+      "crossOriginRejected": true,
+      "checkpoint": true,
+      "idempotentRewards": true,
+      "points": 60
+    },
+    "databaseTls": [
+      {
+        "check": "verified-private-ca",
+        "passed": true
+      },
+      {
+        "check": "unknown-ca",
+        "rejected": true,
+        "code": "UNABLE_TO_VERIFY_LEAF_SIGNATURE"
+      },
+      {
+        "check": "wrong-certificate-hostname",
+        "rejected": true,
+        "code": "ERR_TLS_CERT_ALTNAME_INVALID"
+      },
+      {
+        "check": "plaintext-network",
+        "rejected": true,
+        "code": "28000"
+      }
+    ],
+    "restartRecovery": true,
+    "backupRestoreRecovery": true,
+    "restoredRecords": {
+      "learners": 1,
+      "attempts": 1,
+      "chunks": 3,
+      "points": 60
+    },
+    "noPublishedDatabaseOrApplicationPort": true,
+    "persistentDatabaseVolume": true,
+    "currentBackendSourceHashesMatch": true,
+    "runtimeUid": 1000,
+    "readOnlyApplicationFilesystem": true,
+    "noBakedBuildCertificate": true,
+    "noLocalApplicationDatabaseDirectory": true
+  },
+  "browserHttps": {
+    "performed": false,
+    "reason": "Existing shared legacy NSS database prevents isolated CA selection. Shared trust was preserved and HTTPS verification was not disabled. Browser UI checks are separate from this local TLS test."
+  },
+  "limits": "Local runtime validation only; no public DNS, public certificate, real VPS deployment, coexistence validation, or capacity benchmark.",
+  "disposableFixtureCleanupCompleted": true,
+  "cleanupCompletedAt": "2026-10-09T20:30:05.232089+00:00"
+}

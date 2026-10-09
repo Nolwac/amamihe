@@ -1,0 +1,21 @@
+{
+  "checkedAt": "2026-10-09T13:29:42.640587+00:00",
+  "image": "sha256:29f84db5ad2dfa26a29e7a509a0315f032bde212af671d6dd1b03082d9987746",
+  "productionMode": true,
+  "missingDatabaseUrlRejected": true,
+  "buildTlsVerificationEnabled": true,
+  "temporaryBuildCaAbsentFromImage": true,
+  "database": "Disposable local PostgreSQL fixture",
+  "databaseTransport": "Explicit loopback-only plaintext exception; external verified TLS is covered by the storage integration checks",
+  "health": true,
+  "staticHtmlAndAvatarGlb": true,
+  "guestCreation": true,
+  "checkpointAdvance": true,
+  "idempotentRewardPoints": 60,
+  "restartRecovery": true,
+  "recoveredRewardPoints": 60,
+  "localPgliteDirectoryAbsent": true,
+  "containerMemorySnapshot": "125.2 MiB after one assessment; not a peak/concurrency capacity test",
+  "publicDeployment": false,
+  "actualNeonAccountVerified": false
+}
