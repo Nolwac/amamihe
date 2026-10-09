@@ -1,0 +1,21 @@
+[Unit]
+Description=Dedicated public ingress for amamihe.online
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+User=agents
+Group=agents
+# Remotely managed dedicated tunnel; token file remains outside Git and logs.
+# Confirm this cloudflared path/version during VPS inventory before installing.
+ExecStart=/usr/local/bin/cloudflared tunnel --no-autoupdate run --token-file /srv/amamihe/shared/cloudflared-token
+Restart=on-failure
+RestartSec=10s
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target

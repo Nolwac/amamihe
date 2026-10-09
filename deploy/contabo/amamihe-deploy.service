@@ -1,0 +1,20 @@
+[Unit]
+Description=Promote verified Amamihe releases from GitHub
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=agents
+Group=agents
+ExecStart=/srv/amamihe/bin/pull-deploy.sh /srv/amamihe
+# GH_CONFIG_DIR contains a host-only read-only GitHub credential, mode 0600.
+Environment=GH_CONFIG_DIR=/srv/amamihe/shared/github
+Environment=GH_PROMPT_DISABLED=1
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/srv/amamihe
+TimeoutStartSec=15min

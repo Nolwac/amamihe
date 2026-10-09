@@ -14,7 +14,7 @@ jobs:
       - name: Validate deployment helper syntax
         run: |
           bash -n scripts/build-release.sh scripts/deploy-release.sh \
-            scripts/vps-db-tls.sh deploy/shared/init-db.sh
+            scripts/vps-db-tls.sh scripts/pull-deploy.sh deploy/shared/init-db.sh
       - name: Validate shared Compose configuration
         run: docker compose --env-file /dev/null --file deploy/shared/compose.yaml config --quiet
         env:

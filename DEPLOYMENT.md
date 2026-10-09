@@ -1,5 +1,7 @@
 # Shared VPS Deployment
 
+For the Contabo host and `amamihe.online`, use the [dedicated tunnel and host-side polling installation](deploy/contabo/README.md). Those templates extend this release system without reserving public ports or sharing VPS credentials with GitHub. Installation and public verification remain pending until host access is available.
+
 The shared-host pipeline delivers an immutable application image to an existing Linux VPS while preserving its current services. PostgreSQL persists in a dedicated Docker volume; only the application publishes a port, bound to `127.0.0.1`. The pipeline does not change DNS, the public web server, firewall rules, SSH, or other Compose projects.
 
 ## Inventory Before Installation
@@ -33,7 +35,7 @@ Pull or preload the approved PostgreSQL digest separately before the first deplo
 
 ## Build and Transfer a Release
 
-The GitHub Actions verification workflow builds an image after successful checks on pushes to `main`, packages the release, and uploads a release artifact to the private repository. It does not connect to the VPS or promote an image automatically. Artifact access follows repository access; download the artifact through an authenticated GitHub session and preserve its manifest digest from the trusted workflow output.
+The GitHub Actions verification workflow builds an image after successful checks on pushes to `main`, packages the release, and uploads a release artifact to the private repository. It does not connect to the VPS. Once installed, the Contabo host-side timer downloads successful main artifacts over authenticated GitHub transport and promotes them using the reviewed host helper. Alternatively, download the artifact through an authenticated GitHub session and preserve its manifest digest from the trusted workflow output.
 
 For a manual build, use the repository Dockerfile and a committed revision. Managed-cloud Docker builds must use the environment's documented proxy and CA trust configuration. Package an already-built local image:
 
@@ -73,4 +75,4 @@ If application startup, health verification, or state recording fails after prom
 
 For an intentional application rollback, supply the previous release directory and its trusted manifest digest to the same command with `--rollback`. Keep both current and previous release archives available. The shared initialization script remains independent of release retention, so PostgreSQL restart does not depend on the first release directory.
 
-The current release format accepts schema version 1. Database schema upgrades, password rotation, port changes, certificate renewal, and backup restoration require separate reviewed maintenance; changing private configuration causes ordinary promotion to stop. An image rollback cannot reverse a destructive schema change. No push-triggered VPS deployment, registry credential, SSH secret, or Tailscale credential is configured by this pipeline.
+The current release format accepts schema version 1. Database schema upgrades, password rotation, port changes, certificate renewal, and backup restoration require separate reviewed maintenance; changing private configuration causes ordinary promotion to stop. An image rollback cannot reverse a destructive schema change. The optional Contabo poller keeps its read-only GitHub credential on the VPS; no registry credential, SSH secret, or Tailscale credential is needed in GitHub.
