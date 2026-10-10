@@ -83,12 +83,42 @@ try:
         require(isinstance(images, list) and len(images) == 1, 'Archive must contain exactly one image.')
         require(not images[0].get('RepoTags'), 'Archive must not replace mutable host image tags.')
         image_config = images[0]['Config']
-        require(pathlib.PurePosixPath(image_config).name.removesuffix('.json') == manifest['imageId'].split(':')[1], 'Docker archive config digest differs from image ID.')
+        config_digest = pathlib.PurePosixPath(image_config).name.removesuffix('.json')
+        require(re.fullmatch(r'[0-9a-f]{64}', config_digest) is not None, 'Invalid Docker config digest.')
+        # Containerd-backed Docker stores identify an OCI manifest/index, while
+        # classic Docker identifies the configuration blob. Anchor either form.
+        if config_digest != manifest['imageId'].split(':')[1]:
+            index_member = archive.getmember('index.json')
+            require(index_member.isfile() and index_member.size < 1024 * 1024, 'Invalid OCI archive index.')
+            index = json.load(archive.extractfile(index_member))
+            roots = index.get('manifests', [])
+            require(len(roots) == 1 and roots[0].get('digest') == manifest['imageId'], 'OCI archive root differs from image ID.')
+            configs = []
+            def visit(descriptor, depth=0):
+                require(depth <= 3, 'OCI descriptor nesting exceeds limit.')
+                digest = descriptor.get('digest', '')
+                require(re.fullmatch(r'sha256:[0-9a-f]{64}', digest) is not None, 'Invalid OCI descriptor digest.')
+                member = archive.getmember('blobs/sha256/' + digest.split(':')[1])
+                require(member.isfile() and member.size <= 1024 * 1024 and member.size == descriptor.get('size'), 'Invalid OCI metadata blob.')
+                raw = archive.extractfile(member).read()
+                require(hashlib.sha256(raw).hexdigest() == digest.split(':')[1], 'OCI metadata digest is invalid.')
+                data = json.loads(raw)
+                if 'manifests' in data:
+                    require(len(data['manifests']) <= 8, 'Too many OCI manifests.')
+                    for child in data['manifests']: visit(child, depth + 1)
+                else:
+                    require(isinstance(data.get('config'), dict), 'OCI image config is missing.')
+                    configs.append(data['config']['digest'])
+            visit(roots[0])
+            require(configs.count('sha256:' + config_digest) == 1, 'Docker config is not uniquely anchored to OCI image ID.')
         config_member = archive.getmember(image_config)
         require(config_member.isfile() and config_member.size <= 1024 * 1024, 'Docker config must be a bounded regular archive member.')
         config_bytes = archive.extractfile(config_member)
         require(config_bytes is not None, 'Docker config is missing.')
-        require(hashlib.sha256(config_bytes.read()).hexdigest() == manifest['imageId'].split(':')[1], 'Docker image configuration hash is invalid.')
+        raw_config = config_bytes.read()
+        require(hashlib.sha256(raw_config).hexdigest() == config_digest, 'Docker image configuration hash is invalid.')
+        parsed_config = json.loads(raw_config)
+        require(parsed_config.get('architecture') == manifest['architecture'] and parsed_config.get('os') == manifest['os'], 'Docker config platform differs from manifest.')
     info = config.stat()
     require(info.st_uid in (0, os.geteuid()) and not info.st_mode & 0o077, 'Private configuration must be root/current-user owned with mode 0600 or stricter.')
     settings = {}

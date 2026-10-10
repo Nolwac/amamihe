@@ -1,5 +1,8 @@
 name: Foundation checks
-on: [push, pull_request]
+on:
+  push:
+    branches: [main]
+  pull_request:
 permissions:
   contents: read
 jobs:
@@ -14,7 +17,7 @@ jobs:
       - name: Validate deployment helper syntax
         run: |
           bash -n scripts/deploy/build-release.sh scripts/deploy/deploy-release.sh \
-            scripts/deploy/vps-db-tls.sh deploy/shared/init-db.sh
+            scripts/deploy/vps-db-tls.sh scripts/deploy/pull-verified-source.sh deploy/shared/init-db.sh
       - name: Validate shared Compose configuration
         run: docker compose --env-file /dev/null --file deploy/shared/compose.yaml config --quiet
         env:
@@ -64,3 +67,26 @@ jobs:
           path: ${{ runner.temp }}/amamihe-release/
           retention-days: 7
           if-no-files-found: error
+  approve-deployment:
+    needs: release
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    concurrency:
+      group: approve-amamihe-deployment
+      cancel-in-progress: false
+    steps:
+      - name: Publish verified source reference for the read-only VPS
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          main=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq '.object.sha')
+          if [ "$main" != "$GITHUB_SHA" ]; then exit 0; fi
+          if gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/deploy/verified-main" >/dev/null 2>&1; then
+            gh api --method PATCH "repos/$GITHUB_REPOSITORY/git/refs/heads/deploy/verified-main" \
+              -f sha="$GITHUB_SHA" -F force=true
+          else
+            gh api --method POST "repos/$GITHUB_REPOSITORY/git/refs" \
+              -f ref=refs/heads/deploy/verified-main -f sha="$GITHUB_SHA"
+          fi

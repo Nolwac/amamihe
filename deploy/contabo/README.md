@@ -1,0 +1,21 @@
+# Live Contabo deployment
+
+Game: https://amamihe.online. The app and PostgreSQL run in the isolated `amamihe` Compose project. The app binds only `127.0.0.1:13001`; the database publishes no host port. Existing Caddy serves this hostname with DNS-validated automatic certificates. Cloudflare proxies the apex A record, uses Full (Strict), and redirects HTTP to HTTPS. Caddy adds HSTS; direct-origin HTTP receives the existing terminal HTTPS-required response.
+
+Installation: `/home/agents/amamihe-deploy/{bin,source,releases,shared}`. The shared directory is outside Git, mode 0700. Database credentials, the private PostgreSQL CA, and a read-only GitHub SSH deploy key stay there. The existing Cloudflare credential stays in its original private Caddy environment file. No production secret is required in GitHub Actions.
+
+## Pipeline
+
+Pushes to `main` run formatting, build, Node tests, browser tests, and immutable release packaging. Only after those jobs succeed does Actions update `deploy/verified-main` to that commit. A user systemd timer on the VPS polls this reference every five minutes and confirms it still matches current `main`. It uses the read-only key, pinned GitHub SSH host keys, and the separately reviewed host deployment helper.
+
+The VPS builds the verified source in a dedicated BuildKit builder capped at 2 GiB, 1.5 CPUs, and two concurrent operations. It packages an immutable release, validates its checksums and image metadata, then promotes only the app. The persistent database is not recreated during promotion. App failures restore the previous app image. Public health is checked after promotion. Changes to the trusted host scripts require a deliberate host installation; Git updates do not replace those scripts automatically.
+
+Installed user units are `amamihe-deploy.service` and `amamihe-deploy.timer`; user lingering is enabled. Inspect with `systemctl --user status amamihe-deploy.timer` and `journalctl --user -u amamihe-deploy.service`. For a deliberate rollback, stop only this timer, then use the previous release and manifest hash recorded in private `shared/releases.json` with `bin/deploy-release.sh --rollback`. Leave the timer stopped until main contains the intended version.
+
+## Operations
+
+Preserve all unrelated services and the shared proxy. Caddy changes must preserve its other host blocks, validate before a graceful reload, and retain a backup. No new ingress firewall rules are needed because the existing public HTTPS listener already accepts Cloudflare traffic. Do not expose the app or PostgreSQL ports.
+
+The PostgreSQL server certificate expires one year after issuance; renew it before October 10, 2027. Use private logical backups and test restoration into a separate database. Monitor host disk space: the VPS had about 29 GiB free before installation. Immutable releases accumulate, so prune only Amamihe build cache and obsolete releases after retaining the current and rollback release and their backups.
+
+This deployment publishes the existing foundation prototype, including its clearly labeled mock classifier. It does not establish completed OpenRouter integration, final artwork acceptance, or physical low-memory-device performance.

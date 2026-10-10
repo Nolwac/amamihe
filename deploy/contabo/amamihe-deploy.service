@@ -1,0 +1,9 @@
+[Unit]
+Description=Deploy CI-verified Amamihe main commits
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash /home/agents/amamihe-deploy/bin/pull-verified-source.sh
+UMask=0077
+TimeoutStartSec=20min
+Nice=10
