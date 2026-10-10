@@ -8,6 +8,7 @@ Product architecture, implementation milestones, and mandatory rules remain at t
 - [Alternative hosting and standalone VPS instructions](deployment/HOSTING.md)
 - [Foundation delivery status](status/STEP_01_STATUS.md)
 - [Course studio delivery status](status/STEP_02_STATUS.md)
+- [Learning assessment delivery status](status/STEP_03_STATUS.md)
 - [Course authoring and versioning](authoring/COURSES.md)
 - [Live Contabo operations](../deploy/contabo/README.md)
 

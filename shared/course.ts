@@ -96,11 +96,13 @@ export type LearningProgress = {
   points: number;
   finished: boolean;
   assisted?: boolean;
+  feedback?: string;
   blocked?: boolean;
   blockReason?: string;
   question?: PublicCourseQuestion;
   resources?: CourseResource[];
   level?: Omit<PublicCourseLevel, "questions" | "retryQuestions">;
+  assessment?: import("../server/assessment.js").Assessment;
   result?: {
     mocked: true;
     label: string;

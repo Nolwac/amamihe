@@ -1,3 +1,7 @@
+import {
+  mockProvider,
+  type ClassificationProvider,
+} from "../server/assessment.js";
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { mkdtemp, rm } from "node:fs/promises";
@@ -113,7 +117,7 @@ function authoredCourse(): CourseDefinition {
     ],
   };
 }
-async function fixture() {
+async function fixture(provider?: ClassificationProvider) {
   const directory = await mkdtemp(path.join(tmpdir(), "amamihe-courses-"));
   const db = await openDatabase({ dataDir: directory });
   await initializeSchema(db);
@@ -145,7 +149,7 @@ async function fixture() {
     learner = await account("learner@example.test");
   const app = Fastify({ bodyLimit: 16384 });
   await app.register(cookie);
-  registerCourses(app, db, auth);
+  registerCourses(app, db, auth, provider);
   await app.ready();
   const request = (
     method: "GET" | "POST" | "PUT",
@@ -778,6 +782,74 @@ test("retry coverage targets the missing primary criterion and skips already sat
       )
     ).rows[0].progress;
     assert.deepEqual(saved.satisfiedQuestionIds, ["prepare-q1"]);
+  } finally {
+    await f.close();
+  }
+});
+
+test("pending post-clearance classification survives reload and retries without duplicate rewards", async () => {
+  let fail = true;
+  const f = await fixture({
+    ...mockProvider,
+    route: async (input) => {
+      if (fail) throw new Error("Unavailable");
+      return mockProvider.route(input);
+    },
+  });
+  try {
+    const draft = await f.create();
+    await f.publish(draft);
+    let progress = await f.enroll(draft.id);
+    progress = accepted(await f.answer(draft.id, progress));
+    assert.equal(
+      (await f.db.query("SELECT * FROM course_assessments")).rows.length,
+      0,
+    );
+    progress = accepted(await f.answer(draft.id, progress));
+    assert.equal(progress.assessment?.status, "pending");
+    assert.equal(progress.question, undefined);
+    assert.equal(progress.points, 40);
+    const saved = accepted(
+      await f.request(
+        "GET",
+        `/api/learning/${draft.id}`,
+        undefined,
+        f.learner.cookie,
+      ),
+    );
+    assert.equal(saved.assessment?.status, "pending");
+    fail = false;
+    progress = accepted(
+      await f.request(
+        "POST",
+        `/api/learning/${draft.id}/classify`,
+        {},
+        f.learner.cookie,
+      ),
+    );
+    assert.equal(progress.assessment?.status, "confirmed");
+    assert.equal(progress.levelId, "evaluate");
+    assert.equal(progress.points, 40);
+    assert.equal(
+      (
+        await f.db.query<{ points: number }>(
+          "SELECT points FROM players WHERE id=$1",
+          [f.learner.playerId],
+        )
+      ).rows[0].points,
+      40,
+    );
+    assert.equal(
+      (
+        await f.request(
+          "POST",
+          `/api/learning/${draft.id}/classify`,
+          {},
+          f.learner.cookie,
+        )
+      ).statusCode,
+      409,
+    );
   } finally {
     await f.close();
   }

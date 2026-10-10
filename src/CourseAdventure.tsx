@@ -119,7 +119,31 @@ export default function CourseAdventure({
               </button>
             </div>
           )}
-          {progress?.finished || celebration ? (
+          {progress?.assessment?.status === "pending" ? (
+            <section aria-label="Pending assessment">
+              <h2>Level cleared · assessment pending</h2>
+              <p>
+                Your activity points and evidence are saved. Progression waits
+                for validated criterion grades and an eligible route.
+              </p>
+              <button
+                className="primary"
+                disabled={busy}
+                onClick={() =>
+                  run(async () => {
+                    setProgress(
+                      await request<LearningProgress>(
+                        "/learning/" + courseId + "/classify",
+                        {},
+                      ),
+                    );
+                  })
+                }
+              >
+                Retry mock assessment
+              </button>
+            </section>
+          ) : progress?.finished || celebration ? (
             <section
               className="adventure-celebration"
               aria-label="Level clearance"
@@ -138,6 +162,17 @@ export default function CourseAdventure({
                 MOCK CLASSIFICATION · This checkpoint uses authored answer keys.
                 It does not certify practical model training or mastery.
               </p>
+              {progress?.assessment && (
+                <p>
+                  {
+                    progress.assessment.criteria.filter((c) => c.independent)
+                      .length
+                  }{" "}
+                  independent criteria · {progress.assessment.assistanceCount}{" "}
+                  assisted responses · {progress.assessment.errorCount}{" "}
+                  corrections recorded
+                </p>
+              )}
               <strong>+{progress?.result?.awardedPoints || 0} points</strong>
               <button
                 className="primary"
@@ -188,6 +223,9 @@ export default function CourseAdventure({
                   </button>
                 ))}
               </div>
+              {progress?.feedback && (
+                <p className="help-box">{progress.feedback}</p>
+              )}
               {help && (
                 <div className="help-box">
                   {help}

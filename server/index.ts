@@ -76,7 +76,11 @@ app.get("/api/health", async () => {
     storage: db.kind === "pglite" ? "PostgreSQL / PGlite" : "PostgreSQL",
     classifier: "mock-classifier-v1",
     release,
-    features: { courseStudio: true, courseVersions: true },
+    features: {
+      courseStudio: true,
+      courseVersions: true,
+      learningAssessment: true,
+    },
   };
 });
 app.get("/api/session", async (req, reply) => {

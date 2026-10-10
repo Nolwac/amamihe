@@ -38,6 +38,7 @@ while (true) {
       response.ok &&
       candidate.release === commit &&
       candidate.features?.courseStudio &&
+      candidate.features?.learningAssessment &&
       candidate.storage === "PostgreSQL"
     ) {
       const html = await fetch(base + "/", {

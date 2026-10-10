@@ -1,3 +1,10 @@
+import {
+  assessLevel,
+  mockProvider,
+  type Assessment,
+  type Evidence,
+  type ClassificationProvider,
+} from "./assessment.js";
 import { randomUUID } from "node:crypto";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import type { Authentication } from "./auth.js";
@@ -45,6 +52,12 @@ CREATE TABLE IF NOT EXISTS course_enrollments (
   PRIMARY KEY(course_id, player_id),
   FOREIGN KEY(course_id, version) REFERENCES course_versions(course_id, version)
 );
+CREATE TABLE IF NOT EXISTS course_assessments (
+ course_id TEXT NOT NULL, player_id TEXT NOT NULL, level_id TEXT NOT NULL, result JSONB NOT NULL,
+ updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+ PRIMARY KEY(course_id,player_id,level_id),
+ FOREIGN KEY(course_id,player_id) REFERENCES course_enrollments(course_id,player_id)
+);
 CREATE TABLE IF NOT EXISTS course_chunks (
   course_id TEXT NOT NULL,
   player_id TEXT NOT NULL,
@@ -76,12 +89,15 @@ type StoredProgress = {
   retry: boolean;
   satisfiedQuestionIds: string[];
   assisted: boolean;
+  feedback?: string;
   completedLevelIds: string[];
   usedRetryQuestionIds: string[];
   points: number;
   finished: boolean;
   blocked: boolean;
   blockReason?: string;
+  assessment?: Assessment;
+  assessmentLevelId?: string;
   result?: LearningProgress["result"];
 };
 type EnrollmentRow = { version: number; progress: StoredProgress };
@@ -340,16 +356,21 @@ function progressResponse(
     questionIndex: state.questionIndex,
     retry: state.retry,
     assisted: state.assisted,
+    feedback: state.feedback,
     completedLevelIds: state.completedLevelIds,
     points: state.points,
     finished: state.finished,
     ...(state.blocked ? { blocked: true, blockReason: state.blockReason } : {}),
     ...(state.result ? { result: state.result } : {}),
+    ...(state.assessment ? { assessment: state.assessment } : {}),
     level: levelMetadata(level),
     resources: definition.resources.filter((r) =>
       level.resourceIds.includes(r.id),
     ),
-    ...(!state.finished && !state.blocked && question
+    ...(!state.finished &&
+    !state.blocked &&
+    state.assessment?.status !== "pending" &&
+    question
       ? {
           question: {
             ...publicQuestion(question),
@@ -406,10 +427,59 @@ async function saveProgress(
   );
 }
 
+async function classify(
+  db: DatabaseQueries,
+  id: string,
+  playerId: string,
+  definition: CourseDefinition,
+  state: StoredProgress,
+  provider: ClassificationProvider,
+) {
+  const level = definition.levels.find(
+    (l) => l.id === state.assessmentLevelId,
+  )!;
+  const evidence = (
+    await db.query<Evidence>(
+      "SELECT delivery_id,question_id,retry,correct,assisted,answer,elapsed_ms FROM course_chunks WHERE course_id=$1 AND player_id=$2 AND level_id=$3 ORDER BY created_at,delivery_id",
+      [id, playerId, level.id],
+    )
+  ).rows;
+  state.assessment = await assessLevel(
+    definition,
+    level,
+    evidence,
+    state.completedLevelIds,
+    provider,
+  );
+  await db.query(
+    "INSERT INTO course_assessments(course_id,player_id,level_id,result) VALUES($1,$2,$3,$4) ON CONFLICT(course_id,player_id,level_id) DO UPDATE SET result=$4,updated_at=now()",
+    [id, playerId, level.id, JSON.stringify(state.assessment)],
+  );
+  state.result = {
+    mocked: true,
+    label:
+      state.assessment.status === "pending"
+        ? "Level cleared · assessment pending"
+        : evidence.some((e) => e.retry)
+          ? "Independent retry checkpoint clear"
+          : "Independent checkpoint clear",
+    nextLevelId: state.assessment.nextLevelId,
+    awardedPoints: level.points,
+  };
+  if (state.assessment.status === "pending") return;
+  if (state.assessment.nextLevelId) {
+    state.levelId = state.assessment.nextLevelId;
+    state.questionIndex = 0;
+    state.retry = false;
+    state.satisfiedQuestionIds = [];
+  } else state.finished = true;
+}
+
 export function registerCourses(
   app: FastifyInstance,
   db: Database,
   auth: Authentication,
+  provider: ClassificationProvider = mockProvider,
 ) {
   const player = async (req: FastifyRequest) => {
     const p = await auth.player(req.cookies.amamihe);
@@ -670,6 +740,18 @@ WHERE e.player_id=$1 ORDER BY e.updated_at DESC,e.course_id LIMIT 100`,
       return progressResponse(id, row.version, row.definition, row.progress);
     });
   });
+  route("POST", "/api/learning/:courseId/classify", async (req) => {
+    const p = await player(req);
+    const id = param(req, "courseId");
+    return db.transaction(async (tx) => {
+      const row = await enrolled(tx, id, p.id);
+      if (row.progress.assessment?.status !== "pending")
+        throw new CourseError("There is no pending assessment.", 409);
+      await classify(tx, id, p.id, row.definition, row.progress, provider);
+      await saveProgress(tx, id, p.id, row.progress);
+      return progressResponse(id, row.version, row.definition, row.progress);
+    });
+  });
   route("POST", "/api/learning/:courseId/help", async (req) => {
     const p = await player(req);
     const id = param(req, "courseId");
@@ -680,6 +762,7 @@ WHERE e.player_id=$1 ORDER BY e.updated_at DESC,e.course_id LIMIT 100`,
       const { question } = currentQuestion(row.definition, state);
       if (
         state.finished ||
+        state.assessment?.status === "pending" ||
         state.blocked ||
         !question ||
         deliveryId(state, question) !== questionId
@@ -703,6 +786,7 @@ WHERE e.player_id=$1 ORDER BY e.updated_at DESC,e.course_id LIMIT 100`,
       const { level, question } = currentQuestion(row.definition, state);
       if (
         state.finished ||
+        state.assessment?.status === "pending" ||
         state.blocked ||
         !question ||
         deliveryId(state, question) !== questionId
@@ -714,6 +798,8 @@ WHERE e.player_id=$1 ORDER BY e.updated_at DESC,e.course_id LIMIT 100`,
       if (answer >= question.options.length)
         throw new CourseError("Choose an available answer.");
       const correct = answer === question.answer;
+      state.feedback =
+        correct && !state.assisted ? undefined : question.explanation;
       await tx.query(
         "INSERT INTO course_chunks(course_id,player_id,delivery_id,level_id,question_id,retry,answer,correct,assisted,elapsed_ms) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)",
         [
@@ -774,23 +860,8 @@ WHERE e.player_id=$1 ORDER BY e.updated_at DESC,e.course_id LIMIT 100`,
           p.id,
           level.points,
         ]);
-        const next = eligibleLevel(row.definition, state.completedLevelIds);
-        state.result = {
-          mocked: true,
-          label: state.retry
-            ? "Independent retry checkpoint clear"
-            : "Independent checkpoint clear",
-          nextLevelId: next?.id || null,
-          awardedPoints: level.points,
-        };
-        if (next) {
-          state.levelId = next.id;
-          state.questionIndex = 0;
-          state.retry = false;
-          state.satisfiedQuestionIds = [];
-        } else {
-          state.finished = true;
-        }
+        state.assessmentLevelId = level.id;
+        await classify(tx, id, p.id, row.definition, state, provider);
       }
       await saveProgress(tx, id, p.id, state);
       return progressResponse(id, row.version, row.definition, state);

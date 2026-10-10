@@ -147,6 +147,20 @@ test("tutor publishes an authored 3D course and a separate learner resumes and c
       const response = await answered;
       expect(response.ok()).toBe(true);
       progress = await response.json();
+      if (progress.completedLevelIds.length > clearedBefore) {
+        expect(progress.assessment?.status).toBe("confirmed");
+        expect(progress.assessment?.criteria.every((c) => c.independent)).toBe(
+          true,
+        );
+        expect(progress.assessment?.grades.length).toBeGreaterThan(0);
+        expect(progress.assessment?.taskIds).toEqual(
+          progress.finished
+            ? []
+            : authored.definition.levels
+                .find((l) => l.id === progress.levelId)!
+                .questions.map((q) => q.id),
+        );
+      }
       submissionCount++;
       if (!refreshed) {
         const savedQuestionId = progress.question?.id;
