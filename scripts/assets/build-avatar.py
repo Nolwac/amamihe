@@ -1,6 +1,6 @@
 """Build the in-game explorer asset from the Michelle sample's skinned body.
-Run with Blender 4.3: blender -b -t 4 -P scripts/build-avatar.py -- /path/to/Michelle.glb
-Source/usage information and checksum are recorded in ASSETS.md.
+Run with Blender 4.3: blender -b -t 4 -P scripts/assets/build-avatar.py -- /path/to/Michelle.glb
+Source/usage information and checksum are recorded in docs/assets/ASSETS.md.
 """
 import bpy, bmesh, math, sys, hashlib, json, struct
 from collections import defaultdict
@@ -8,7 +8,7 @@ from mathutils import Vector, Quaternion
 from pathlib import Path
 source=Path(sys.argv[sys.argv.index('--')+1])
 assert hashlib.sha256(source.read_bytes()).hexdigest() == '7a87e15a99ccbc5e5877be66e1e4ecae0a581adcafa0cce1a5569f49909e968e'
-root=Path(__file__).resolve().parent.parent
+root=Path(__file__).resolve().parents[2]
 bpy.ops.object.select_all(action='SELECT'); bpy.ops.object.delete(use_global=False)
 bpy.ops.import_scene.gltf(filepath=str(source))
 arm=bpy.data.objects['Character']; body=bpy.data.objects['Ch03']

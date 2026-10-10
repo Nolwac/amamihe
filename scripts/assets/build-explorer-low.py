@@ -1,7 +1,7 @@
 """Derive the animated Low explorer from the authored explorer asset.
 
-Run: blender -b -t 4 -P scripts/build-explorer-low.py
-The source and its Michelle/Mixamo provenance are documented in ASSETS.md.
+Run: blender -b -t 4 -P scripts/assets/build-explorer-low.py
+The source and its Michelle/Mixamo provenance are documented in docs/assets/ASSETS.md.
 """
 import hashlib
 import json
@@ -10,7 +10,7 @@ from pathlib import Path
 
 import bpy
 
-root = Path(__file__).resolve().parent.parent
+root = Path(__file__).resolve().parents[2]
 source = root / "public/assets/explorer.glb"
 target = root / "public/assets/explorer-low.glb"
 source_digest = hashlib.sha256(source.read_bytes()).hexdigest()

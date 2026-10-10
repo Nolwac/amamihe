@@ -25,9 +25,9 @@ Keep immutable releases and private shared state separate, outside Git checkouts
     deploy.lock
 ```
 
-Adapt the base path after inventory, using only letters, digits, slash, dot, dash, or underscore. Copy `.env.shared.example` into the private shared directory, select the unused port, pin an approved official `postgres:17-bookworm@sha256:<digest>` image, and generate two independent passwords with `openssl rand -hex 32`. Enter values in the private file without printing them in logs. The file accepts exactly the documented literal `KEY=value` settings; it is validated as data and never sourced as shell code.
+Adapt the base path after inventory, using only letters, digits, slash, dot, dash, or underscore. Copy `deploy/shared/.env.example` into the private shared directory, select the unused port, pin an approved official `postgres:17-bookworm@sha256:<digest>` image, and generate two independent passwords with `openssl rand -hex 32`. Enter values in the private file without printing them in logs. The file accepts exactly the documented literal `KEY=value` settings; it is validated as data and never sourced as shell code.
 
-Generate PostgreSQL TLS material outside releases using the reviewed `scripts/vps-db-tls.sh` helper, setting `VPS_TLS_DIR` to the private TLS directory. It requires host administration privileges to give `server.key` to PostgreSQL container UID 999. The certificate must validate against `ca.crt`, include the DNS name `postgres`, and remain valid for at least another day. Keep the CA private key on the host or in an approved private backup. The application mounts only the public CA certificate and verifies PostgreSQL's certificate and hostname.
+Generate PostgreSQL TLS material outside releases using the reviewed `scripts/deploy/vps-db-tls.sh` helper, setting `VPS_TLS_DIR` to the private TLS directory. It requires host administration privileges to give `server.key` to PostgreSQL container UID 999. The certificate must validate against `ca.crt`, include the DNS name `postgres`, and remain valid for at least another day. Keep the CA private key on the host or in an approved private backup. The application mounts only the public CA certificate and verifies PostgreSQL's certificate and hostname.
 
 Pull or preload the approved PostgreSQL digest separately before the first deployment. PostgreSQL has no published host port. Its initial application role cannot administer the server or create roles/databases. Back up the database and private configuration before future upgrades; deployment never restores, deletes, or reinitializes an existing database.
 
@@ -38,7 +38,7 @@ The GitHub Actions verification workflow builds an image after successful checks
 For a manual build, use the repository Dockerfile and a committed revision. Managed-cloud Docker builds must use the environment's documented proxy and CA trust configuration. Package an already-built local image:
 
 ```bash
-bash scripts/build-release.sh \
+bash scripts/deploy/build-release.sh \
   --image amamihe:release \
   --output /tmp/amamihe-release \
   --commit "$(git rev-parse HEAD)"
@@ -53,7 +53,7 @@ Record the printed **manifest SHA256** through a trusted channel. `SHA256SUMS` i
 Run the deployment script from a trusted, reviewed checkout or bootstrap installation. Before using the bundled script instead, verify the manifest against the trusted digest and that script against its manifest entry; executing an unverified script cannot establish its own integrity.
 
 ```bash
-bash scripts/deploy-release.sh \
+bash scripts/deploy/deploy-release.sh \
   --release /srv/amamihe/releases/<commit> \
   --shared-config /srv/amamihe/shared/deployment.env \
   --manifest-sha256 <trusted-manifest-sha256>

@@ -7,7 +7,7 @@ if [[ $EUID -ne 0 ]]; then
   exit 1
 fi
 
-tls_directory="${VPS_TLS_DIR:-.vps/tls}"
+tls_directory="${VPS_TLS_DIR:-deploy/vps/.vps/tls}"
 install -d -m 0755 "$tls_directory"
 for name in ca.key ca.crt server.key server.crt; do
   if [[ -e "$tls_directory/$name" ]]; then

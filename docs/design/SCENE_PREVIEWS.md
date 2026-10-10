@@ -30,7 +30,7 @@ Each scene is a separate concept image for individual review. These are design i
 
 Tutors choose presets and configure task banks, deadlines, points, mechanics, and retry checkpoints. Temple Chase turns timely task completion into escape; Racing turns it into speed; Wrestling turns it into stylized attacks. Game Over retries the failed step. Only after level clearance does the classification checkpoint grade recorded chunks and select the next level and authored task set.
 
-The course-adventure image demonstrates Temple Chase. Racing and Wrestling appear as selectable presets in the studio; their standalone gameplay previews can be developed separately. The original six-panel concept board is retained in previews/venture-world-concept-board.png for historical comparison.
+The course-adventure image demonstrates Temple Chase. Racing and Wrestling appear as selectable presets in the studio; their standalone gameplay previews can be developed separately. The original six-panel concept board is retained in docs/design/previews/venture-world-concept-board.png for historical comparison.
 
 ## Illustration Limits
 
@@ -42,11 +42,11 @@ Review feedback can identify a scene number, then address layout, camera, charac
 
 The browser game now includes rigged characters with revised clothing, hair, and accessories; varied local residents; stone paving and course-house trim; and a fullscreen HUD. Registration presents starter outfit previews beside the live 3D avatar. These are captures of the running implementation:
 
-- [Avatar studio](evidence/avatar-studio-current.png)
-- [Phone avatar studio](evidence/avatar-studio-phone-current.png)
-- [Narrow-tablet avatar studio](evidence/avatar-studio-tablet-current.png)
-- [Course street](evidence/course-streets-current.png)
-- [Phone street](evidence/course-streets-phone-current.png)
+- [Avatar studio](../../evidence/screenshots/avatar-studio-current.png)
+- [Phone avatar studio](../../evidence/screenshots/avatar-studio-phone-current.png)
+- [Narrow-tablet avatar studio](../../evidence/screenshots/avatar-studio-tablet-current.png)
+- [Course street](../../evidence/screenshots/course-streets-current.png)
+- [Phone street](../../evidence/screenshots/course-streets-phone-current.png)
 
 Residents are local scene characters; these captures do not demonstrate multiplayer. The concept scenes above remain the visual specification. The prototype is stylized, and further architectural detail, material work, and scene density are needed to reach that target. Screenshots do not establish performance on physical 2 GB devices.
 

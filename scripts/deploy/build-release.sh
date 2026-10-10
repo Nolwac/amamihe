@@ -5,7 +5,7 @@ umask 077
 
 usage() {
   cat <<'HELP'
-Usage: bash scripts/build-release.sh --image IMAGE --output DIRECTORY [--commit SHA]
+Usage: bash scripts/deploy/build-release.sh --image IMAGE --output DIRECTORY [--commit SHA]
 
 Package an already-built local Docker image and the public shared-VPS templates.
 IMAGE must exist locally; this script never builds, pulls, loads, or runs images.
@@ -66,9 +66,9 @@ for required_command in git docker python3 gzip sha256sum mktemp cp chmod mv rm;
 done
 
 script_dir=$(CDPATH='' cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
-repo_root=$(CDPATH='' cd -- "$script_dir/.." && pwd -P)
-git_root=$(git -C "$repo_root" rev-parse --show-toplevel 2>/dev/null) || die 'The script must reside in the repository scripts directory.'
-[[ "$git_root" == "$repo_root" ]] || die 'The script must reside in the repository scripts directory.'
+repo_root=$(CDPATH='' cd -- "$script_dir/../.." && pwd -P)
+git_root=$(git -C "$repo_root" rev-parse --show-toplevel 2>/dev/null) || die 'The script must reside in the repository scripts/deploy directory.'
+[[ "$git_root" == "$repo_root" ]] || die 'The script must reside in the repository scripts/deploy directory.'
 
 if [[ "$commit_supplied" == false ]]; then
   commit=$(git -C "$repo_root" rev-parse --verify HEAD 2>/dev/null) || die 'Git HEAD has no commit. Supply an explicit --commit SHA after creating a release commit.'
@@ -101,8 +101,8 @@ try:
     for relative in (
         "deploy/shared/compose.yaml",
         "deploy/shared/init-db.sh",
-        "scripts/deploy-release.sh",
-        ".env.shared.example",
+        "scripts/deploy/deploy-release.sh",
+        "deploy/shared/.env.example",
     ):
         source = repo / relative
         if source.is_symlink() or not source.is_file():
@@ -142,8 +142,8 @@ staging_dir=$(mktemp -d -- "$(dirname -- "$output_dir")/.amamihe-release.XXXXXXX
 # The fixed allowlist excludes private env files, workspace data, and TLS material.
 cp -- "$repo_root/deploy/shared/compose.yaml" "$staging_dir/compose.yaml"
 cp -- "$repo_root/deploy/shared/init-db.sh" "$staging_dir/init-db.sh"
-cp -- "$repo_root/scripts/deploy-release.sh" "$staging_dir/deploy-release.sh"
-cp -- "$repo_root/.env.shared.example" "$staging_dir/deployment.env.example"
+cp -- "$repo_root/scripts/deploy/deploy-release.sh" "$staging_dir/deploy-release.sh"
+cp -- "$repo_root/deploy/shared/.env.example" "$staging_dir/deployment.env.example"
 
 # Save the immutable ID, not a tag that could change between inspect and save.
 if ! local_docker image save "$image_id" | gzip -n > "$staging_dir/image.tar.gz"; then

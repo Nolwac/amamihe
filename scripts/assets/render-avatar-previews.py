@@ -2,7 +2,7 @@
 import bpy, math
 from mathutils import Vector
 from pathlib import Path
-root=Path(__file__).resolve().parent.parent
+root=Path(__file__).resolve().parents[2]
 bpy.ops.object.select_all(action='SELECT');bpy.ops.object.delete(use_global=False)
 bpy.ops.import_scene.gltf(filepath=str(root/'public/assets/explorer.glb'))
 for o in bpy.context.scene.objects:

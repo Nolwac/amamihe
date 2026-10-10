@@ -16,7 +16,7 @@
     "test:browser": "playwright test",
     "format": "prettier --write src server tests scripts *.json *.ts",
     "format:check": "prettier --check src server tests scripts *.json *.ts",
-    "audit:browser": "node scripts/browser-audit.mjs"
+    "audit:browser": "node scripts/browser/browser-audit.mjs"
   },
   "repository": {
     "type": "git",

@@ -8,7 +8,7 @@ The first playable proof of concept must preserve 3D: a tutor creates and previe
 
 ## Current Delivery Status
 
-The technical foundation is implemented with a mock classifier in place of live OpenRouter access. Production build, storage checks, and local Chromium verification are available. [Render Free + Neon Free hosting](HOSTING.md) is prepared; deployment needs provider credentials and private-repository authorization. Physical 2 GB-device tests are not complete. See [STEP_01_STATUS.md](STEP_01_STATUS.md) for evidence and remaining limitations. The mock is the authorized Step 1 substitute, not a verified classification model.
+The technical foundation is implemented with a mock classifier in place of live OpenRouter access. Production build, storage checks, and local Chromium verification are available. [Render Free + Neon Free hosting](docs/deployment/HOSTING.md) is prepared; deployment needs provider credentials and private-repository authorization. Physical 2 GB-device tests are not complete. See [docs/status/STEP_01_STATUS.md](docs/status/STEP_01_STATUS.md) for evidence and remaining limitations. The mock is the authorized Step 1 substitute, not a verified classification model.
 
 ## Phase 1: Technical Decisions and Foundation
 

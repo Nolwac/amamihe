@@ -4,10 +4,11 @@ node_modules
 dist
 evidence
 test-results
-previews
+docs
 generated_images
 .env
 .env.*
 !.env.example
-.vps
+**/.vps
 backups
+**/deployment.env

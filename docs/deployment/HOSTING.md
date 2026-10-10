@@ -45,7 +45,7 @@ The implementation selects external PostgreSQL when `DATABASE_URL` is provided a
 
 The Docker image follows the same production requirement: supply `DATABASE_URL` at runtime. It does not mount a local database volume. Build with `docker build -t amamihe-preview .`, then run with a private environment file: `docker run --rm -p 3000:3000 --env-file .env amamihe-preview`.
 
-A prior image snapshot was built and exercised against a disposable local PostgreSQL server: production health, static HTML/GLB delivery, guest creation, checkpoint completion, idempotent rewards, and recovery after container restart passed. Startup without `DATABASE_URL` was rejected, and no local `.data` directory was created. The local build needed the platform's public interception CA mounted temporarily through BuildKit; TLS verification stayed enabled and the CA was absent from the resulting image. Details are recorded in `evidence/docker-hosting-smoke.json`; they do not establish a Neon account or public deployment. The current Dockerfile assigns runtime artifacts to the `node` user and runs without root, including when source files have restrictive permissions. Its fresh image passed local Compose health, verified TLS/HTTPS, checkpoint, restart, and backup/restore checks; see `evidence/vps-compose-local-smoke.json`.
+A prior image snapshot was built and exercised against a disposable local PostgreSQL server: production health, static HTML/GLB delivery, guest creation, checkpoint completion, idempotent rewards, and recovery after container restart passed. Startup without `DATABASE_URL` was rejected, and no local `.data` directory was created. The local build needed the platform's public interception CA mounted temporarily through BuildKit; TLS verification stayed enabled and the CA was absent from the resulting image. Details are recorded in `evidence/reports/docker-hosting-smoke.json`; they do not establish a Neon account or public deployment. The current Dockerfile assigns runtime artifacts to the `node` user and runs without root, including when source files have restrictive permissions. Its fresh image passed local Compose health, verified TLS/HTTPS, checkpoint, restart, and backup/restore checks; see `evidence/reports/vps-compose-local-smoke.json`.
 
 ## Access and cost controls
 
@@ -69,33 +69,33 @@ Sleeping free services are acceptable for this proof of concept. They are not an
 
 ## Optional single-VPS deployment
 
-`compose.yaml` runs the existing Node image, PostgreSQL 17, and Caddy on one Linux VPS. This is an optional alternative to the free Render/Neon recommendation; no VPS has been purchased or provisioned. Current advertised VPS and domain prices are summarized below; checkout totals, inventory, and registration availability require confirmation.
+`deploy/vps/compose.yaml` runs the existing Node image, PostgreSQL 17, and Caddy on one Linux VPS. This is an optional alternative to the free Render/Neon recommendation; no VPS has been purchased or provisioned. Current advertised VPS and domain prices are summarized below; checkout totals, inventory, and registration availability require confirmation.
 
 Start with **2 GB server RAM** for a bounded proof of concept, with room for the OS and Docker. The configured service limits total approximately 1.4 GB: app 512 MB, PostgreSQL 768 MB, Caddy 128 MB. This is a starting budget, not a concurrency guarantee. The browser still renders the 3D world; the VPS needs no GPU. Building the image can exceed available RAM while services are running: build on another machine and transfer the image, or stop the stack for an on-server build. Runtime memory limits do not constrain the image build.
 
-For an off-server build, `docker compose --env-file .env.vps build app` produces `amamihe-app:local`. Transfer it with `docker save`/`docker load`, then start the VPS stack with `docker compose --env-file .env.vps up -d --no-build`.
+For an off-server build, `docker compose --file deploy/vps/compose.yaml --env-file .env.vps build app` produces `amamihe-app:local`. Transfer it with `docker save`/`docker load`, then start the VPS stack with `docker compose --file deploy/vps/compose.yaml --env-file .env.vps up -d --no-build`.
 
 Install Docker Engine with Compose v2 and OpenSSL on the chosen host. Point an owned DNS name at its public IP and permit inbound TCP 80/443 for Caddy's automatic HTTPS; UDP 443 is optional for HTTP/3. Preserve SSH administration access when configuring the firewall. The database and application have no published host ports.
 
 Prepare the private configuration from the repository root:
 
 ```sh
-cp .env.vps.example .env.vps
+cp deploy/vps/.env.example .env.vps
 chmod 600 .env.vps
 chmod 755 deploy/vps/init-db.sh
-chmod 644 Caddyfile
+chmod 644 deploy/vps/Caddyfile
 openssl rand -hex 32
 openssl rand -hex 32
 # Edit .env.vps with the hostname, contact email, and two independent passwords.
-sudo bash scripts/vps-db-tls.sh
-docker compose --env-file .env.vps config --quiet
-docker compose --env-file .env.vps up -d --build
-docker compose --env-file .env.vps ps
+sudo VPS_TLS_DIR=deploy/vps/.vps/tls bash scripts/deploy/vps-db-tls.sh
+docker compose --file deploy/vps/compose.yaml --env-file .env.vps config --quiet
+docker compose --file deploy/vps/compose.yaml --env-file .env.vps up -d --build
+docker compose --file deploy/vps/compose.yaml --env-file .env.vps ps
 ```
 
 The TLS helper creates a private CA and a one-year PostgreSQL server certificate with `postgres` as its verified hostname. The app trusts the mounted public CA through `NODE_EXTRA_CA_CERTS` and uses `sslmode=verify-full`; the existing plaintext restriction remains intact. The official Debian PostgreSQL image's UID 999 owns its private key. PostgreSQL is attached only to an internal database network; Caddy cannot connect to it directly. The app runs as UID 1000 with a read-only filesystem and a writable temporary directory. Caddy exposes HTTPS for the same-origin browser/API session and keeps ACME certificates in persistent named volumes.
 
-Initialization creates an application database owner without superuser, role-creation, or additional-database privileges and rejects plaintext network database connections. Local maintenance uses its Unix socket. Initialization runs only for an empty PostgreSQL volume; editing passwords in `.env.vps` does not rotate an existing database's credentials. Preserve `.env.vps` and `.vps/tls/` privately and renew the database leaf certificate before expiry. The helper refuses to overwrite existing TLS material. Never use `docker compose down --volumes` to stop a populated deployment: it removes the database and certificate volumes.
+Initialization creates an application database owner without superuser, role-creation, or additional-database privileges and rejects plaintext network database connections. Local maintenance uses its Unix socket. Initialization runs only for an empty PostgreSQL volume; editing passwords in `.env.vps` does not rotate an existing database's credentials. Preserve `.env.vps` and `deploy/vps/.vps/tls/` privately and renew the database leaf certificate before expiry. The helper refuses to overwrite existing TLS material. Never use `docker compose down --volumes` to stop a populated deployment: it removes the database and certificate volumes.
 
 Health checks gate database → app → proxy startup, with automatic restart policies and bounded container logs. The PostgreSQL check runs a real query; local proxy hops stay inside the container network. The three-service configuration passed local health, trusted-CA HTTPS, secure-cookie, checkpoint, idempotency, restart, and backup/restore checks. Unknown database CAs, certificate hostname mismatches, and plaintext network connections were rejected. Local browser CA trust was not modified, and browser HTTPS verification was not counted as passed. These checks do not establish a public deployment; validate the actual public HTTPS page and restart recovery before recording a preview URL.
 
@@ -109,18 +109,18 @@ Create a protected logical backup and keep a copy outside the VPS:
 umask 077
 mkdir -p backups
 backup_file="backups/amamihe-$(date -u +%Y%m%d-%H%M%S).dump"
-docker compose --env-file .env.vps exec -T postgres \
+docker compose --file deploy/vps/compose.yaml --env-file .env.vps exec -T postgres \
   pg_dump -U amamihe -d amamihe --format=custom > "$backup_file"
 ```
 
 Restore replaces current learner records. Stop the app, restore the selected backup into the initialized database, then restart and verify recovery:
 
 ```sh
-docker compose --env-file .env.vps stop app
-docker compose --env-file .env.vps exec -T postgres \
+docker compose --file deploy/vps/compose.yaml --env-file .env.vps stop app
+docker compose --file deploy/vps/compose.yaml --env-file .env.vps exec -T postgres \
   pg_restore -U amamihe -d amamihe --clean --if-exists --no-owner --exit-on-error \
   < backups/SELECTED_BACKUP.dump
-docker compose --env-file .env.vps start app
+docker compose --file deploy/vps/compose.yaml --env-file .env.vps start app
 ```
 
 Database backups do not replace the private environment file, PostgreSQL TLS material, or Caddy certificate volumes. PostgreSQL, Caddy, and Docker security updates and a tested restore procedure remain host-maintenance responsibilities.

@@ -2,6 +2,25 @@
 
 A browser-based 3D human-simulation learning world. This repository implements the first technical foundation: an explorable neighborhood, guest avatars, a small authored checkpoint, persistent progress, and a mock classification adapter.
 
+## Repository Layout
+
+```text
+src/                 React interface and Babylon.js scenes
+server/              Fastify API, storage, and mock classification
+tests/               Node and Playwright checks
+public/assets/       Assets served by the game
+scripts/assets/      Mesh, texture, and avatar builders
+scripts/browser/     Browser captures and performance audits
+scripts/deploy/      Release, deployment, and database TLS helpers
+deploy/shared/       Shared-VPS configuration and public env template
+deploy/vps/          Standalone-VPS Compose, Caddy, and env template
+docs/                Asset, design, deployment, and status documentation
+evidence/reports/    Measured verification reports
+evidence/screenshots/ Actual browser captures
+```
+
+See the [documentation index](docs/README.md). Architecture, implementation milestones, and product rules remain at the root. Root build configuration stays where the tools expect it, including `Dockerfile` and the Render blueprint `render.yaml`.
+
 ## Implemented Foundation
 
 - React/TypeScript interface and Babylon.js scene with course houses, an avatar, movement, camera orbit, and house interaction.
@@ -68,18 +87,18 @@ The next level is a recommendation display, not a playable implemented course le
 
 ## Evidence and Limits
 
-See [STEP_01_STATUS.md](STEP_01_STATUS.md) and `evidence/browser-audit.json` for current results. CPU/network emulation is not proof of compatibility with every physical 2 GB phone or laptop. The audit reports JavaScript heap and a Linux browser-process memory snapshot separately; neither establishes physical-device performance.
+See [docs/status/STEP_01_STATUS.md](docs/status/STEP_01_STATUS.md) and `evidence/reports/browser-audit.json` for current results. CPU/network emulation is not proof of compatibility with every physical 2 GB phone or laptop. The audit reports JavaScript heap and a Linux browser-process memory snapshot separately; neither establishes physical-device performance.
 
 Step 1 does not implement the tutor studio, full curriculum/training environment, timed chase/racing/wrestling mechanics, real multiplayer, portals, ads, Learning Police, or a live OpenRouter model. Other avatars are local NPCs. Low uses two baked braided residents and two short-haired residents; Medium/High retain idle animation on the braided pair. The player remains animated at every quality. Rendering pauses behind checkpoint panels and when the tab is hidden.
 
 ## Preview Deployment
 
-The application serves the client and API at one origin. The selected target is an existing shared VPS and `amamihe.online`; [DEPLOYMENT.md](DEPLOYMENT.md) describes isolated containers, immutable releases, private configuration, and deployment checks. The application port binds to loopback behind an inspected HTTPS route. Database ports remain private. Existing services and their listeners must be preserved.
+The application serves the client and API at one origin. The selected target is an existing shared VPS and `amamihe.online`; [docs/deployment/DEPLOYMENT.md](docs/deployment/DEPLOYMENT.md) describes isolated containers, immutable releases, private configuration, and deployment checks. The application port binds to loopback behind an inspected HTTPS route. Database ports remain private. Existing services and their listeners must be preserved.
 
 Local production-container checks passed for HTTPS delivery, assessment completion, database TLS, restart recovery, and backup/restore. The attached cloud session lacks an active Tailscale connection and TCP grants; its environment draft is stale. Remote deployment and public browser verification remain blocked. No public preview URL has been established.
 
-[HOSTING.md](HOSTING.md) retains **Render Free + Neon Free** as an alternative. Guest authentication and rate limits are prototype safeguards, not a production account system. No OpenRouter calls or purchased assets were used. Asset provenance and optional Blender rebuild commands are documented in [ASSETS.md](ASSETS.md).
+[docs/deployment/HOSTING.md](docs/deployment/HOSTING.md) retains **Render Free + Neon Free** as an alternative. Guest authentication and rate limits are prototype safeguards, not a production account system. No OpenRouter calls or purchased assets were used. Asset provenance and optional Blender rebuild commands are documented in [docs/assets/ASSETS.md](docs/assets/ASSETS.md).
 
 ## Visual Implementation
 
-The fullscreen world uses a rigged explorer GLB with authored idle/walk clips, a separate dressing-room scene, locally rendered avatar portraits and outfit thumbnails, and house entrances with visible interiors. Low downloads a 14,473-triangle, 25-joint derivative and uses CPU skinning, static resident poses, simpler lighting, and adaptive render resolution. The course action is anchored to its 3D sign; the minimap tracks position. HUD groups use shared screen margins and responsive rules. `node scripts/capture-visuals.mjs` records actual browser captures. Playwright allows 120 seconds for complete journeys with multiple software-WebGL scene restores; that timeout does not establish rendering performance. `audit:browser` measures the performance budget separately.
+The fullscreen world uses a rigged explorer GLB with authored idle/walk clips, a separate dressing-room scene, locally rendered avatar portraits and outfit thumbnails, and house entrances with visible interiors. Low downloads a 14,473-triangle, 25-joint derivative and uses CPU skinning, static resident poses, simpler lighting, and adaptive render resolution. The course action is anchored to its 3D sign; the minimap tracks position. HUD groups use shared screen margins and responsive rules. `node scripts/browser/capture-visuals.mjs` records actual browser captures. Playwright allows 120 seconds for complete journeys with multiple software-WebGL scene restores; that timeout does not establish rendering performance. `audit:browser` measures the performance budget separately.

@@ -16,25 +16,25 @@ page.on("response", (r) => {
   if (r.status() >= 400) errors.push(r.status() + " " + r.url());
 });
 page.on("pageerror", (e) => errors.push(e.message));
-await mkdir("evidence", { recursive: true });
+await mkdir("evidence/screenshots", { recursive: true });
 await page.goto(process.env.PREVIEW_URL || "http://127.0.0.1:3000");
 await page.getByLabel("Your explorer name").waitFor();
 await page.locator("canvas[data-avatar-ready=true]").waitFor();
 await page.waitForTimeout(500);
 await page.screenshot({
-  path: "evidence/avatar-studio-current.png",
+  path: "evidence/screenshots/avatar-studio-current.png",
   fullPage: true,
 });
 await page.setViewportSize({ width: 390, height: 844 });
 await page.waitForTimeout(900);
 await page.screenshot({
-  path: "evidence/avatar-studio-phone-current.png",
+  path: "evidence/screenshots/avatar-studio-phone-current.png",
   fullPage: true,
 });
 await page.setViewportSize({ width: 640, height: 900 });
 await page.waitForTimeout(900);
 await page.screenshot({
-  path: "evidence/avatar-studio-tablet-current.png",
+  path: "evidence/screenshots/avatar-studio-tablet-current.png",
   fullPage: true,
 });
 await page.setViewportSize({ width: 1440, height: 900 });
@@ -49,21 +49,21 @@ await page.locator("canvas[data-avatar-ready=true]").waitFor();
 await page.locator("canvas[data-residents-ready=true]").waitFor();
 await page.waitForTimeout(1200);
 await page.screenshot({
-  path: "evidence/course-streets-current.png",
+  path: "evidence/screenshots/course-streets-current.png",
   fullPage: true,
 });
 await page.setViewportSize({ width: 390, height: 844 });
 await page.waitForTimeout(1500);
 await page.screenshot({
-  path: "evidence/course-streets-phone-current.png",
+  path: "evidence/screenshots/course-streets-phone-current.png",
   fullPage: true,
 });
 console.log(
   JSON.stringify({
     errors,
-    desktopScene: "evidence/course-streets-current.png",
-    avatarScene: "evidence/avatar-studio-current.png",
-    mobileScene: "evidence/course-streets-phone-current.png",
+    desktopScene: "evidence/screenshots/course-streets-current.png",
+    avatarScene: "evidence/screenshots/avatar-studio-current.png",
+    mobileScene: "evidence/screenshots/course-streets-phone-current.png",
   }),
 );
 await browser.close();

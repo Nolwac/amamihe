@@ -1,13 +1,13 @@
 """Freeze the final explorer as a lighter, static street resident.
 
-Run after build-avatar.py: blender -b -t 4 -P scripts/build-explorer-resident.py
+Run after build-avatar.py: blender -b -t 4 -P scripts/assets/build-explorer-resident.py
 Retains the same skin UVs/material names so runtime cloth palettes are shared.
 No animation or skeleton evaluation is needed for this background LOD.
 """
 import bpy, bmesh, math, json, struct, hashlib
 from pathlib import Path
 from mathutils import Vector, Quaternion
-root=Path(__file__).resolve().parent.parent
+root=Path(__file__).resolve().parents[2]
 bpy.ops.object.select_all(action='SELECT');bpy.ops.object.delete(use_global=False)
 bpy.ops.import_scene.gltf(filepath=str(root/'public/assets/explorer.glb'))
 arm=bpy.data.objects['Character'];body=bpy.data.objects['Explorer'];arm.animation_data_clear()

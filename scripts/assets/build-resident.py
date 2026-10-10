@@ -1,6 +1,6 @@
 """Build a static civilian resident from the Michelle/Mixamo anatomical mesh.
 
-Run: blender -b -t 4 -P scripts/build-resident.py -- /path/to/Michelle.glb
+Run: blender -b -t 4 -P scripts/assets/build-resident.py -- /path/to/Michelle.glb
 Run build-avatar.py first; this resident uses its cleaned explorer.glb anatomy.
 Official source: github.com/mrdoob/three.js/blob/dev/examples/models/gltf/Michelle.glb
 Source SHA256 is pinned below. Mixamo characters may be used in games under
@@ -11,7 +11,7 @@ import bpy, bmesh, math, sys, hashlib, json, struct
 from collections import defaultdict
 from mathutils import Vector, Quaternion
 from pathlib import Path
-root = Path(__file__).resolve().parent.parent
+root = Path(__file__).resolve().parents[2]
 source = Path(sys.argv[sys.argv.index('--') + 1])
 assert hashlib.sha256(source.read_bytes()).hexdigest() == '7a87e15a99ccbc5e5877be66e1e4ecae0a581adcafa0cce1a5569f49909e968e'
 bpy.ops.object.select_all(action='SELECT'); bpy.ops.object.delete(use_global=False)

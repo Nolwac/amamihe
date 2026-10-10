@@ -5,7 +5,7 @@ import math
 import random
 from PIL import Image, ImageDraw, ImageFilter
 
-OUT = Path(__file__).resolve().parents[1] / "public/assets/world"
+OUT = Path(__file__).resolve().parents[2] / "public/assets/world"
 OUT.mkdir(parents=True, exist_ok=True)
 rng = random.Random(481)
 

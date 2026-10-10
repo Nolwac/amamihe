@@ -2,7 +2,7 @@
 
 ## Project Structure & Module Organization
 
-`src/` contains the React interface and Babylon.js scenes. `server/` contains the Fastify API, storage adapter, schema, and mock classifier. `tests/` holds Node and Playwright checks. `public/assets/` contains game meshes, textures, and avatar thumbnails; `scripts/` provides asset builders, capture/audit tools, and hosting helpers. Use `previews/` for scene references and `evidence/` for measured browser results. Architecture, product rules, delivery status, and hosting instructions live in root Markdown files. Local PGlite data belongs in ignored `.data/`.
+`src/` contains the React interface and Babylon.js scenes; `server/` contains the Fastify API, storage adapter, schema, and mock classifier. `tests/` holds Node and Playwright checks. Runtime assets belong in `public/assets/`. Group utilities under `scripts/assets/`, `scripts/browser/`, or `scripts/deploy/`. Supporting documentation lives in `docs/`; concept scenes in `docs/design/previews/`; verification reports and screenshots in `evidence/reports/` and `evidence/screenshots/`. Host configuration belongs in `deploy/shared/` or `deploy/vps/`. Local PGlite data belongs in ignored `.data/`.
 
 ## Build, Test, and Development Commands
 
@@ -12,7 +12,7 @@ Run `npm run typecheck`, `npm run format:check`, `npm test`, and `npm run test:b
 
 ## Coding Style & Naming Conventions
 
-Use strict TypeScript, two-space indentation, and Prettier (`npm run format`). Name React components in PascalCase and functions/variables in camelCase. Keep changes focused. Record third-party asset provenance in `ASSETS.md`; rebuild Low derivatives after changing their source meshes.
+Use strict TypeScript, two-space indentation, and Prettier (`npm run format`). Name React components in PascalCase and functions/variables in camelCase. Keep changes focused. Record third-party asset provenance in `docs/assets/ASSETS.md`; rebuild Low derivatives after changing their source meshes.
 
 ## Testing Guidelines
 
@@ -20,7 +20,7 @@ Use `*.test.ts` for Node policy, storage, and asset checks; use `browser.spec.ts
 
 ## Commit & Pull Request Guidelines
 
-No existing commit history establishes a convention. Use short imperative subjects, such as `Fix checkpoint recovery`. Explain behavior, purpose, and verification in pull requests; link related issues and include actual browser captures for visible changes. Document dependencies and configuration requirements.
+Use short imperative subjects, following the existing history, such as `Fix checkpoint recovery`. Explain behavior, purpose, and verification in pull requests; link related issues and include actual browser captures for visible changes. Document dependencies and configuration requirements.
 
 ## Product and Configuration Rules
 

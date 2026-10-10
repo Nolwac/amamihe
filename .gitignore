@@ -6,8 +6,9 @@ test-results/
 .env
 .env.*
 !.env.example
-!.env.vps.example
-!.env.shared.example
-.vps/
+!deploy/**/.env.example
+**/.vps/
 backups/
 *.log
+__pycache__/
+**/deployment.env

@@ -120,13 +120,14 @@ try {
     limitations:
       "CPU/network emulation is not a physical 2 GB device test. Browser process PSS is a Linux snapshot, excludes OS/background apps and hardware GPU allocations; RSS double-counts shared pages. Timing includes automated guest entry. Software rendering is not a hardware GPU benchmark. Encoded-body totals include resources reused from cache; networkEncodedBodyBytes excludes cache hits and transferBytes includes document/resource HTTP overhead, but excludes connection/TLS overhead.",
   };
-  await mkdir("evidence", { recursive: true });
+  await mkdir("evidence/reports", { recursive: true });
+  await mkdir("evidence/screenshots", { recursive: true });
   await writeFile(
-    "evidence/browser-audit.json",
+    "evidence/reports/browser-audit.json",
     JSON.stringify(result, null, 2),
   );
   await page.screenshot({
-    path: "evidence/venture-city-mobile.png",
+    path: "evidence/screenshots/venture-city-mobile.png",
     fullPage: true,
   });
   console.log(JSON.stringify(result, null, 2));

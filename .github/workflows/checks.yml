@@ -13,8 +13,8 @@ jobs:
           cache: npm
       - name: Validate deployment helper syntax
         run: |
-          bash -n scripts/build-release.sh scripts/deploy-release.sh \
-            scripts/vps-db-tls.sh deploy/shared/init-db.sh
+          bash -n scripts/deploy/build-release.sh scripts/deploy/deploy-release.sh \
+            scripts/deploy/vps-db-tls.sh deploy/shared/init-db.sh
       - name: Validate shared Compose configuration
         run: docker compose --env-file /dev/null --file deploy/shared/compose.yaml config --quiet
         env:
@@ -54,7 +54,7 @@ jobs:
         run: docker build --tag amamihe-release:"$GITHUB_SHA" .
       - name: Package immutable release
         run: |
-          bash scripts/build-release.sh \
+          bash scripts/deploy/build-release.sh \
             --image "amamihe-release:$GITHUB_SHA" \
             --commit "$GITHUB_SHA" \
             --output "$RUNNER_TEMP/amamihe-release"

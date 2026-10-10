@@ -179,7 +179,7 @@ Support solo progression alongside social play. Define communication permissions
 
 ## Recommended Technical Baseline
 
-The React/TypeScript, Babylon.js, Fastify, PostgreSQL, and review-scheduling foundation is implemented and locally verified. Later-phase components below remain architecture targets. Public hosting is prepared but requires account access; live OpenRouter classification is deferred. See [foundation status](STEP_01_STATUS.md) and [hosting configuration](HOSTING.md) for verified implementation boundaries.
+The React/TypeScript, Babylon.js, Fastify, PostgreSQL, and review-scheduling foundation is implemented and locally verified. Later-phase components below remain architecture targets. Public hosting is prepared but requires account access; live OpenRouter classification is deferred. See [foundation status](docs/status/STEP_01_STATUS.md) and [hosting configuration](docs/deployment/HOSTING.md) for verified implementation boundaries.
 
 | Area | Recommendation | Rationale |
 | --- | --- | --- |
