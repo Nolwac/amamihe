@@ -187,7 +187,9 @@ openssl x509 -in "$shared/tls/server.crt" -checkhost postgres -noout >/dev/null
 openssl x509 -in "$shared/tls/server.crt" -checkend 86400 -noout >/dev/null
 
 # Refuse a namespace collision instead of adopting/removing pre-existing services.
-container_ids=$( { dk ps -aq --filter name=amamihe- && dk ps -aq --filter label=com.docker.compose.project=amamihe; } | sort -u)
+# Docker name filtering is a regex substring match unless explicitly anchored.
+# Build workers and unrelated containers may contain this text in their names.
+container_ids=$( { dk ps -aq --filter 'name=^/amamihe-' && dk ps -aq --filter label=com.docker.compose.project=amamihe; } | sort -u)
 for container in $container_ids; do
   labels=$(dk inspect "$container" --format '{{index .Config.Labels "io.amamihe.deployment"}}|{{index .Config.Labels "com.docker.compose.project"}}|{{index .Config.Labels "com.docker.compose.service"}}')
   [[ $labels == 'shared-vps-v1|amamihe|app' || $labels == 'shared-vps-v1|amamihe|postgres' ]] || fail 'An existing container conflicts with the reserved Amamihe project.'
