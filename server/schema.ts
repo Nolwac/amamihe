@@ -6,6 +6,13 @@ CREATE TABLE IF NOT EXISTS attempts (id TEXT PRIMARY KEY, player_id TEXT REFEREN
 CREATE TABLE IF NOT EXISTS chunks (attempt_id TEXT REFERENCES attempts(id), question_id TEXT NOT NULL, answer INTEGER NOT NULL, assisted BOOLEAN NOT NULL, elapsed_ms INTEGER NOT NULL, PRIMARY KEY(attempt_id, question_id));
 CREATE TABLE IF NOT EXISTS assistance (attempt_id TEXT REFERENCES attempts(id), question_id TEXT NOT NULL, PRIMARY KEY(attempt_id, question_id));`);
   await db.exec(`
+CREATE TABLE IF NOT EXISTS player_inventory (player_id TEXT REFERENCES players(id), gear_id TEXT NOT NULL, PRIMARY KEY(player_id,gear_id));
+CREATE TABLE IF NOT EXISTS player_badges (player_id TEXT REFERENCES players(id), badge_id TEXT NOT NULL, title TEXT NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT now(), PRIMARY KEY(player_id,badge_id));
+CREATE TABLE IF NOT EXISTS reward_ledger (player_id TEXT REFERENCES players(id), event_id TEXT NOT NULL, amount INTEGER NOT NULL, reason TEXT NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT now(), PRIMARY KEY(player_id,event_id));
+INSERT INTO reward_ledger(player_id,event_id,amount,reason)
+SELECT p.id,'opening:step4',p.points,'Pre-ledger activity balance' FROM players p
+WHERE NOT EXISTS (SELECT 1 FROM reward_ledger r WHERE r.player_id=p.id)
+ON CONFLICT DO NOTHING;
 CREATE TABLE IF NOT EXISTS accounts (email TEXT PRIMARY KEY, player_id TEXT UNIQUE NOT NULL REFERENCES players(id), password_hash TEXT NOT NULL, verified_at TIMESTAMPTZ NOT NULL DEFAULT now());
 CREATE TABLE IF NOT EXISTS auth_sessions (token_hash TEXT PRIMARY KEY, player_id TEXT NOT NULL REFERENCES players(id), expires_at TIMESTAMPTZ NOT NULL);
 CREATE INDEX IF NOT EXISTS auth_sessions_player ON auth_sessions(player_id);

@@ -9,6 +9,7 @@ Product architecture, implementation milestones, and mandatory rules remain at t
 - [Foundation delivery status](status/STEP_01_STATUS.md)
 - [Course studio delivery status](status/STEP_02_STATUS.md)
 - [Learning assessment delivery status](status/STEP_03_STATUS.md)
+- [Playable adventures and rewards](status/STEP_04_STATUS.md)
 - [Course authoring and versioning](authoring/COURSES.md)
 - [Live Contabo operations](../deploy/contabo/README.md)
 

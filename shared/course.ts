@@ -97,6 +97,9 @@ export type LearningProgress = {
   finished: boolean;
   assisted?: boolean;
   feedback?: string;
+  game?: import("./gameplay.js").GameState;
+  levelProgress?: { cleared: number; total: number };
+  activity?: { correct: boolean; independent: boolean; elapsedMs: number };
   blocked?: boolean;
   blockReason?: string;
   question?: PublicCourseQuestion;

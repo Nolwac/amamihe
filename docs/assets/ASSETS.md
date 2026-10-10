@@ -61,3 +61,12 @@ Low renders two residents from each static asset. Medium and High use two animat
 ## Baked Material Tiles
 
 `scripts/assets/build-world-materials.py` generates original tiling plaster, limestone, wood, and leaf textures in `public/assets/world/`. The four WebP files total approximately 16 KB. They are applied to geometry; they do not replace the rendered world with an illustration. Rebuilding requires Python and Pillow; runtime installation uses the checked-in files.
+
+
+## Course Adventure Geometry
+
+`src/CourseScene.tsx` builds temple bridges, stone guardians, checkpoint rings,
+race markers, and sparring rings as original procedural meshes. Temple stone uses
+the existing local limestone tile. Human course rivals reuse the existing explorer
+rig and Idle/Walk clips; no new third-party assets or services are introduced.
+The avatar wardrobe adds Azure and Plum material palettes to the existing jacket.

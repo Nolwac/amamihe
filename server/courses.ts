@@ -5,6 +5,8 @@ import {
   type Evidence,
   type ClassificationProvider,
 } from "./assessment.js";
+import { newGame, tickGame } from "./gameplay.js";
+import type { GameState } from "../shared/gameplay.js";
 import { randomUUID } from "node:crypto";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import type { Authentication } from "./auth.js";
@@ -90,6 +92,8 @@ type StoredProgress = {
   satisfiedQuestionIds: string[];
   assisted: boolean;
   feedback?: string;
+  game?: GameState;
+  activity?: LearningProgress["activity"];
   completedLevelIds: string[];
   usedRetryQuestionIds: string[];
   points: number;
@@ -332,7 +336,7 @@ function eligibleLevel(definition: CourseDefinition, completed: string[]) {
   );
 }
 function deliveryId(state: StoredProgress, question: CourseQuestion) {
-  return `${state.levelId}:${state.retry ? "retry" : "primary"}:${question.id}`;
+  return `${state.levelId}:${state.retry ? "retry" : "primary"}:${question.id}${state.game?.run ? ":run" + state.game.run : ""}`;
 }
 function currentQuestion(definition: CourseDefinition, state: StoredProgress) {
   const level = definition.levels.find((l) => l.id === state.levelId);
@@ -357,6 +361,12 @@ function progressResponse(
     retry: state.retry,
     assisted: state.assisted,
     feedback: state.feedback,
+    activity: state.activity,
+    game: state.game ?? newGame(level.timeLimitSeconds),
+    levelProgress: {
+      cleared: state.satisfiedQuestionIds.length,
+      total: level.questions.length,
+    },
     completedLevelIds: state.completedLevelIds,
     points: state.points,
     finished: state.finished,
@@ -472,7 +482,13 @@ async function classify(
     state.questionIndex = 0;
     state.retry = false;
     state.satisfiedQuestionIds = [];
-  } else state.finished = true;
+  } else {
+    state.finished = true;
+    await db.query(
+      "INSERT INTO player_badges(player_id,badge_id,title) VALUES($1,$2,$3) ON CONFLICT DO NOTHING",
+      [playerId, "course:" + id, definition.title + " · checkpoint finisher"],
+    );
+  }
 }
 
 export function registerCourses(
@@ -480,6 +496,7 @@ export function registerCourses(
   db: Database,
   auth: Authentication,
   provider: ClassificationProvider = mockProvider,
+  now: () => number = Date.now,
 ) {
   const player = async (req: FastifyRequest) => {
     const p = await auth.player(req.cookies.amamihe);
@@ -740,6 +757,53 @@ WHERE e.player_id=$1 ORDER BY e.updated_at DESC,e.course_id LIMIT 100`,
       return progressResponse(id, row.version, row.definition, row.progress);
     });
   });
+  for (const command of ["play", "pause", "tick"] as const)
+    route("POST", `/api/learning/:courseId/${command}`, async (req) => {
+      const p = await player(req),
+        id = param(req, "courseId");
+      const body = object(req.body);
+      return db.transaction(async (tx) => {
+        const row = await enrolled(tx, id, p.id),
+          state = row.progress;
+        const { level, question } = currentQuestion(row.definition, state);
+        if (
+          state.finished ||
+          state.blocked ||
+          state.assessment?.status === "pending" ||
+          !question ||
+          body.questionId !== deliveryId(state, question)
+        )
+          throw new CourseError("This game step is no longer active.", 409);
+        let game = tickGame(
+          state.game ?? newGame(level.timeLimitSeconds),
+          now(),
+        );
+        if (command === "play") {
+          if (game.status === "game-over")
+            game = newGame(
+              level.timeLimitSeconds,
+              game.multiplier,
+              game.run + 1,
+            );
+          if (game.status === "ready")
+            game = newGame(
+              level.timeLimitSeconds,
+              body.multiplier === undefined
+                ? game.multiplier
+                : integer(body.multiplier, "timer setting", 0, 2),
+              game.run,
+            );
+          if (game.status === "ready" || game.status === "paused") {
+            game.status = "active";
+            game.lastTick = now();
+          }
+        } else if (command === "pause" && game.status === "active")
+          game.status = "paused";
+        state.game = game;
+        await saveProgress(tx, id, p.id, state);
+        return progressResponse(id, row.version, row.definition, state);
+      });
+    });
   route("POST", "/api/learning/:courseId/classify", async (req) => {
     const p = await player(req);
     const id = param(req, "courseId");
@@ -768,6 +832,10 @@ WHERE e.player_id=$1 ORDER BY e.updated_at DESC,e.course_id LIMIT 100`,
         deliveryId(state, question) !== questionId
       )
         throw new CourseError("This question is no longer active.", 409);
+      if (state.game) {
+        state.game = tickGame(state.game, now());
+        if (state.game.status === "active") state.game.status = "paused";
+      }
       state.assisted = true;
       await saveProgress(tx, id, p.id, state);
       return { hint: question.hint, explanation: question.explanation };
@@ -797,7 +865,20 @@ WHERE e.player_id=$1 ORDER BY e.updated_at DESC,e.course_id LIMIT 100`,
         );
       if (answer >= question.options.length)
         throw new CourseError("Choose an available answer.");
+      if (!state.game || state.game.status === "ready")
+        throw new CourseError("Start this game step before submitting.", 409);
+      state.game = tickGame(state.game, now());
+      if (state.game.status === "game-over") {
+        await saveProgress(tx, id, p.id, state);
+        return progressResponse(id, row.version, row.definition, state);
+      }
+      const activityElapsedMs = state.game.elapsedMs;
       const correct = answer === question.answer;
+      state.activity = {
+        correct,
+        independent: correct && !state.assisted,
+        elapsedMs: activityElapsedMs,
+      };
       state.feedback =
         correct && !state.assisted ? undefined : question.explanation;
       await tx.query(
@@ -812,7 +893,7 @@ WHERE e.player_id=$1 ORDER BY e.updated_at DESC,e.course_id LIMIT 100`,
           answer,
           correct,
           state.assisted,
-          elapsedMs,
+          activityElapsedMs,
         ],
       );
       state.satisfiedQuestionIds ??= [];
@@ -856,6 +937,15 @@ WHERE e.player_id=$1 ORDER BY e.updated_at DESC,e.course_id LIMIT 100`,
         // The mock chooses the first authored level whose prerequisites are met.
         state.completedLevelIds.push(level.id);
         state.points += level.points;
+        await tx.query(
+          "INSERT INTO reward_ledger(player_id,event_id,amount,reason) VALUES($1,$2,$3,$4)",
+          [
+            p.id,
+            `course:${id}:v${row.version}:${level.id}`,
+            level.points,
+            "Independent activity clearance",
+          ],
+        );
         await tx.query("UPDATE players SET points=points+$2 WHERE id=$1", [
           p.id,
           level.points,
@@ -863,6 +953,7 @@ WHERE e.player_id=$1 ORDER BY e.updated_at DESC,e.course_id LIMIT 100`,
         state.assessmentLevelId = level.id;
         await classify(tx, id, p.id, row.definition, state, provider);
       }
+      state.game = undefined;
       await saveProgress(tx, id, p.id, state);
       return progressResponse(id, row.version, row.definition, state);
     });

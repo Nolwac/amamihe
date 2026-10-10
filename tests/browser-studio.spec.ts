@@ -138,6 +138,9 @@ test("tutor publishes an authored 3D course and a separate learner resumes and c
           exact: false,
         })
         .click();
+      await learnerPage
+        .getByRole("button", { name: "Start section", exact: true })
+        .click({ timeout: 30000 });
       const answered = learnerPage.waitForResponse((response) =>
         response.url().endsWith(`/api/learning/${original.id}/answer`),
       );

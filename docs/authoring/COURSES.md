@@ -49,3 +49,18 @@ Activity points are authoritative and awarded once per level. The post-clearance
 | `POST /api/learning/:courseId/answer` | Store an ordered response and return progress |
 
 Course saves accept at most 256 KiB; publication validates bounded lists and content sizes. No HTML or learner code is executed. Draft APIs require ownership; player evidence remains private. Public question payloads omit answers, hints, explanations, and rubrics.
+
+
+## Playing Published Themes
+
+The level's theme chooses Workshop, Temple Chase, Racing, or Wrestling. Its time
+budget applies to each delivered section task. A learner explicitly starts a
+section after the 3D scene loads; timeout repeats that step rather than the whole
+course. Correct independent tasks power action feedback, and level clearance
+records activity points before bounded mock assessment selects eligible content.
+
+Learners may pause or choose double/untimed play without changing answer keys,
+prerequisites, independent-retry requirements, or rewards. Help still records
+pedagogical assistance and requires a fresh independent retry. Confirmed course
+checkpoint completion earns a badge; accumulated points unlock cosmetic jackets
+from the wardrobe in Course Houses.

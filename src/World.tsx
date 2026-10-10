@@ -221,11 +221,15 @@ export default function World({
       const fabricCtx =
         fabricTexture.getContext() as unknown as CanvasRenderingContext2D;
       fabricCtx.fillStyle =
-        outfit === "teal"
-          ? "#288f83"
-          : outfit === "gold"
-            ? "#d9ab4e"
-            : "#b7603c";
+        outfit === "azure"
+          ? "#478ccc"
+          : outfit === "plum"
+            ? "#9964ba"
+            : outfit === "teal"
+              ? "#288f83"
+              : outfit === "gold"
+                ? "#d9ab4e"
+                : "#b7603c";
       fabricCtx.fillRect(0, 0, 256, 256);
       for (let row = 0; row < 4; row++)
         for (let col = 0; col < 4; col++) {
@@ -1244,11 +1248,15 @@ export default function World({
           player.animations = create(
             "explorer",
             player.root,
-            outfit === "teal"
-              ? "#e4fff3"
-              : outfit === "gold"
-                ? "#ffd273"
-                : "#ffa783",
+            outfit === "azure"
+              ? "#78b8ed"
+              : outfit === "plum"
+                ? "#bf94da"
+                : outfit === "teal"
+                  ? "#e4fff3"
+                  : outfit === "gold"
+                    ? "#ffd273"
+                    : "#ffa783",
             1.65,
             true,
           );

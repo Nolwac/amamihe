@@ -1,0 +1,39 @@
+{
+  "verifiedAt": "2026-10-10T22:22:26.126658+00:00",
+  "step": 4,
+  "localChecks": {
+    "build": "pass",
+    "format": "pass",
+    "node": {
+      "passed": 47,
+      "failed": 0,
+      "skipped": 1,
+      "skipReason": "Optional external PostgreSQL fixture not configured"
+    },
+    "browserSuite": {
+      "passed": 10,
+      "failed": 0
+    },
+    "followUpGameplay": {
+      "passed": 1,
+      "failed": 0,
+      "checks": [
+        "720p target",
+        "3D gate selects answer",
+        "exact step retry",
+        "four real 3D themes",
+        "mobile layout",
+        "badge",
+        "cosmetic idempotency",
+        "reload persistence"
+      ]
+    },
+    "openingLedgerMigration": "pass"
+  },
+  "boundaries": [
+    "Mock classification only",
+    "Public production checks run separately through CI",
+    "Physical 2 GB device validation and city performance gate remain open",
+    "Practical training competence not certified"
+  ]
+}

@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState, useRef } from "react";
 import type { LearningProgress } from "../shared/course";
 import "./courses.css";
 const CourseScene = lazy(() => import("./CourseScene"));
@@ -32,7 +32,87 @@ export default function CourseAdventure({
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [celebration, setCelebration] = useState(false);
+  useEffect(
+    () => () => {
+      window.speechSynthesis?.cancel();
+    },
+    [],
+  );
   const [started, setStarted] = useState(Date.now());
+  const [sceneReady, setSceneReady] = useState(false);
+  const [multiplier, setMultiplier] = useState(1);
+  const [reducedMotion, setReducedMotion] = useState(
+    () => window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+  );
+  const [clock, setClock] = useState(0);
+  const [boost, setBoost] = useState(0);
+  const [renderHeight, setRenderHeight] = useState(360);
+  const synced = useRef(Date.now());
+  const latest = useRef(progress);
+  latest.current = progress;
+  useEffect(() => {
+    synced.current = Date.now();
+  }, [progress]);
+  useEffect(() => {
+    const timer = window.setInterval(() => setClock(Date.now()), 200);
+    return () => window.clearInterval(timer);
+  }, []);
+  useEffect(() => {
+    if (progress?.game?.status !== "active" || !progress.question) return;
+    let pending = false,
+      alive = true;
+    const poll = window.setInterval(async () => {
+      if (pending || document.hidden) return;
+      pending = true;
+      try {
+        const next = await request<LearningProgress>(
+          "/learning/" + courseId + "/tick",
+          { questionId: latest.current?.question?.id },
+        );
+        if (alive && latest.current?.question?.id === next.question?.id)
+          setProgress(next);
+      } catch {
+        if (alive)
+          setError(
+            "Connection interrupted. Reconnect and reload saved progress; long connection gaps do not drain the section timer.",
+          );
+      } finally {
+        pending = false;
+      }
+    }, 2000);
+    const pause = () => {
+      if (document.hidden)
+        void request<LearningProgress>("/learning/" + courseId + "/pause", {
+          questionId: latest.current?.question?.id,
+        })
+          .then((next) => {
+            if (alive && latest.current?.question?.id === next.question?.id)
+              setProgress(next);
+          })
+          .catch(() => {});
+    };
+    document.addEventListener("visibilitychange", pause);
+    return () => {
+      alive = false;
+      window.clearInterval(poll);
+      document.removeEventListener("visibilitychange", pause);
+    };
+  }, [courseId, progress?.question?.id, progress?.game?.status]);
+  const elapsed =
+    (progress?.game?.elapsedMs ?? 0) +
+    (progress?.game?.status === "active"
+      ? Math.min(5000, Math.max(0, clock - synced.current))
+      : 0);
+  const remaining = Math.max(0, (progress?.game?.budgetMs ?? 0) - elapsed);
+  async function gameCommand(command: "play" | "pause") {
+    if (!progress?.question) return;
+    setProgress(
+      await request<LearningProgress>("/learning/" + courseId + "/" + command, {
+        questionId: progress.question.id,
+        multiplier,
+      }),
+    );
+  }
   useEffect(() => {
     let alive = true;
     request<LearningProgress>("/learning/" + courseId)
@@ -62,6 +142,7 @@ export default function CourseAdventure({
   }
   const question = progress?.question;
   const theme = progress?.level?.theme || "workshop";
+  useEffect(() => setSceneReady(false), [theme]);
   return (
     <section
       className="course-adventure course-overlay"
@@ -74,21 +155,80 @@ export default function CourseAdventure({
           </span>
           <h1>{progress?.level?.title || "Restoring your adventure"}</h1>
         </div>
-        <button onClick={onClose} className="course-secondary">
+        <button
+          onClick={() =>
+            run(async () => {
+              if (progress?.game?.status === "active")
+                await gameCommand("pause");
+              onClose();
+            })
+          }
+          className="course-secondary"
+        >
           Return to city
         </button>
       </header>
       <div className="adventure-grid">
         <div className="adventure-world">
           <Suspense fallback={<p>Loading 3D scenery…</p>}>
-            <CourseScene theme={theme} outfit={outfit} />
+            <CourseScene
+              theme={theme}
+              outfit={outfit}
+              onReady={() => setSceneReady(true)}
+              renderHeight={renderHeight}
+              onChoose={(i) => {
+                if (question && i < question.options.length) setAnswer(i);
+              }}
+              game={{
+                status:
+                  celebration || progress?.finished
+                    ? "cleared"
+                    : progress?.game?.status || "ready",
+                remaining,
+                budget: progress?.game?.budgetMs ?? 0,
+                progress:
+                  (progress?.levelProgress?.cleared ?? 0) /
+                  (progress?.levelProgress?.total || 1),
+                choice: answer,
+                boost,
+                reducedMotion,
+              }}
+            />
           </Suspense>
           <div className="adventure-scene-label">
             <span>{theme.replaceAll("-", " ")} · 3D preset</span>
             <small>
-              Task checkpoints are playable. Timed action mechanics follow in
-              Step 4.
+              {theme === "temple-chase"
+                ? "Complete tasks to escape the guardian."
+                : theme === "racing"
+                  ? "Independent answers boost your pace."
+                  : theme === "wrestling"
+                    ? "Independent answers power your strikes."
+                    : "Build skills at each workshop checkpoint."}
             </small>
+          </div>
+          <div
+            className="adventure-timer"
+            role="status"
+            aria-label="Section timer"
+          >
+            {progress?.game?.budgetMs
+              ? `${Math.ceil(remaining / 1000)}s`
+              : "UNTIMED"}
+            <small>
+              {progress?.game?.status?.replaceAll("-", " ") || "ready"}
+            </small>
+          </div>
+          <div
+            className="adventure-task-meter"
+            aria-label="Level task progress"
+          >
+            {progress?.levelProgress?.cleared || 0} /{" "}
+            {progress?.levelProgress?.total || 0} criteria
+            <progress
+              value={progress?.levelProgress?.cleared || 0}
+              max={progress?.levelProgress?.total || 1}
+            />
           </div>
           <div className="adventure-milestones">
             <strong>
@@ -119,7 +259,32 @@ export default function CourseAdventure({
               </button>
             </div>
           )}
-          {progress?.assessment?.status === "pending" ? (
+          {progress?.game?.status === "game-over" ? (
+            <section aria-label="Game Over" className="adventure-celebration">
+              <h2>Game Over</h2>
+              <p>
+                {theme === "temple-chase"
+                  ? "The guardian caught up."
+                  : theme === "racing"
+                    ? "The rival reached this checkpoint first."
+                    : "The section timer expired."}{" "}
+                Repeat this step; previous checkpoints are saved.
+              </p>
+              <button
+                className="primary"
+                disabled={busy}
+                onClick={() =>
+                  run(async () => {
+                    await gameCommand("play");
+                    setAnswer(null);
+                    setBoost(0);
+                  })
+                }
+              >
+                Retry this step
+              </button>
+            </section>
+          ) : progress?.assessment?.status === "pending" ? (
             <section aria-label="Pending assessment">
               <h2>Level cleared · assessment pending</h2>
               <p>
@@ -174,6 +339,12 @@ export default function CourseAdventure({
                 </p>
               )}
               <strong>+{progress?.result?.awardedPoints || 0} points</strong>
+              {progress?.finished && (
+                <p className="earned-badge">
+                  🏅 Checkpoint finisher badge earned · visit your wardrobe to
+                  unlock gear.
+                </p>
+              )}
               <button
                 className="primary"
                 onClick={
@@ -209,6 +380,83 @@ export default function CourseAdventure({
                 {progress!.questionIndex + 1}
               </span>
               <h2>{question.prompt}</h2>
+              <div className="game-controls">
+                <label>
+                  Graphics{" "}
+                  <select
+                    aria-label="Adventure graphics"
+                    value={renderHeight}
+                    onChange={(e) => setRenderHeight(Number(e.target.value))}
+                  >
+                    {[144, 360, 720, 1080].map((h) => (
+                      <option key={h} value={h}>
+                        {h}p
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  Section timing{" "}
+                  <select
+                    aria-label="Section timing"
+                    value={multiplier}
+                    disabled={progress?.game?.status !== "ready"}
+                    onChange={(e) => setMultiplier(Number(e.target.value))}
+                  >
+                    <option value={1}>Tutor time</option>
+                    <option value={2}>Double time</option>
+                    <option value={0}>Untimed</option>
+                  </select>
+                </label>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={reducedMotion}
+                    onChange={(e) => setReducedMotion(e.target.checked)}
+                  />{" "}
+                  Reduced motion
+                </label>
+                <button
+                  className="course-secondary"
+                  disabled={busy || !sceneReady}
+                  onClick={() =>
+                    run(() =>
+                      gameCommand(
+                        progress?.game?.status === "active" ? "pause" : "play",
+                      ),
+                    )
+                  }
+                >
+                  {!sceneReady
+                    ? "Loading adventure…"
+                    : progress?.game?.status === "active"
+                      ? "Pause section"
+                      : progress?.game?.status === "paused"
+                        ? "Resume section"
+                        : "Start section"}
+                </button>
+                {"speechSynthesis" in window && (
+                  <button
+                    className="course-secondary"
+                    onClick={() =>
+                      run(async () => {
+                        if (progress?.game?.status === "active")
+                          await gameCommand("pause");
+                        window.speechSynthesis.cancel();
+                        window.speechSynthesis.speak(
+                          new SpeechSynthesisUtterance(question.prompt),
+                        );
+                      })
+                    }
+                  >
+                    Read task aloud
+                  </button>
+                )}
+              </div>
+              <p className="gate-help">
+                Choose a 3D gate (left A, center B, right C) or use the answer
+                buttons.
+              </p>
               <div className="answers">
                 {question.options.map((option, i) => (
                   <button
@@ -249,7 +497,12 @@ export default function CourseAdventure({
               <div className="course-task-actions">
                 <button
                   className="primary"
-                  disabled={busy || answer === null}
+                  disabled={
+                    busy ||
+                    answer === null ||
+                    !progress?.game ||
+                    progress.game.status === "ready"
+                  }
                   onClick={() =>
                     run(async () => {
                       const next = await request<LearningProgress>(
@@ -266,6 +519,22 @@ export default function CourseAdventure({
                       setCelebration(
                         next.completedLevelIds.length >
                           progress!.completedLevelIds.length,
+                      );
+                      setBoost(
+                        next.activity?.independent
+                          ? Math.max(
+                              0.3,
+                              1 -
+                                Math.min(
+                                  1,
+                                  next.activity.elapsedMs /
+                                    Math.max(
+                                      1000,
+                                      progress!.game?.budgetMs || 60000,
+                                    ),
+                                ),
+                            )
+                          : 0,
                       );
                       setProgress(next);
                       setAnswer(null);
@@ -289,6 +558,11 @@ export default function CourseAdventure({
                         questionId: question.id,
                       });
                       setHelp(result.hint + " " + result.explanation);
+                      setProgress(
+                        await request<LearningProgress>(
+                          "/learning/" + courseId,
+                        ),
+                      );
                     })
                   }
                 >
@@ -306,7 +580,16 @@ export default function CourseAdventure({
             >
               <h3>Workbench resources</h3>
               {progress.resources.map((resource) => (
-                <details key={resource.id}>
+                <details
+                  key={resource.id}
+                  onToggle={(e) => {
+                    if (
+                      e.currentTarget.open &&
+                      latest.current?.game?.status === "active"
+                    )
+                      void gameCommand("pause").catch(() => {});
+                  }}
+                >
                   <summary>
                     {resource.title}
                     <span>{resource.kind}</span>

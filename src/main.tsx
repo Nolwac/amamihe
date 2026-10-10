@@ -14,6 +14,7 @@ import "./game.css";
 const World = lazy(() => import("./World"));
 const TutorStudio = lazy(() => import("./TutorStudio"));
 const CourseAdventure = lazy(() => import("./CourseAdventure"));
+const WardrobeShop = lazy(() => import("./WardrobeShop"));
 const CourseScene = lazy(() => import("./CourseScene"));
 import type { CourseSummary } from "../shared/course";
 import "./courses.css";
@@ -197,7 +198,10 @@ function App() {
   );
   const refreshPoints = () =>
     api<{ player: Player }>("/session")
-      .then((s) => setPlayer(s.player))
+      .then((s) => {
+        setPlayer(s.player);
+        setOutfit(s.player.outfit);
+      })
       .catch((e) => setError(e.message));
   useEffect(() => {
     api<{
@@ -646,6 +650,9 @@ function App() {
               Return to city
             </button>
           </header>
+          <Suspense fallback={<p>Opening wardrobe…</p>}>
+            <WardrobeShop onChanged={refreshPoints} />
+          </Suspense>
           {enrollments.length > 0 && (
             <div
               className="course-directory-grid"
@@ -767,8 +774,8 @@ function App() {
             </div>
             <p className="mock-note">
               MOCK CLASSIFIER · Your enrollment stays on this published version.
-              Practice checkpoints run in 3D scenery; action mechanics follow in
-              Step 4.
+              Task-driven adventures include timed sections, step retries, and
+              cosmetic rewards.
             </p>
             <button
               className="primary"

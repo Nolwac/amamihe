@@ -1,3 +1,4 @@
+import { registerRewards } from "./rewards.js";
 import Fastify from "fastify";
 import cookie from "@fastify/cookie";
 import rateLimit from "@fastify/rate-limit";
@@ -69,6 +70,7 @@ async function player(req: { cookies: Record<string, string | undefined> }) {
 }
 registerAuthentication(app, auth);
 registerCourses(app, db, auth);
+registerRewards(app, db, auth);
 app.get("/api/health", async () => {
   await db.query("SELECT 1");
   return {
@@ -80,6 +82,8 @@ app.get("/api/health", async () => {
       courseStudio: true,
       courseVersions: true,
       learningAssessment: true,
+      playableThemes: true,
+      cosmeticRewards: true,
     },
   };
 });
@@ -267,6 +271,15 @@ app.post<{ Params: { id: string } }>(
         await tx.query(
           "UPDATE attempts SET status='complete',result=$1 WHERE id=$2",
           [JSON.stringify(result), req.params.id],
+        );
+        await tx.query(
+          "INSERT INTO reward_ledger(player_id,event_id,amount,reason) VALUES($1,$2,$3,$4)",
+          [
+            p.id,
+            "foundation:" + req.params.id,
+            result.points,
+            "Foundation activity clearance",
+          ],
         );
         await tx.query("UPDATE players SET points=points+$1 WHERE id=$2", [
           result.points,

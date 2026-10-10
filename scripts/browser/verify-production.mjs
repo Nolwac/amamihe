@@ -39,6 +39,8 @@ while (true) {
       candidate.release === commit &&
       candidate.features?.courseStudio &&
       candidate.features?.learningAssessment &&
+      candidate.features?.playableThemes &&
+      candidate.features?.cosmeticRewards &&
       candidate.storage === "PostgreSQL"
     ) {
       const html = await fetch(base + "/", {
@@ -105,6 +107,10 @@ try {
   );
   assert.equal(
     (await context.request.get(base + "/api/studio/courses")).status(),
+    401,
+  );
+  assert.equal(
+    (await context.request.get(base + "/api/rewards")).status(),
     401,
   );
   const catalogue = await context.request.get(

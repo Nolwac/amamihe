@@ -288,3 +288,169 @@
     bottom: 118px;
   }
 }
+
+/* The adventure is a 3D play space with anchored task overlays. */
+.course-adventure .course-bar {
+  position: relative;
+  z-index: 3;
+  background: #14292de8;
+  padding: 12px 24px;
+}
+.course-adventure .adventure-grid {
+  display: block;
+  min-height: calc(100dvh - 82px);
+  position: relative;
+}
+.course-adventure .adventure-world {
+  position: absolute;
+  inset: 0;
+  height: 100%;
+  min-height: 100%;
+}
+.course-adventure .adventure-content {
+  position: relative;
+  z-index: 2;
+  width: min(440px, 42%);
+  margin-left: auto;
+  padding: 22px;
+  background: linear-gradient(90deg, #12292ed9, #12292ef5);
+  min-height: calc(100dvh - 82px);
+}
+.course-adventure .adventure-content h2 {
+  font-size: 22px;
+}
+.course-adventure .adventure-content .answers {
+  gap: 7px;
+}
+.course-adventure .adventure-scene-label {
+  max-width: 35%;
+}
+.course-adventure .adventure-milestones {
+  right: 46%;
+}
+.adventure-timer {
+  position: absolute;
+  left: 25px;
+  top: 122px;
+  background: #182f32e8;
+  border: 1px solid #eac57880;
+  padding: 12px 20px;
+  border-radius: 12px;
+  font-size: 30px;
+  color: #ffd077;
+  font-weight: 800;
+}
+.adventure-timer small {
+  display: block;
+  font-size: 11px;
+  text-transform: uppercase;
+}
+.adventure-task-meter {
+  position: absolute;
+  left: 25px;
+  top: 220px;
+  background: #182f32e8;
+  padding: 12px;
+  border-radius: 10px;
+}
+.adventure-task-meter progress {
+  display: block;
+  width: 130px;
+  margin-top: 8px;
+  accent-color: #e8b767;
+}
+.game-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+  align-items: center;
+  font-size: 12px;
+  margin: 12px 0;
+}
+.game-controls label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.game-controls select {
+  padding: 6px;
+  background: #203b40;
+  color: #fce5b5;
+  border: 1px solid #f1d18c70;
+  border-radius: 6px;
+}
+.game-controls input {
+  width: auto;
+}
+.earned-badge {
+  color: #ffdb87;
+}
+.wardrobe-shop {
+  margin: 24px auto;
+  padding: 22px;
+  max-width: 1000px;
+  border: 1px solid #e1bd7950;
+  border-radius: 16px;
+  background: #233e42;
+}
+.shop-gear {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.shop-gear article {
+  flex: 1;
+  min-width: 180px;
+  padding: 18px;
+  background: #192f33;
+  border-radius: 12px;
+}
+.gear-swatch {
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  display: inline-block;
+  border: 2px solid #edd09a;
+}
+@media (max-width: 720px) {
+  .course-adventure .adventure-grid {
+    padding-top: 260px;
+  }
+  .course-adventure .adventure-world {
+    position: absolute;
+    top: 0;
+    height: 260px;
+    min-height: 260px;
+  }
+  .course-adventure .adventure-content {
+    width: 100%;
+    min-height: 0;
+    padding: 18px;
+    margin: 0;
+    background: #162e32;
+  }
+  .course-adventure .adventure-scene-label {
+    max-width: 48%;
+  }
+  .course-adventure .adventure-milestones {
+    right: 12px;
+    bottom: 8px;
+  }
+  .adventure-timer {
+    left: auto;
+    right: 12px;
+    top: 12px;
+    font-size: 23px;
+    padding: 8px 12px;
+  }
+  .adventure-task-meter {
+    left: auto;
+    right: 12px;
+    top: 95px;
+    font-size: 11px;
+    padding: 8px;
+  }
+  .adventure-task-meter progress {
+    width: 95px;
+  }
+}

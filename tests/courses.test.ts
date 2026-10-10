@@ -1,3 +1,4 @@
+import { registerRewards } from "../server/rewards.js";
 import {
   mockProvider,
   type ClassificationProvider,
@@ -117,7 +118,7 @@ function authoredCourse(): CourseDefinition {
     ],
   };
 }
-async function fixture(provider?: ClassificationProvider) {
+async function fixture(provider?: ClassificationProvider, now?: () => number) {
   const directory = await mkdtemp(path.join(tmpdir(), "amamihe-courses-"));
   const db = await openDatabase({ dataDir: directory });
   await initializeSchema(db);
@@ -149,7 +150,8 @@ async function fixture(provider?: ClassificationProvider) {
     learner = await account("learner@example.test");
   const app = Fastify({ bodyLimit: 16384 });
   await app.register(cookie);
-  registerCourses(app, db, auth, provider);
+  registerCourses(app, db, auth, provider, now);
+  registerRewards(app, db, auth);
   await app.ready();
   const request = (
     method: "GET" | "POST" | "PUT",
@@ -197,18 +199,27 @@ async function fixture(provider?: ClassificationProvider) {
     assert.equal(response.statusCode, 200, response.body);
     return response.json<LearningProgress>();
   }
-  const answer = (
+  const answer = async (
     id: string,
     progress: LearningProgress,
     choice = 0,
     session = learner.cookie,
-  ) =>
-    request(
+  ) => {
+    const started = await request(
+      "POST",
+      `/api/learning/${id}/play`,
+      { questionId: progress.question!.id },
+      session,
+    );
+    if (started.statusCode !== 200) return started;
+    return request(
       "POST",
       `/api/learning/${id}/answer`,
       { questionId: progress.question!.id, answer: choice, elapsedMs: 1000 },
       session,
     );
+  };
+
   return {
     db,
     directory,
@@ -850,6 +861,142 @@ test("pending post-clearance classification survives reload and retries without 
       ).statusCode,
       409,
     );
+  } finally {
+    await f.close();
+  }
+});
+
+test("game deadlines retry only the failed step and reward/shop transactions remain idempotent", async () => {
+  let clock = 100000;
+  const f = await fixture(undefined, () => clock);
+  try {
+    const definition = authoredCourse();
+    definition.levels[0].timeLimitSeconds = 15;
+    definition.levels[0].theme = "temple-chase";
+    const draft = await f.create(definition);
+    await f.publish(draft);
+    let p = await f.enroll(draft.id);
+    p = accepted(await f.answer(draft.id, p));
+    assert.equal(p.levelProgress?.cleared, 1);
+    const command = (name: string, extra = {}) =>
+      f.request(
+        "POST",
+        `/api/learning/${draft.id}/${name}`,
+        { questionId: p.question!.id, ...extra },
+        f.learner.cookie,
+      );
+    p = accepted(await command("play"));
+    for (let i = 0; i < 3; i++) {
+      clock += 5000;
+      p = accepted(await command("tick"));
+    }
+    assert.equal(p.game?.status, "game-over");
+    assert.equal(p.levelProgress?.cleared, 1);
+    assert.equal(p.points, 0);
+    const oldId = p.question!.id;
+    p = accepted(await command("play"));
+    assert.notEqual(p.question!.id, oldId);
+    assert.equal(
+      (
+        await f.request(
+          "POST",
+          `/api/learning/${draft.id}/answer`,
+          { questionId: oldId, answer: 0, elapsedMs: 0 },
+          f.learner.cookie,
+        )
+      ).statusCode,
+      409,
+    );
+    p = accepted(await f.answer(draft.id, p));
+    assert.equal(p.points, 40);
+    p = accepted(await f.answer(draft.id, p));
+    assert.equal(p.finished, true);
+    const rewards = (
+      await f.request("GET", "/api/rewards", undefined, f.learner.cookie)
+    ).json();
+    assert.equal(rewards.badges.length, 1);
+    const buys = await Promise.all(
+      [1, 2].map(() =>
+        f.request(
+          "POST",
+          "/api/rewards/buy",
+          { gearId: "azure" },
+          f.learner.cookie,
+        ),
+      ),
+    );
+    assert(buys.every((r) => r.statusCode === 200));
+    const after = (
+      await f.request("GET", "/api/rewards", undefined, f.learner.cookie)
+    ).json();
+    assert.equal(after.points, 60);
+    assert.equal(after.outfit, "azure");
+    assert.deepEqual(after.inventory, ["azure"]);
+    assert.equal(
+      (
+        await f.db.query("SELECT * FROM reward_ledger WHERE player_id=$1", [
+          f.learner.playerId,
+        ])
+      ).rows.length,
+      3,
+    );
+    assert.equal(
+      (
+        await f.request(
+          "POST",
+          "/api/rewards/equip",
+          { gearId: "plum" },
+          f.learner.cookie,
+        )
+      ).statusCode,
+      403,
+    );
+    assert.equal(
+      (
+        await f.request(
+          "POST",
+          "/api/rewards/buy",
+          { gearId: "plum" },
+          f.learner.cookie,
+        )
+      ).statusCode,
+      409,
+    );
+    assert.equal(
+      (
+        await f.request(
+          "POST",
+          "/api/rewards/buy",
+          { gearId: "invented" },
+          f.learner.cookie,
+        )
+      ).statusCode,
+      400,
+    );
+    assert.equal(
+      (await f.request("POST", "/api/rewards/buy", { gearId: "azure" }, ""))
+        .statusCode,
+      401,
+    );
+    await f.db.query("UPDATE players SET points=25 WHERE id=$1", [
+      f.tutor.playerId,
+    ]);
+    await initializeSchema(f.db);
+    await initializeSchema(f.db);
+    const opening = (
+      await f.db.query<{ amount: number }>(
+        "SELECT amount FROM reward_ledger WHERE player_id=$1 AND event_id='opening:step4'",
+        [f.tutor.playerId],
+      )
+    ).rows;
+    assert.deepEqual(opening, [{ amount: 25 }]);
+    const total = (
+      await f.db.query<{ total: string }>(
+        "SELECT SUM(amount) AS total FROM reward_ledger WHERE player_id=$1",
+        [f.learner.playerId],
+      )
+    ).rows[0];
+    assert.equal(Number(total.total), 60);
   } finally {
     await f.close();
   }
