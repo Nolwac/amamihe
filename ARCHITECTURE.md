@@ -4,7 +4,7 @@
 
 Amamihe is an indie-style human-simulation learning game set in a persistent 3D venture world. Players grow through demonstrated skills, discover courses as houses along shared streets, and enter tutor-designed adventures. Avatars, outfits, course cities, search portals, other learners, and world institutions make learning a lived game experience. The 3D world is a core requirement at every graphics quality setting.
 
-Implementation status: the technical foundation runs locally with a mock classifier; public hosting, physical-device validation, and the broader game systems remain outstanding. Courses use tutor-authored resources and question banks. A low-cost classification model will grade recorded evidence and select the next approved learning step rather than generate lessons, interviews, hints, or explanations during play.
+Implementation status: the browser game is deployed over HTTPS at [amamihe.online](https://amamihe.online). Versioned course authoring, bounded post-clearance mock assessment, task-driven 3D themes, and individual cosmetic rewards are delivered. Physical 2 GB-device validation, city performance acceptance, practice runtimes, and shared-world systems remain outstanding. Courses use tutor-authored resources and question banks. A low-cost classification model will grade recorded evidence and select the next approved learning step rather than generate lessons, interviews, hints, or explanations during play.
 
 ## Venture World and Player Journey
 
@@ -78,7 +78,7 @@ The browser renders the world locally. Backend services own confirmed mastery, s
 
 ## Visual Course Studio and Course Storage
 
-The Step 2 implementation uses a React node-and-connection editor with keyboard-accessible ordering and preset selectors, plus a Babylon.js scenery/task preview. Creator-owned drafts and immutable course versions are stored as bounded, validated JSONB documents; ownership, snapshot references, enrollments, and response evidence have relational constraints. This keeps the initial prototype compact while preserving a future normalization path for larger content banks. [Course authoring](docs/authoring/COURSES.md) documents the implemented API and version rules. Rich drag editing, action mechanics, practice runtimes, and social authoring remain extensions of this baseline.
+The Step 2 implementation uses a React node-and-connection editor with keyboard-accessible ordering and preset selectors, plus a Babylon.js scenery/task preview. Creator-owned drafts and immutable course versions are stored as bounded, validated JSONB documents; ownership, snapshot references, enrollments, and response evidence have relational constraints. This keeps the initial prototype compact while preserving a future normalization path for larger content banks. [Course authoring](docs/authoring/COURSES.md) documents the implemented API and version rules. Step 3 adds persisted criterion grades, compact validated routing, and pending recovery; Step 4 binds task events to chase, foot-racing, and sparring scenes with server-clock section timing, step-only retries, badges, and a transactional cosmetic ledger. See [learning engine status](docs/status/STEP_03_STATUS.md) and [adventure status](docs/status/STEP_04_STATUS.md). Rich drag editing, practice runtimes, and social authoring remain extensions of this baseline.
 
 Tutors build courses through an interactive editor, not a raw JSON/YAML requirement or a long configuration form. The studio should provide:
 
@@ -181,7 +181,7 @@ Support solo progression alongside social play. Define communication permissions
 
 ## Recommended Technical Baseline
 
-The React/TypeScript, Babylon.js, Fastify, PostgreSQL, and review-scheduling foundation is implemented and locally verified. Later-phase components below remain architecture targets. Public hosting is prepared but requires account access; live OpenRouter classification is deferred. See [foundation status](docs/status/STEP_01_STATUS.md) and [hosting configuration](docs/deployment/HOSTING.md) for verified implementation boundaries.
+The React/TypeScript, Babylon.js, Fastify, and PostgreSQL foundation is implemented and deployed. Course authoring, mock assessment, task-driven adventures, and cosmetic rewards are verified. Deeper review scheduling and the later-phase components below remain architecture targets. Live OpenRouter classification is deferred. See [foundation status](docs/status/STEP_01_STATUS.md) and [hosting configuration](docs/deployment/HOSTING.md) for verified implementation boundaries.
 
 | Area | Recommendation | Rationale |
 | --- | --- | --- |
@@ -241,7 +241,7 @@ Source: [OpenRouter model catalogue](https://openrouter.ai/api/v1/models). No au
 
 Use open-source tools, existing machines, and verified free services. No purchased API credits, subscriptions, managed databases, GPUs, domains, storage, or hosting are required by the prototype baseline. Credentials for free access may still be necessary; enter them through secure configuration and never embed them in the client.
 
-Do not enable paid fallback routes, automatic top-ups, or billable resources. Document free-tier quotas and outages, and stop or use supported cached routes when a limit is reached. Public hosting and shared compute remain conditional on actual available resources. Free hosted inference is not a guarantee of continuous or offline operation.
+Do not enable paid fallback routes, automatic top-ups, or billable resources. Document free-tier quotas and outages, and stop or use supported cached routes when a limit is reached. Public hosting uses the existing Contabo VPS and Cloudflare-managed domain. Shared training compute remains conditional on actual available free resources. Free hosted inference is not a guarantee of continuous or offline operation.
 
 ### Initial Theme and Curriculum
 
