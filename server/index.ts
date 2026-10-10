@@ -29,7 +29,10 @@ const app = Fastify({
   logger: true,
   bodyLimit: 16384,
   // Production ingress is the private loopback publication behind Caddy.
-  trustProxy: process.env.NODE_ENV === "production" ? 1 : false,
+  trustProxy:
+    process.env.NODE_ENV === "production"
+      ? (_address, hop) => hop === 0
+      : false,
 });
 app.addHook("onClose", async () => db.close());
 await app.register(cookie);
