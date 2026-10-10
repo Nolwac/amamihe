@@ -1,5 +1,9 @@
 node_modules
 .git
+# Only the non-secret detached revision is needed for release verification.
+!.git
+.git/*
+!.git/HEAD
 .data
 **/email.json
 dist

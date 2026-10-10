@@ -1,66 +1,67 @@
 {
-  "date": "2026-10-09T20:35:29.716Z",
+  "date": "2026-10-10T20:58:57.515Z",
   "browser": "Chromium, software WebGL",
   "viewport": "390 x 844",
   "throttle": "2 Mbps down / 100ms latency / 4x CPU slowdown",
-  "firstPlayableMs": 15275,
-  "fps": "11 FPS",
+  "accountSetup": "local verified test account",
+  "firstPlayableMs": 60110,
+  "fps": "3 FPS",
   "fpsSamples": [
-    "11 FPS",
-    "13 FPS",
-    "11 FPS"
+    "4 FPS",
+    "6 FPS",
+    "5 FPS"
   ],
-  "renderHeight": 230,
+  "renderHeight": 144,
   "activeTriangles": 102620,
   "activeMaterialTypes": {
     "StandardMaterial": 65,
     "none": 2
   },
-  "renderCpuMs": 35,
-  "encodedBodyBytes": 2136290,
-  "networkEncodedBodyBytes": 2136290,
-  "transferBytes": 2163003,
-  "jsHeapBytes": 66108492,
-  "browserProcessPssBytes": 557663232,
-  "browserProcessRssBytes": 768651264,
-  "rendererAndGpuPssBytes": 421737472,
+  "renderCpuMs": 103,
+  "encodedBodyBytes": 1909164,
+  "networkEncodedBodyBytes": 1909164,
+  "transferBytes": 1935274,
+  "jsHeapBytes": 36963061,
+  "browserProcessPssBytes": 511531008,
+  "browserProcessRssBytes": 722968576,
+  "rendererAndGpuPssBytes": 378076160,
   "processMemory": [
     {
       "type": "browser",
-      "rss": 136200192,
-      "pss": 95111168
+      "rss": 135147520,
+      "pss": 93986816
     },
     {
       "type": "renderer",
-      "rss": 34295808,
-      "pss": 11660288
+      "rss": 34308096,
+      "pss": 11646976
     },
     {
       "type": "renderer",
-      "rss": 213721088,
-      "pss": 173140992
+      "rss": 196444160,
+      "pss": 155701248
     },
     {
       "type": "renderer",
-      "rss": 100114432,
-      "pss": 62432256
+      "rss": 91275264,
+      "pss": 53228544
     },
     {
       "type": "GPU",
-      "rss": 193511424,
-      "pss": 174503936
+      "rss": 176332800,
+      "pss": 157499392
     },
     {
       "type": "network.mojom.NetworkService",
-      "rss": 67104768,
-      "pss": 34208768
+      "rss": 65794048,
+      "pss": 32931840
     },
     {
       "type": "storage.mojom.StorageService",
-      "rss": 23703552,
-      "pss": 6605824
+      "rss": 23666688,
+      "pss": 6536192
     }
   ],
   "memorySampledProcesses": 7,
-  "limitations": "CPU/network emulation is not a physical 2 GB device test. Browser process PSS is a Linux snapshot, excludes OS/background apps and hardware GPU allocations; RSS double-counts shared pages. Timing includes automated guest entry. Software rendering is not a hardware GPU benchmark. Encoded-body totals include resources reused from cache; networkEncodedBodyBytes excludes cache hits and transferBytes includes document/resource HTTP overhead, but excludes connection/TLS overhead."
+  "limitations": "CPU/network emulation is not a physical 2 GB device test. Browser process PSS is a Linux snapshot, excludes OS/background apps and hardware GPU allocations; RSS double-counts shared pages. Timing measures authenticated game navigation and excludes account creation, verification, and email-provider latency. Software rendering is not a hardware GPU benchmark. Encoded-body totals include resources reused from cache; networkEncodedBodyBytes excludes cache hits and transferBytes includes document/resource HTTP overhead, but excludes connection/TLS overhead."
 }

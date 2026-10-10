@@ -19,6 +19,7 @@ test("authentication gates gameplay and password/email-code login restores the s
   await expect(page.locator("canvas")).toHaveAttribute(
     "data-scene-mode",
     "avatar",
+    { timeout: 30000 },
   );
   const credentials = await signupInBrowser(page, "Account Explorer");
   const original = await (await context.request.get("/api/session")).json();

@@ -1,39 +1,28 @@
 # Amamihe
 
-A browser-based 3D human-simulation learning world. This repository implements the first technical foundation: an explorable neighborhood, guest avatars, a small authored checkpoint, persistent progress, and a mock classification adapter.
+A browser-based 3D human-simulation learning world. Players explore course streets, create learning adventures in a visual tutor studio, and complete tutor-authored checkpoints with saved progress. The deployed foundation is available at https://amamihe.online; release promotion follows the [Contabo pipeline](deploy/contabo/README.md).
 
 ## Repository Layout
 
 ```text
-src/                 React interface and Babylon.js scenes
-server/              Fastify API, storage, and mock classification
-tests/               Node and Playwright checks
-public/assets/       Assets served by the game
-scripts/assets/      Mesh, texture, and avatar builders
-scripts/browser/     Browser captures and performance audits
-scripts/deploy/      Release, deployment, and database TLS helpers
-deploy/shared/       Shared-VPS configuration and public env template
-deploy/vps/          Standalone-VPS Compose, Caddy, and env template
-docs/                Asset, design, deployment, and status documentation
-evidence/reports/    Measured verification reports
-evidence/screenshots/ Actual browser captures
+src/                  React interface, tutor studio, and Babylon.js scenes
+server/               Fastify API, account authentication, storage, and courses
+shared/               Course contracts and publication validation
+public/assets/        Assets served by the game
+tests/                Node and Playwright checks
+scripts/assets/       Mesh, texture, and avatar builders
+scripts/browser/      Browser captures and performance audits
+scripts/deploy/       Release, deployment, and database TLS helpers
+deploy/               Shared/standalone VPS configuration and Contabo operations
+docs/                 Design, deployment, authoring, and milestone documentation
+evidence/             Measured reports and actual browser screenshots
 ```
 
-See the [documentation index](docs/README.md). Architecture, implementation milestones, and product rules remain at the root. Root build configuration stays where the tools expect it, including `Dockerfile` and the Render blueprint `render.yaml`.
+Architecture, implementation milestones, and mandatory product rules remain at the root. See the [documentation index](docs/README.md).
 
-## Implemented Foundation
+## Run Locally
 
-- React/TypeScript interface and Babylon.js scene with course houses, an avatar, movement, camera orbit, and house interaction.
-- Keyboard and mobile touch movement, with low/medium/high rendering settings. Low starts at 360p in the city, reduces toward 144p when frames arrive slowly, and caps renders at approximately 15 FPS. Medium and High cap render height at 720p and 1080p; interface text retains screen resolution.
-- Free starter-outfit selection and an HTTP-only cookie-backed guest identity. No password, email, or third-party account is required for this prototype.
-- Fastify API with persistent local PostgreSQL through PGlite in `.data/`, or shared PostgreSQL through `DATABASE_URL` for hosted deployments. The local development default needs no separate database server.
-- Three tutor-authored questions about tokenization, held-out evaluation, and training from scratch. These demonstrate the assessment plumbing, not the complete 1M-parameter-model curriculum.
-- Immutable response chunks, server-recorded assistance, post-clearance mock classification, server-controlled points, idempotent completion, and FSRS review scheduling.
-- Guest progress and unfinished response sequences restored after page refresh. Guest identity is tied to the browser cookie; clearing it loses access to that identity.
-
-## Run
-
-Requires Node.js 24 and npm. Run from the repository root:
+Use Node.js 24:
 
 ```sh
 npm ci
@@ -41,64 +30,53 @@ npm run build
 npm start
 ```
 
-The application and API share port 3000. `PORT` changes the port; `DATA_DIR` changes the local database directory. Verify startup and database connectivity with `curl --fail http://127.0.0.1:3000/api/health`.
+The client and API share http://localhost:3000. Development uses `npm run dev:api` and `npm run dev` in separate terminals. Local storage defaults to persistent PGlite in ignored `.data/`.
 
-For development, run `npm run dev:api` and `npm run dev` in separate terminals. Vite forwards `/api` to the local API. No credentials are needed. Do not put future OpenRouter keys into frontend variables.
+Gameplay requires a verified account. Production mounts a private `EMAIL_CONFIG_FILE` outside Git; see [.env.example](.env.example) and the [Contabo guide](deploy/contabo/README.md). The client never receives email-provider credentials or verification codes from the API.
 
-## Database Configuration
+For isolated automated browser tests, use a test email outbox:
 
-Leave `DATABASE_URL` unset to use existing `.data/` progress. For a host with an ephemeral filesystem, configure `DATABASE_URL` as a server-side secret pointing to an external PostgreSQL database, for example a Neon pooled connection. The server creates its existing tables on startup; changing databases does not copy local progress.
+```sh
+EMAIL_PROVIDER=test EMAIL_TEST_OUTBOX=/tmp/amamihe-test-outbox npm start
+EMAIL_TEST_OUTBOX=/tmp/amamihe-test-outbox npm run test:browser
+```
 
-With `NODE_ENV=production`, startup requires `DATABASE_URL` and session cookies always use `Secure`. This prevents a hosted preview from silently putting learner progress on ephemeral disk. Local development leaves `NODE_ENV` unset and retains PGlite.
+The test provider writes codes to private local files and refuses production use. Ordinary local development does not send email unless a provider is configured. Existing-account audits can use private `BROWSER_ACCOUNT_EMAIL` and `BROWSER_ACCOUNT_PASSWORD` environment variables.
 
-| Setting            | Purpose                                                                                                       |
-| ------------------ | ------------------------------------------------------------------------------------------------------------- |
-| `DATABASE_URL`     | `postgresql://USER:PASSWORD@HOST/DATABASE?sslmode=verify-full`                                                |
-| `DATABASE_CA_CERT` | Optional PEM CA certificate for a private certificate authority; publicly trusted providers need no override. |
-| `DATA_DIR`         | Local PGlite directory, ignored when `DATABASE_URL` is set.                                                   |
+## Course Authoring and Learning
 
-External connections verify certificates and hostnames, including URLs supplied with `sslmode=require`. Unencrypted connections are allowed only for explicit loopback development URLs with `sslmode=disable`. Connection pooling is limited to five clients. Assessment completion retains one database transaction and row locking so concurrent requests cannot duplicate points. Graceful shutdown closes database connections.
+Every signed-in player can open **Tutor studio**. Start a blank course or the six-stage storytelling-model template. Connect levels, select Workshop/Temple Chase/Racing/Wrestling presets, attach sourced resources, and edit questions, rubrics, hints, explanations, and fresh retry variants. Preview the authored tasks and genuine 3D preset scenery, then validate and publish. See the [authoring guide](docs/authoring/COURSES.md).
 
-`.env.example` contains placeholders. The process reads environment variables; `npm start` does not automatically load a `.env` file. For local external-database testing, use `node --env-file=.env --import=tsx server/index.ts`. Never commit actual connection URLs or expose them through `VITE_*` settings.
+Published course versions are immutable. Four published houses load per district page; **Course houses** offers previews, explicit enrollment, district navigation, and saved adventures. Enrollments stay pinned to their original version after tutor edits. Draft ownership, optimistic revision checks, prerequisite validation, and transaction locks protect content and progress.
+
+The playable checkpoint runner persists question evidence and assistance, requires criterion-mapped independent fresh retries after wrong or assisted answers, and awards each level's activity points once. Exhausted retry coverage stops progression. A clearly labeled mock chooses an eligible next level only after clearance; it generates no teaching content and makes no OpenRouter calls. Quiz clearance and points do not certify practical competence.
+
+The pilot includes authored resources for data rights/splits, byte tokenization, causal architecture, a **1,040,768-parameter** model, from-scratch training, and evaluation. Its Python/PyTorch reference runs in a learner-owned environment. Integrated training compute is a later milestone. The original three-question foundation checkpoint remains available separately.
+
+## Storage and Production Configuration
+
+Production requires `DATABASE_URL`, a private email configuration, and HTTPS. It cannot silently fall back to local application storage. External PostgreSQL verifies certificate trust and hostname; unencrypted connections require explicit loopback development `sslmode=disable`. `DATABASE_CA_CERT` supports a private CA. Pooling is capped at five clients.
+
+Account, draft/version, enrollment, and evidence tables are created additively at startup. Course snapshots use bounded JSONB documents; ownership and pinned version relationships are relational. Changing databases does not copy existing progress. Keep credentials, TLS keys, backups, and learner data outside Git and release artifacts; never expose secrets through `VITE_*` variables.
+
+`.env` files are not loaded automatically. For local external storage, use `node --env-file=.env --import=tsx server/index.ts`. Private examples contain placeholders only.
 
 ## Validation
 
 ```sh
-npm run typecheck
 npm run format:check
+npm run build
 npm test
 npm run test:browser
 npm run audit:browser
 ```
 
-Browser tests use Playwright and system Chromium at `/usr/bin/chromium`; set `CHROMIUM_PATH` for another installation. Alternatively, install the Playwright browser with `npx playwright install --with-deps chromium` and set `PLAYWRIGHT_MANAGED_BROWSER=1` for `npm run test:browser`. The audit currently uses system Chromium or `CHROMIUM_PATH`.
+Playwright defaults to `/usr/bin/chromium`; set `CHROMIUM_PATH` for another system browser. Alternatively install with `npx playwright install --with-deps chromium` and use `PLAYWRIGHT_MANAGED_BROWSER=1`. Browser tests require the test outbox and running built server above. Tests cover account verification/recovery, rendered movement, authoring/publication, version isolation, independent retries, reward integrity, and refresh recovery.
 
-Tests exercise rendered movement, guest onboarding, course submission, the classification boundary, idempotent rewards, assistance records, persisted results, in-progress recovery, player isolation, and cross-origin mutation rejection. The configured CI workflow runs these checks; it has not yet been executed on GitHub.
+`TEST_DATABASE_URL` enables the optional disposable external-PostgreSQL integration test; `TEST_DATABASE_CA_CERT` accepts its private CA. Without it, that test is explicitly skipped. CI runs build, formatting, Node/browser checks, and release packaging before approving deployment.
 
-Storage tests verify local restart persistence, transaction rollback, and concurrent idempotent rewards. Set `TEST_DATABASE_URL` to a disposable PostgreSQL database to run the optional external-storage integration test; `TEST_DATABASE_CA_CERT` accepts its private CA when necessary. Without that setting the external test is explicitly skipped. Use `DATABASE_URL` with the running server to exercise browser workflows against PostgreSQL.
+## Delivery Boundaries
 
-## API and Mock Adapter
+[Step 1](docs/status/STEP_01_STATUS.md) records the deployed technical foundation; [Step 2](docs/status/STEP_02_STATUS.md) records course storage, studio, curriculum, and verification. Characters remain local NPCs. Preset scenery and task checkpoints are implemented; timed monster chases, racing/combat mechanics, practice sandboxes, portals, social rooms, billboards, and Learning Police remain later milestones.
 
-`GET /api/session` restores identity, completed evidence, and the latest active attempt. `POST /api/session` creates or changes a guest profile. `POST /api/attempts` opens a checkpoint; `/api/attempts/:id/help` records tutor assistance; `/chunks` stores a response; `/complete` verifies all questions exist before assessing and routing.
-
-`server/classifier.ts` is the replacement boundary for the future OpenRouter classification implementation. The current mock evaluates known answer keys and assistance flags; it does not invoke or train a model. Three independent correct responses recommend `advance`; two recommend `retry`; fewer recommend `review_prerequisite`. The backend records the accepted result and awards points exactly once per attempt. Repeated practice opens a new attempt and may earn additional practice points; the full economy is not implemented.
-
-The next level is a recommendation display, not a playable implemented course level. An assisted response never counts as independent mastery; full authored retry variants are part of the later course-authoring implementation.
-
-## Evidence and Limits
-
-See [docs/status/STEP_01_STATUS.md](docs/status/STEP_01_STATUS.md) and `evidence/reports/browser-audit.json` for current results. CPU/network emulation is not proof of compatibility with every physical 2 GB phone or laptop. The audit reports JavaScript heap and a Linux browser-process memory snapshot separately; neither establishes physical-device performance.
-
-Step 1 does not implement the tutor studio, full curriculum/training environment, timed chase/racing/wrestling mechanics, real multiplayer, portals, ads, Learning Police, or a live OpenRouter model. Other avatars are local NPCs. Low uses two baked braided residents and two short-haired residents; Medium/High retain idle animation on the braided pair. The player remains animated at every quality. Rendering pauses behind checkpoint panels and when the tab is hidden.
-
-## Preview Deployment
-
-The application serves the client and API at one origin. The selected target is an existing shared VPS and `amamihe.online`; [docs/deployment/DEPLOYMENT.md](docs/deployment/DEPLOYMENT.md) describes isolated containers, immutable releases, private configuration, and deployment checks. The application port binds to loopback behind an inspected HTTPS route. Database ports remain private. Existing services and their listeners must be preserved.
-
-Local production-container checks passed for HTTPS delivery, assessment completion, database TLS, restart recovery, and backup/restore. The attached cloud session lacks an active Tailscale connection and TCP grants; its environment draft is stale. Remote deployment and public browser verification remain blocked. No public preview URL has been established.
-
-[docs/deployment/HOSTING.md](docs/deployment/HOSTING.md) retains **Render Free + Neon Free** as an alternative. Guest authentication and rate limits are prototype safeguards, not a production account system. No OpenRouter calls or purchased assets were used. Asset provenance and optional Blender rebuild commands are documented in [docs/assets/ASSETS.md](docs/assets/ASSETS.md).
-
-## Visual Implementation
-
-The fullscreen world uses a rigged explorer GLB with authored idle/walk clips, a separate dressing-room scene, locally rendered avatar portraits and outfit thumbnails, and house entrances with visible interiors. Low downloads a 14,473-triangle, 25-joint derivative and uses CPU skinning, static resident poses, simpler lighting, and adaptive render resolution. The course action is anchored to its 3D sign; the minimap tracks position. HUD groups use shared screen margins and responsive rules. `node scripts/browser/capture-visuals.mjs` records actual browser captures. Playwright allows 120 seconds for complete journeys with multiple software-WebGL scene restores; that timeout does not establish rendering performance. `audit:browser` measures the performance budget separately.
+Low quality preserves genuine 3D with adaptive 144–360p rendering and a reduced-detail rigged player; text retains screen resolution. Studio/adventure views release the city scene instead of running two worlds together. Software-browser measurements cannot establish physical 2 GB-device compatibility or final artwork acceptance. [Asset provenance](docs/assets/ASSETS.md) and [scene references](docs/design/SCENE_PREVIEWS.md) document the visual baseline.

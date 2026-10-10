@@ -38,7 +38,7 @@ jobs:
           EMAIL_PROVIDER: test
           EMAIL_TEST_OUTBOX: /tmp/amamihe-test-outbox
       - run: |
-          for i in $(seq 1 30); do
+          for i in $(seq 1 90); do
             if curl --fail http://127.0.0.1:3000/api/health; then exit 0; fi
             sleep 1
           done
@@ -59,7 +59,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Build application image
-        run: docker build --tag amamihe-release:"$GITHUB_SHA" .
+        run: docker build --build-arg AMAMIHE_COMMIT="$GITHUB_SHA" --tag amamihe-release:"$GITHUB_SHA" .
       - name: Package immutable release
         run: |
           bash scripts/deploy/build-release.sh \
@@ -95,3 +95,29 @@ jobs:
             gh api --method POST "repos/$GITHUB_REPOSITORY/git/refs" \
               -f ref=refs/heads/deploy/verified-main -f sha="$GITHUB_SHA"
           fi
+  verify-production:
+    needs: approve-deployment
+    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - name: Verify the promoted release in a public browser
+        run: node scripts/browser/verify-production.mjs
+        env:
+          EXPECTED_RELEASE: ${{ github.sha }}
+          PLAYWRIGHT_MANAGED_BROWSER: '1'
+          PRODUCTION_URL: https://amamihe.online
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: production-browser-evidence-${{ github.sha }}
+          path: test-results/production/
+          retention-days: 7

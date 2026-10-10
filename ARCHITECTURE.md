@@ -78,6 +78,8 @@ The browser renders the world locally. Backend services own confirmed mastery, s
 
 ## Visual Course Studio and Course Storage
 
+The Step 2 implementation uses a React node-and-connection editor with keyboard-accessible ordering and preset selectors, plus a Babylon.js scenery/task preview. Creator-owned drafts and immutable course versions are stored as bounded, validated JSONB documents; ownership, snapshot references, enrollments, and response evidence have relational constraints. This keeps the initial prototype compact while preserving a future normalization path for larger content banks. [Course authoring](docs/authoring/COURSES.md) documents the implemented API and version rules. Rich drag editing, action mechanics, practice runtimes, and social authoring remain extensions of this baseline.
+
 Tutors build courses through an interactive editor, not a raw JSON/YAML requirement or a long configuration form. The studio should provide:
 
 - A visual story and prerequisite map with draggable levels, branches, and review encounters.

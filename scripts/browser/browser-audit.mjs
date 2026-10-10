@@ -1,5 +1,71 @@
 import { chromium } from "@playwright/test";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { randomUUID } from "node:crypto";
+import path from "node:path";
+
+// Authenticate before measuring the game. A test outbox is required when
+// provisioning a local account; a remote audit can use explicit credentials.
+async function authenticate(request) {
+  const email = process.env.BROWSER_ACCOUNT_EMAIL;
+  const password = process.env.BROWSER_ACCOUNT_PASSWORD;
+  if (email || password) {
+    if (!email || !password)
+      throw new Error(
+        "Set both BROWSER_ACCOUNT_EMAIL and BROWSER_ACCOUNT_PASSWORD.",
+      );
+    const response = await request.post("/api/auth/login", {
+      data: { email, password },
+    });
+    if (!response.ok())
+      throw new Error(`Audit sign-in failed (${response.status()}).`);
+    return "existing account";
+  }
+  const destination = new URL(
+    process.env.PREVIEW_URL || "http://127.0.0.1:3000",
+  );
+  if (!["127.0.0.1", "localhost", "[::1]"].includes(destination.hostname))
+    throw new Error(
+      "Remote audits require BROWSER_ACCOUNT_EMAIL and BROWSER_ACCOUNT_PASSWORD; test accounts are provisioned only on loopback.",
+    );
+  const response = await request.post("/api/auth/signup", {
+    data: {
+      name: "Performance Explorer",
+      outfit: "teal",
+      email: `audit-${randomUUID()}@example.test`,
+      password: randomUUID(),
+    },
+  });
+  if (!response.ok())
+    throw new Error(`Audit account setup failed (${response.status()}).`);
+  const pending = await response.json();
+  if (!/^[\w-]+$/.test(pending.challengeId || ""))
+    throw new Error("Account setup returned an invalid challenge identifier.");
+  let message;
+  try {
+    message = JSON.parse(
+      await readFile(
+        path.join(
+          process.env.EMAIL_TEST_OUTBOX || ".data/test-outbox",
+          pending.challengeId + ".json",
+        ),
+        "utf8",
+      ),
+    );
+  } catch {
+    throw new Error(
+      "Local account setup requires EMAIL_TEST_OUTBOX. For a remote audit, use BROWSER_ACCOUNT_EMAIL and BROWSER_ACCOUNT_PASSWORD.",
+    );
+  }
+  const code = message.text.match(/\b\d{6}\b/)?.[0];
+  if (!code)
+    throw new Error("The local verification message contains no code.");
+  const verified = await request.post("/api/auth/verify", {
+    data: { challengeId: pending.challengeId, code },
+  });
+  if (!verified.ok())
+    throw new Error(`Audit verification failed (${verified.status()}).`);
+  return "local verified test account";
+}
 const browser = await chromium.launch({
   executablePath: process.env.CHROMIUM_PATH || "/usr/bin/chromium",
   headless: true,
@@ -12,7 +78,12 @@ const browser = await chromium.launch({
   ],
 });
 try {
-  const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
+  const context = await browser.newContext({
+    baseURL: process.env.PREVIEW_URL || "http://127.0.0.1:3000",
+    viewport: { width: 390, height: 844 },
+  });
+  const accountSetup = await authenticate(context.request);
+  const page = await context.newPage();
   page.setDefaultTimeout(60000);
   const cdp = await page.context().newCDPSession(page);
   await cdp.send("Network.enable");
@@ -24,9 +95,8 @@ try {
   });
   await cdp.send("Emulation.setCPUThrottlingRate", { rate: 4 });
   const start = Date.now();
-  await page.goto(process.env.PREVIEW_URL || "http://127.0.0.1:3000");
-  await page.getByLabel("Your explorer name").fill("Performance Explorer");
-  await page.getByRole("button", { name: "Enter Venture City" }).click();
+  await page.goto("/");
+  await page.locator('canvas[data-scene-mode="world"]').waitFor();
   await page
     .locator(".engine-status b")
     .filter({ hasNotText: "Loading" })
@@ -76,6 +146,7 @@ try {
     browser: "Chromium, software WebGL",
     viewport: "390 x 844",
     throttle: "2 Mbps down / 100ms latency / 4x CPU slowdown",
+    accountSetup,
     firstPlayableMs,
     fps,
     fpsSamples,
@@ -118,7 +189,7 @@ try {
     processMemory,
     memorySampledProcesses: processMemory.length,
     limitations:
-      "CPU/network emulation is not a physical 2 GB device test. Browser process PSS is a Linux snapshot, excludes OS/background apps and hardware GPU allocations; RSS double-counts shared pages. Timing includes automated guest entry. Software rendering is not a hardware GPU benchmark. Encoded-body totals include resources reused from cache; networkEncodedBodyBytes excludes cache hits and transferBytes includes document/resource HTTP overhead, but excludes connection/TLS overhead.",
+      "CPU/network emulation is not a physical 2 GB device test. Browser process PSS is a Linux snapshot, excludes OS/background apps and hardware GPU allocations; RSS double-counts shared pages. Timing measures authenticated game navigation and excludes account creation, verification, and email-provider latency. Software rendering is not a hardware GPU benchmark. Encoded-body totals include resources reused from cache; networkEncodedBodyBytes excludes cache hits and transferBytes includes document/resource HTTP overhead, but excludes connection/TLS overhead.",
   };
   await mkdir("evidence/reports", { recursive: true });
   await mkdir("evidence/screenshots", { recursive: true });

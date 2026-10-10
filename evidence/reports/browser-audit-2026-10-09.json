@@ -1,0 +1,66 @@
+{
+  "date": "2026-10-09T20:35:29.716Z",
+  "browser": "Chromium, software WebGL",
+  "viewport": "390 x 844",
+  "throttle": "2 Mbps down / 100ms latency / 4x CPU slowdown",
+  "firstPlayableMs": 15275,
+  "fps": "11 FPS",
+  "fpsSamples": [
+    "11 FPS",
+    "13 FPS",
+    "11 FPS"
+  ],
+  "renderHeight": 230,
+  "activeTriangles": 102620,
+  "activeMaterialTypes": {
+    "StandardMaterial": 65,
+    "none": 2
+  },
+  "renderCpuMs": 35,
+  "encodedBodyBytes": 2136290,
+  "networkEncodedBodyBytes": 2136290,
+  "transferBytes": 2163003,
+  "jsHeapBytes": 66108492,
+  "browserProcessPssBytes": 557663232,
+  "browserProcessRssBytes": 768651264,
+  "rendererAndGpuPssBytes": 421737472,
+  "processMemory": [
+    {
+      "type": "browser",
+      "rss": 136200192,
+      "pss": 95111168
+    },
+    {
+      "type": "renderer",
+      "rss": 34295808,
+      "pss": 11660288
+    },
+    {
+      "type": "renderer",
+      "rss": 213721088,
+      "pss": 173140992
+    },
+    {
+      "type": "renderer",
+      "rss": 100114432,
+      "pss": 62432256
+    },
+    {
+      "type": "GPU",
+      "rss": 193511424,
+      "pss": 174503936
+    },
+    {
+      "type": "network.mojom.NetworkService",
+      "rss": 67104768,
+      "pss": 34208768
+    },
+    {
+      "type": "storage.mojom.StorageService",
+      "rss": 23703552,
+      "pss": 6605824
+    }
+  ],
+  "memorySampledProcesses": 7,
+  "limitations": "CPU/network emulation is not a physical 2 GB device test. Browser process PSS is a Linux snapshot, excludes OS/background apps and hardware GPU allocations; RSS double-counts shared pages. Timing includes automated guest entry. Software rendering is not a hardware GPU benchmark. Encoded-body totals include resources reused from cache; networkEncodedBodyBytes excludes cache hits and transferBytes includes document/resource HTTP overhead, but excludes connection/TLS overhead."
+}

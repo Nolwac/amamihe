@@ -12,6 +12,11 @@ import "@fontsource/manrope/latin-800.css";
 import "./style.css";
 import "./game.css";
 const World = lazy(() => import("./World"));
+const TutorStudio = lazy(() => import("./TutorStudio"));
+const CourseAdventure = lazy(() => import("./CourseAdventure"));
+const CourseScene = lazy(() => import("./CourseScene"));
+import type { CourseSummary } from "../shared/course";
+import "./courses.css";
 import { AccountGate, AccountControls, type Player } from "./AccountGate";
 type Question = {
   id: string;
@@ -115,6 +120,16 @@ function Icon({ name, size = 22 }: { name: string; size?: number }) {
   );
 }
 function App() {
+  const [studio, setStudio] = useState(false);
+  const [directory, setDirectory] = useState(false);
+  const [courseId, setCourseId] = useState<string | null>(null);
+  const [courses, setCourses] = useState<CourseSummary[]>([]);
+  const [catalogueOffset, setCatalogueOffset] = useState(0);
+  const [catalogueTotal, setCatalogueTotal] = useState(0);
+  const [catalogueRevision, setCatalogueRevision] = useState(0);
+  const [enrollments, setEnrollments] = useState<
+    { courseId: string; title: string; version: number; finished: boolean }[]
+  >([]);
   const [player, setPlayer] = useState<Player | null>(null),
     [loading, setLoading] = useState(true),
     [outfit, setOutfit] = useState("terracotta"),
@@ -145,6 +160,45 @@ function App() {
     [started, setStarted] = useState(Date.now()),
     [result, setResult] = useState<Result | null>(null),
     [cleared, setCleared] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    api<{ courses: CourseSummary[]; total: number }>(
+      `/courses?limit=4&offset=${catalogueOffset}`,
+    )
+      .then((data) => {
+        if (alive) {
+          setCourses(data.courses);
+          setCatalogueTotal(data.total);
+        }
+      })
+      .catch((e) => {
+        if (alive) setError(e.message);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [catalogueOffset, catalogueRevision]);
+  useEffect(() => {
+    if (!player) return;
+    let alive = true;
+    api<{ courses: typeof enrollments }>("/learning")
+      .then((data) => {
+        if (alive) setEnrollments(data.courses);
+      })
+      .catch((e) => {
+        if (alive) setError(e.message);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [player?.id, directory, courseId]);
+  const publishedHouse = courses.find(
+    (course) => house === "course:" + course.id,
+  );
+  const refreshPoints = () =>
+    api<{ player: Player }>("/session")
+      .then((s) => setPlayer(s.player))
+      .catch((e) => setError(e.message));
   useEffect(() => {
     api<{
       player: Player | null;
@@ -239,10 +293,33 @@ function App() {
           </button>
           <button
             className={tab === "learn" ? "active" : ""}
-            onClick={() => setTab("learn")}
+            onClick={() =>
+              enrollments.length ? setDirectory(true) : setTab("learn")
+            }
           >
             <Icon name="book" size={17} /> My learning
           </button>
+          {player && (
+            <>
+              <button
+                onClick={() => {
+                  setDirectory(true);
+                  setHouse(null);
+                }}
+              >
+                Course houses
+              </button>
+              <button
+                className="tutor-toggle"
+                onClick={() => {
+                  setStudio(true);
+                  setHouse(null);
+                }}
+              >
+                Tutor studio
+              </button>
+            </>
+          )}
         </nav>
         <div className="skills-hud" aria-label="Skill categories">
           {[
@@ -344,11 +421,11 @@ function App() {
               {player?.name || "Explorer"}
             </strong>
             <small>
-              {player?.points ? "Foundation cleared" : "New explorer"}
+              {player?.points ? "Learning explorer" : "New explorer"}
             </small>
             <span
               className="profile-progress"
-              aria-label={`${player?.points || 0} of 60 foundation points`}
+              aria-label={`${player?.points || 0} activity points; course progress is saved separately`}
             >
               <i
                 style={{
@@ -408,7 +485,11 @@ function App() {
               </select>
             </label>
           </div>
-          {loading ? (
+          {studio || courseId ? (
+            <div className="world-loading">
+              Return to Venture City when you are ready.
+            </div>
+          ) : loading ? (
             <div className="world-loading">Restoring your journey…</div>
           ) : (
             <Suspense
@@ -417,7 +498,13 @@ function App() {
               }
             >
               <World
-                paused={Boolean(player && (house || tab === "learn"))}
+                key={courses
+                  .map((course) => course.id + ":" + course.version)
+                  .join("|")}
+                courses={courses.map(({ id, title }) => ({ id, title }))}
+                paused={Boolean(
+                  player && (house || directory || tab === "learn"),
+                )}
                 mode={player ? "world" : "avatar"}
                 outfit={outfit}
                 quality={quality}
@@ -542,6 +629,205 @@ function App() {
           <button onClick={() => setTab("learn")}>View my progress ↗</button>
         </footer>
       </main>
+      {player && directory && (
+        <section
+          className="course-directory"
+          aria-label="Course houses directory"
+        >
+          <header className="course-bar">
+            <div>
+              <span className="eyebrow">VENTURE CITY · COURSE HOUSES</span>
+              <h1>Find your next skill</h1>
+            </div>
+            <button
+              className="course-secondary"
+              onClick={() => setDirectory(false)}
+            >
+              Return to city
+            </button>
+          </header>
+          {enrollments.length > 0 && (
+            <div
+              className="course-directory-grid"
+              aria-label="Enrolled courses"
+            >
+              {enrollments.map((course) => (
+                <article className="directory-card" key={course.courseId}>
+                  <span className="eyebrow">
+                    MY ADVENTURES · VERSION {course.version}
+                  </span>
+                  <h2>{course.title}</h2>
+                  <p>
+                    {course.finished
+                      ? "Course checkpoints complete"
+                      : "Your progress is saved"}
+                  </p>
+                  <button
+                    className="course-secondary"
+                    onClick={() => {
+                      setDirectory(false);
+                      setCourseId(course.courseId);
+                    }}
+                  >
+                    Resume {course.title}
+                  </button>
+                </article>
+              ))}
+            </div>
+          )}
+          <div className="course-directory-grid">
+            {courses.map((course) => (
+              <article className="directory-card" key={course.id}>
+                <span className="eyebrow">
+                  PUBLISHED HOUSE · {course.language} · V{course.version}
+                </span>
+                <h2>{course.title}</h2>
+                <p>{course.summary}</p>
+                <small>{course.levelCount} tutor-authored levels</small>
+                <br />
+                <button
+                  className="course-secondary"
+                  aria-label={"Visit course house: " + course.title}
+                  onClick={() => {
+                    setDirectory(false);
+                    setTab("explore");
+                    setHouse("course:" + course.id);
+                  }}
+                >
+                  Preview course house ↗
+                </button>
+              </article>
+            ))}
+          </div>
+          {courses.length === 0 && (
+            <div className="directory-empty">
+              <h2>The next course house starts with you.</h2>
+              <p>
+                Build a learning adventure from presets and publish it to this
+                district.
+              </p>
+              <button
+                className="primary"
+                onClick={() => {
+                  setDirectory(false);
+                  setStudio(true);
+                }}
+              >
+                Open tutor studio
+              </button>
+            </div>
+          )}
+          <div className="directory-pagination">
+            <button
+              className="course-secondary"
+              disabled={catalogueOffset === 0}
+              onClick={() =>
+                setCatalogueOffset(Math.max(0, catalogueOffset - 4))
+              }
+            >
+              Previous district
+            </button>
+            <span>
+              {catalogueTotal === 0
+                ? "0 houses"
+                : `${catalogueOffset + 1}–${Math.min(catalogueOffset + 4, catalogueTotal)} of ${catalogueTotal} houses`}
+            </span>
+            <button
+              className="course-secondary"
+              disabled={catalogueOffset + 4 >= catalogueTotal}
+              onClick={() => setCatalogueOffset(catalogueOffset + 4)}
+            >
+              Next district
+            </button>
+          </div>
+        </section>
+      )}
+      {player && publishedHouse && (
+        <div className="modal-backdrop">
+          <section
+            className="modal"
+            aria-label="Published course house preview"
+          >
+            <button
+              className="close"
+              onClick={() => setHouse(null)}
+              aria-label="Close course preview"
+            >
+              ×
+            </button>
+            <span className="eyebrow">
+              COURSE HOUSE · VERSION {publishedHouse.version}
+            </span>
+            <h2>{publishedHouse.title}</h2>
+            <p>{publishedHouse.summary}</p>
+            <div className="detail-row">
+              <span>{publishedHouse.levelCount} levels</span>
+              <span>{publishedHouse.language}</span>
+              <span>Tutor-authored tasks</span>
+            </div>
+            <p className="mock-note">
+              MOCK CLASSIFIER · Your enrollment stays on this published version.
+              Practice checkpoints run in 3D scenery; action mechanics follow in
+              Step 4.
+            </p>
+            <button
+              className="primary"
+              disabled={busy}
+              onClick={() =>
+                action(async () => {
+                  await api("/courses/" + publishedHouse.id + "/enroll", {
+                    version: publishedHouse.version,
+                  });
+                  setCourseId(publishedHouse.id);
+                  setHouse(null);
+                  setTab("explore");
+                })
+              }
+            >
+              Enroll & enter adventure
+            </button>
+          </section>
+        </div>
+      )}
+      {player && studio && (
+        <Suspense
+          fallback={
+            <section className="course-overlay">
+              Opening your tutor studio…
+            </section>
+          }
+        >
+          <TutorStudio
+            onClose={() => setStudio(false)}
+            onPublished={() => {
+              setCatalogueOffset(0);
+              setCatalogueRevision((v) => v + 1);
+            }}
+            renderScene={(theme) => (
+              <Suspense fallback={<p>Loading 3D preview…</p>}>
+                <CourseScene theme={theme} outfit={outfit} />
+              </Suspense>
+            )}
+          />
+        </Suspense>
+      )}
+      {player && courseId && (
+        <Suspense
+          fallback={
+            <section className="course-overlay">Restoring your course…</section>
+          }
+        >
+          <CourseAdventure
+            key={courseId}
+            courseId={courseId}
+            outfit={outfit}
+            onClose={() => setCourseId(null)}
+            onPoints={() => {
+              void refreshPoints();
+            }}
+          />
+        </Suspense>
+      )}
       {error && (
         <div role="alert" className="error-toast">
           {error}
@@ -586,7 +872,7 @@ function App() {
           />
         </div>
       )}
-      {player && house && (
+      {player && house && !publishedHouse && (
         <div className="modal-backdrop">
           <section className="modal" aria-label="Course preview">
             <button

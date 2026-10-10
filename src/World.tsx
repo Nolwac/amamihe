@@ -30,6 +30,7 @@ type Props = {
   paused?: boolean;
   outfit: string;
   quality: string;
+  courses?: { id: string; title: string }[];
   onHouse: (name: string) => void;
   onReady: (stats: {
     fps: number;
@@ -49,6 +50,7 @@ export default function World({
   paused = false,
   outfit,
   quality,
+  courses = [],
   onHouse,
   onReady,
 }: Props) {
@@ -68,6 +70,9 @@ export default function World({
       new Promise<void>((resolve) => setTimeout(resolve, 0));
     canvas.current!.dataset.sceneMode = mode;
     canvas.current!.dataset.sceneQuality = quality;
+    canvas.current!.dataset.courseHouses = JSON.stringify(
+      courses.map((course) => course.id),
+    );
     canvas.current!.dataset.avatarReady = "false";
     canvas.current!.dataset.avatarAnimation = "Loading";
     canvas.current!.dataset.avatarBones = "0";
@@ -102,10 +107,19 @@ export default function World({
       };
       scaleResolution();
       const scene = new Scene(engine);
-      release = () => {
-        scene.dispose();
-        engine.dispose();
+      const releaseScene = () => {
+        engine.stopRenderLoop();
+        scene.detachControl();
+        const finish = () => {
+          scene.dispose();
+          engine.dispose();
+        };
+        // Pending shader preparation still references the engine pipeline.
+        scene.onReadyTimeoutDuration = 15000;
+        scene.onReadyTimeoutObservable.addOnce(finish);
+        void scene.whenReadyAsync().then(finish, finish);
       };
+      release = releaseScene;
       scene.skipPointerMovePicking = true;
       scene.pointerDownPredicate = scene.pointerUpPredicate = (mesh) =>
         Boolean(mesh.metadata?.course && mesh.isEnabled() && mesh.isVisible);
@@ -819,9 +833,11 @@ export default function World({
           7,
           9,
           clay,
-          "DESIGN STUDIO",
-          ["Creative", "Design"],
-          "Turn ideas into impact",
+          courses[0] ? "course:" + courses[0].id : "DESIGN STUDIO",
+          courses[0]
+            ? [courses[0].title.slice(0, 22), courses[0].title.slice(22, 44)]
+            : ["Creative", "Design"],
+          courses[0] ? "Enter Course →" : "Turn ideas into impact",
         );
         await building(
           "Code",
@@ -830,9 +846,11 @@ export default function World({
           7,
           10,
           stone,
-          "CODE WORKSHOP",
-          ["Data", "Skills"],
-          "Analyze · solve · create",
+          courses[1] ? "course:" + courses[1].id : "CODE WORKSHOP",
+          courses[1]
+            ? [courses[1].title.slice(0, 22), courses[1].title.slice(22, 44)]
+            : ["Data", "Skills"],
+          courses[1] ? "Enter Course →" : "Analyze · solve · create",
         );
         await building(
           "Ideas",
@@ -841,9 +859,11 @@ export default function World({
           7,
           12,
           ochre,
-          "IDEA LAB",
-          ["IDEA LAB"],
-          "IMAGINE • CREATE",
+          courses[2] ? "course:" + courses[2].id : "IDEA LAB",
+          courses[2]
+            ? [courses[2].title.slice(0, 22), courses[2].title.slice(22, 44)]
+            : ["IDEA LAB"],
+          courses[2] ? "Enter Course →" : "IMAGINE • CREATE",
         );
         await building(
           "Energy",
@@ -852,9 +872,11 @@ export default function World({
           7,
           10,
           clay,
-          "IDEA LAB",
-          ["CLEAN ENERGY"],
-          "BUILD A BETTER WORLD",
+          courses[3] ? "course:" + courses[3].id : "CLEAN ENERGY",
+          courses[3]
+            ? [courses[3].title.slice(0, 22), courses[3].title.slice(22, 44)]
+            : ["CLEAN ENERGY"],
+          courses[3] ? "Enter Course →" : "BUILD A BETTER WORLD",
         );
         if (disposed) return;
         function foliage(
@@ -1688,8 +1710,7 @@ export default function World({
         window.removeEventListener("keyup", up);
         window.removeEventListener("blur", clear);
         window.removeEventListener("resize", resize);
-        scene.dispose();
-        engine.dispose();
+        releaseScene();
       };
     };
     void initialize().catch((error) => {

@@ -1,7 +1,7 @@
 {
   "name": "amamihe",
   "version": "1.0.0",
-  "description": "Browser-based 3D learning world — foundation prototype",
+  "description": "Browser-based 3D learning world with visual course authoring",
   "main": "index.js",
   "directories": {
     "test": "tests"
@@ -14,8 +14,8 @@
     "typecheck": "tsc --noEmit",
     "test": "tsx --test tests/*.test.ts",
     "test:browser": "playwright test",
-    "format": "prettier --write src server tests scripts *.json *.ts",
-    "format:check": "prettier --check src server tests scripts *.json *.ts",
+    "format": "prettier --write src server shared tests scripts *.json *.ts",
+    "format:check": "prettier --check src server shared tests scripts *.json *.ts",
     "audit:browser": "node scripts/browser/browser-audit.mjs"
   },
   "repository": {

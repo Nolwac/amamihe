@@ -2,13 +2,13 @@
 
 ## Delivery Goal
 
-Build a genuine 3D human-simulation learning world with explorable course streets, house-based enrollment, search portals, tutor-configured adventures, inexpensive classification, practice tools, and skill-driven social progression. The foundation is implemented; subsequent phases remain planned.
+Build a genuine 3D human-simulation learning world with explorable course streets, house-based enrollment, search portals, tutor-configured adventures, inexpensive classification, practice tools, and skill-driven social progression. The technical foundation is deployed. Versioned courses and the visual tutor studio are implemented; subsequent gameplay, practice, and social phases remain planned.
 
 The first playable proof of concept must preserve 3D: a tutor creates and previews a small course in the visual studio; a learner enters its story, completes authored challenges, receives a predefined explanation when needed, retries independently, earns a milestone reward, and resumes saved progress. Broader environments and team play follow as explicit phases.
 
 ## Current Delivery Status
 
-The technical foundation is implemented with a mock classifier in place of live OpenRouter access. Production build, storage checks, and local Chromium verification are available. [Render Free + Neon Free hosting](docs/deployment/HOSTING.md) is prepared; deployment needs provider credentials and private-repository authorization. Physical 2 GB-device tests are not complete. See [docs/status/STEP_01_STATUS.md](docs/status/STEP_01_STATUS.md) for evidence and remaining limitations. The mock is the authorized Step 1 substitute, not a verified classification model.
+Step 1's technical foundation is delivered with verified-email accounts, persistent learner evidence, a clearly labeled mock classifier, and the live HTTPS application at [amamihe.online](https://amamihe.online). [The Contabo deployment guide](deploy/contabo/README.md) records the isolated production installation and CI-gated deployment pipeline. Step 2 implements the versioned course database and visual tutor studio, retaining mock routing until OpenRouter integration. Physical 2 GB-device performance and final artwork acceptance remain unverified; see [Step 1 status](docs/status/STEP_01_STATUS.md) and [Step 2 status](docs/status/STEP_02_STATUS.md) for the implementation boundary and verification evidence. The mock is the authorized substitute, not a verified classification model.
 
 ## Phase 1: Technical Decisions and Foundation
 

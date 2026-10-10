@@ -11,7 +11,10 @@ import { openDatabase } from "./db.js";
 import { initializeSchema } from "./schema.js";
 import { Authentication, registerAuthentication } from "./auth.js";
 import { emailConfiguration } from "./email.js";
+import { initializeCourseSchema, registerCourses } from "./courses.js";
+import { readRelease } from "./release.js";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const release = await readRelease();
 const dbPath = process.env.DATA_DIR || path.join(root, ".data");
 if (process.env.NODE_ENV === "production" && !process.env.DATABASE_URL?.trim())
   throw new Error(
@@ -23,6 +26,7 @@ const db = await openDatabase({
   caCertificate: process.env.DATABASE_CA_CERT,
 });
 await initializeSchema(db);
+await initializeCourseSchema(db);
 const email = await emailConfiguration();
 const auth = new Authentication(db, email.provider, email.codeSecret);
 const app = Fastify({
@@ -64,12 +68,15 @@ async function player(req: { cookies: Record<string, string | undefined> }) {
   return auth.player(req.cookies.amamihe);
 }
 registerAuthentication(app, auth);
+registerCourses(app, db, auth);
 app.get("/api/health", async () => {
   await db.query("SELECT 1");
   return {
     ok: true,
     storage: db.kind === "pglite" ? "PostgreSQL / PGlite" : "PostgreSQL",
     classifier: "mock-classifier-v1",
+    release,
+    features: { courseStudio: true, courseVersions: true },
   };
 });
 app.get("/api/session", async (req, reply) => {

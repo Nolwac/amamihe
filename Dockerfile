@@ -3,6 +3,8 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci
 COPY . .
+ARG AMAMIHE_COMMIT
+RUN node scripts/deploy/stamp-release.mjs "$AMAMIHE_COMMIT"
 RUN npm run build
 
 FROM node:24-bookworm-slim
@@ -11,6 +13,7 @@ COPY --chown=node:node package*.json ./
 RUN npm ci --omit=dev
 COPY --from=build --chown=node:node /app/dist ./dist
 COPY --from=build --chown=node:node /app/server ./server
+COPY --from=build --chown=node:node /app/shared ./shared
 ENV NODE_ENV=production PORT=3000
 EXPOSE 3000
 USER node
