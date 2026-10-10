@@ -139,6 +139,10 @@ try:
     require(shared.is_dir() and shared.stat().st_uid in (0, os.geteuid()) and not shared.stat().st_mode & 0o077, 'Shared directory must be private and root/current-user owned.')
     require(not config.is_relative_to(release) and not shared.is_relative_to(release) and not release.is_relative_to(shared), 'Private shared files and immutable releases must be separate.')
     require(config.is_relative_to(shared), 'Private configuration must reside inside the private shared directory.')
+    email_config = shared / 'email.json'
+    if email_config.exists():
+        require(email_config.is_file() and not email_config.is_symlink(), 'Email configuration must be a regular private file.')
+        require(email_config.stat().st_uid in (0, os.geteuid()) and not email_config.stat().st_mode & 0o077, 'Email configuration must be private and owned by the deployment user.')
     require(not any((parent / '.git').exists() for parent in (shared, *shared.parents)), 'Private shared files must reside outside Git checkouts.')
     require(re.fullmatch(r'[0-9]{4,5}', settings['APP_LOOPBACK_PORT']) is not None and 1024 <= int(settings['APP_LOOPBACK_PORT']) <= 65535, 'Select an explicit loopback TCP port between 1024 and 65535.')
     require(re.fullmatch(r'postgres:17-bookworm@sha256:[0-9a-f]{64}', settings['POSTGRES_IMAGE']) is not None, 'Pin an approved official PostgreSQL 17 bookworm digest.')

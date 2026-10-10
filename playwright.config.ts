@@ -1,7 +1,7 @@
 import { defineConfig } from "@playwright/test";
 export default defineConfig({
   testDir: "tests",
-  testMatch: "browser.spec.ts",
+  testMatch: "browser*.spec.ts",
   // End-to-end journeys restore several scenes under software WebGL.
   // Rendering budgets are measured separately by audit:browser.
   timeout: 120000,

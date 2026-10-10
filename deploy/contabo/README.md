@@ -4,6 +4,16 @@ Game: https://amamihe.online. The app and PostgreSQL run in the isolated `amamih
 
 Installation: `/home/agents/amamihe-deploy/{bin,source,releases,shared}`. The shared directory is outside Git, mode 0700. Database credentials, the private PostgreSQL CA, and a read-only GitHub SSH deploy key stay there. The existing Cloudflare credential stays in its original private Caddy environment file. No production secret is required in GitHub Actions.
 
+## Verified accounts and email
+
+Players must verify their email before entering the game. Signup collects name, email, password (12–128 characters), and outfit. Login supports either a password or a one-time email code; account settings allow password changes and sign-out. Passwords use salted scrypt hashes; session tokens are hashed in storage. Six-digit codes expire after ten minutes, are HMAC-protected in storage, allow five attempts, and can be used once. Email requests have a one-minute cooldown and a five-per-hour limit per address and purpose. Password changes revoke other sessions.
+
+`shared/email.json` is a private, mode-0600 file mounted read-only into the app. It contains `provider`, `apiKey`, `inbox`, and a randomly generated `codeSecret` of at least 32 characters. The configured provider is `agentmail`, and the sender inbox is `amamihe@agentmail.to`. Keep this file and secret unchanged across ordinary releases so pending codes continue to work. It must never enter Git, build contexts, release archives, or browser variables. The `EmailProvider.send()` contract in `server/email.ts` separates authentication from the provider implementation; another provider can be added through that factory without changing account logic.
+
+The additive account migration preserves the existing players, attempts, chunks, and points. An old guest cookie no longer authorizes gameplay. If that browser signs up and verifies its email, its existing player is linked to the account and progress is retained. Signing in on another device restores the same account's progress. Unknown or already-registered email requests receive a generic response; they never create an unverified session.
+
+For local browser tests, start the API with `EMAIL_PROVIDER=test` and a private `EMAIL_TEST_OUTBOX`, then run Playwright with the same outbox path. Tests read codes from that filesystem directory; no HTTP endpoint exposes them. The test provider is forbidden in production. Production starts only with valid private email configuration. Take a private database backup before promoting the account migration.
+
 ## Pipeline
 
 Pushes to `main` run formatting, build, Node tests, browser tests, and immutable release packaging. Only after those jobs succeed does Actions update `deploy/verified-main` to that commit. A user systemd timer on the VPS polls this reference every five minutes and confirms it still matches current `main`. It uses the read-only key, pinned GitHub SSH host keys, and the separately reviewed host deployment helper.

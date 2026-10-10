@@ -1,6 +1,7 @@
 node_modules/
 dist/
 .data/
+**/email.json
 playwright-report/
 test-results/
 .env

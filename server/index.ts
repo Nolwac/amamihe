@@ -3,12 +3,14 @@ import cookie from "@fastify/cookie";
 import rateLimit from "@fastify/rate-limit";
 import compress from "@fastify/compress";
 import staticPlugin from "@fastify/static";
-import { randomBytes, randomUUID } from "node:crypto";
+import { randomUUID } from "node:crypto";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { mockClassify, questions, type Chunk } from "./classifier.js";
 import { openDatabase } from "./db.js";
 import { initializeSchema } from "./schema.js";
+import { Authentication, registerAuthentication } from "./auth.js";
+import { emailConfiguration } from "./email.js";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const dbPath = process.env.DATA_DIR || path.join(root, ".data");
 if (process.env.NODE_ENV === "production" && !process.env.DATABASE_URL?.trim())
@@ -21,7 +23,14 @@ const db = await openDatabase({
   caCertificate: process.env.DATABASE_CA_CERT,
 });
 await initializeSchema(db);
-const app = Fastify({ logger: true, bodyLimit: 16384 });
+const email = await emailConfiguration();
+const auth = new Authentication(db, email.provider, email.codeSecret);
+const app = Fastify({
+  logger: true,
+  bodyLimit: 16384,
+  // Production ingress is the private loopback publication behind Caddy.
+  trustProxy: process.env.NODE_ENV === "production" ? 1 : false,
+});
 app.addHook("onClose", async () => db.close());
 await app.register(cookie);
 await app.register(rateLimit, {
@@ -49,19 +58,9 @@ app.addHook("onRequest", async (req, reply) => {
   }
 });
 async function player(req: { cookies: Record<string, string | undefined> }) {
-  const token = req.cookies.amamihe;
-  if (!token) return null;
-  return (
-    (
-      await db.query<{
-        id: string;
-        name: string;
-        outfit: string;
-        points: number;
-      }>("SELECT id,name,outfit,points FROM players WHERE token=$1", [token])
-    ).rows[0] || null
-  );
+  return auth.player(req.cookies.amamihe);
 }
+registerAuthentication(app, auth);
 app.get("/api/health", async () => {
   await db.query("SELECT 1");
   return {
@@ -70,7 +69,8 @@ app.get("/api/health", async () => {
     classifier: "mock-classifier-v1",
   };
 });
-app.get("/api/session", async (req) => {
+app.get("/api/session", async (req, reply) => {
+  reply.header("Cache-Control", "no-store");
   const p = await player(req);
   if (!p) return { player: null, result: null };
   const result =
@@ -127,22 +127,9 @@ app.post<{ Body: { name: string; outfit: string } }>(
       ]);
       return { player: { ...existing, name: name.trim(), outfit } };
     }
-    const id = randomUUID(),
-      token = randomBytes(32).toString("hex");
-    await db.query(
-      "INSERT INTO players(id,token,name,outfit) VALUES($1,$2,$3,$4)",
-      [id, token, name.trim(), outfit],
-    );
-    reply.setCookie("amamihe", token, {
-      httpOnly: true,
-      sameSite: "lax",
-      secure:
-        process.env.NODE_ENV === "production" ||
-        req.headers["x-forwarded-proto"] === "https",
-      path: "/",
-      maxAge: 60 * 60 * 24 * 30,
-    });
-    return { player: { id, name: name.trim(), outfit, points: 0 } };
+    return reply
+      .code(401)
+      .send({ error: "Verify your email and sign in first." });
   },
 );
 app.post("/api/attempts", async (req, reply) => {

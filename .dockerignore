@@ -1,6 +1,7 @@
 node_modules
 .git
 .data
+**/email.json
 dist
 evidence
 test-results

@@ -1181,6 +1181,84 @@ footer {
   min-width: 0;
   flex: 1;
 }
+
+.character-creation .account-gate {
+  overflow-y: auto;
+}
+.account-gate input,
+.account-settings input {
+  display: block;
+  width: 100%;
+  font-size: 16px;
+}
+.account-gate input {
+  margin: 5px 0 12px;
+}
+.account-gate label {
+  display: block;
+}
+.account-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.account-tabs button {
+  flex: 1;
+  padding: 9px;
+  border-radius: 8px;
+  background: #ffffff0c;
+  color: inherit;
+  border: 1px solid #ffffff22;
+}
+.account-tabs button[aria-pressed="true"] {
+  border-color: var(--gold);
+  color: var(--gold);
+}
+.account-link {
+  display: block;
+  margin-top: 12px;
+  padding: 5px 0;
+  color: var(--gold);
+  background: transparent;
+  border: 0;
+  font-size: 12px;
+}
+.account-link:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+.account-error {
+  color: #ffb6a4;
+  margin-top: 12px !important;
+}
+.account-menu-button {
+  flex-shrink: 0;
+  color: var(--gold);
+  background: none;
+  border: 0;
+  font-size: 20px;
+  padding: 3px;
+}
+.account-settings {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  pointer-events: auto;
+}
+.account-settings .modal {
+  width: min(420px, calc(100vw - 28px));
+}
+.account-email {
+  overflow-wrap: anywhere;
+}
+@media (max-width: 600px) {
+  .character-creation .account-gate {
+    max-height: 60dvh;
+  }
+  .account-gate .outfits {
+    margin-top: 6px;
+  }
+}
 .player-chip strong {
   white-space: nowrap;
   overflow: hidden;

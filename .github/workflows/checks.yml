@@ -34,6 +34,9 @@ jobs:
       - run: npm test
       - run: npx playwright install --with-deps chromium
       - run: npm start > /tmp/amamihe-api.log 2>&1 &
+        env:
+          EMAIL_PROVIDER: test
+          EMAIL_TEST_OUTBOX: /tmp/amamihe-test-outbox
       - run: |
           for i in $(seq 1 30); do
             if curl --fail http://127.0.0.1:3000/api/health; then exit 0; fi
@@ -43,6 +46,7 @@ jobs:
       - run: npm run test:browser
         env:
           PLAYWRIGHT_MANAGED_BROWSER: '1'
+          EMAIL_TEST_OUTBOX: /tmp/amamihe-test-outbox
       - uses: actions/upload-artifact@v4
         if: always()
         with:

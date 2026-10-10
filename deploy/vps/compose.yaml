@@ -57,8 +57,10 @@ services:
       PORT: "3000"
       DATABASE_URL: postgresql://amamihe:${POSTGRES_APP_PASSWORD:?Set POSTGRES_APP_PASSWORD in deployment.env}@postgres:5432/amamihe?sslmode=verify-full
       NODE_EXTRA_CA_CERTS: /run/postgres-tls/ca.crt
+      EMAIL_CONFIG_FILE: /run/amamihe/email.json
     volumes:
       - ./.vps/tls/ca.crt:/run/postgres-tls/ca.crt:ro
+      - ./.vps/email.json:/run/amamihe/email.json:ro
     networks:
       - edge
       - database

@@ -12,7 +12,7 @@ import "@fontsource/manrope/latin-800.css";
 import "./style.css";
 import "./game.css";
 const World = lazy(() => import("./World"));
-type Player = { id: string; name: string; outfit: string; points: number };
+import { AccountGate, AccountControls, type Player } from "./AccountGate";
 type Question = {
   id: string;
   concept: string;
@@ -43,6 +43,7 @@ async function api<T>(url: string, body?: unknown): Promise<T> {
     body: body === undefined ? undefined : JSON.stringify(body),
   });
   const d = await r.json();
+  if (r.status === 401) window.location.reload();
   if (!r.ok) throw new Error(d.error || "Something went wrong. Please retry.");
   return d;
 }
@@ -116,7 +117,6 @@ function Icon({ name, size = 22 }: { name: string; size?: number }) {
 function App() {
   const [player, setPlayer] = useState<Player | null>(null),
     [loading, setLoading] = useState(true),
-    [name, setName] = useState(""),
     [outfit, setOutfit] = useState("terracotta"),
     [quality, setQuality] = useState("low"),
     [stats, setStats] = useState({
@@ -357,6 +357,12 @@ function App() {
               />
             </span>
           </div>
+          {player && (
+            <AccountControls
+              player={player}
+              onLogout={() => window.location.reload()}
+            />
+          )}
         </div>
       </header>
       <main>
@@ -572,73 +578,12 @@ function App() {
               </span>
             </div>
           </aside>
-          <section className="modal welcome" aria-label="Create your explorer">
-            <span className="eyebrow">YOUR STARTER LOOK</span>
-            <h2>Create your explorer.</h2>
-            <p>
-              Choose a name and an outfit. See your look come to life before
-              entering the city.
-            </p>
-            {loading ? (
-              <p>Restoring your journey…</p>
-            ) : (
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  action(async () => {
-                    const d = await api<{ player: Player }>("/session", {
-                      name,
-                      outfit,
-                    });
-                    setPlayer(d.player);
-                  });
-                }}
-              >
-                <label className="creation-step">
-                  <span className="step-number">1</span> Your explorer name
-                  <input
-                    aria-label="Your explorer name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    minLength={2}
-                    maxLength={24}
-                    placeholder="What should we call you?"
-                    required
-                  />
-                </label>
-                <label className="creation-step">
-                  <span className="step-number">2</span> Starter outfit
-                  <span className="free-label">FREE</span>
-                </label>
-                <div className="outfits">
-                  {["terracotta", "teal", "gold"].map((c) => (
-                    <button
-                      key={c}
-                      aria-label={c + " outfit"}
-                      aria-pressed={outfit === c}
-                      className={
-                        "outfit " + c + (outfit === c ? " selected" : "")
-                      }
-                      type="button"
-                      onClick={() => setOutfit(c)}
-                    >
-                      <img src={"/assets/outfit-" + c + ".png"} alt="" />
-                      <span className="outfit-name">{c}</span>
-                      {outfit === c && (
-                        <span className="outfit-check">
-                          <Icon name="check" size={12} />
-                        </span>
-                      )}
-                    </button>
-                  ))}
-                </div>
-                <button className="primary" disabled={busy}>
-                  Enter Venture City <Icon name="arrow" />
-                </button>
-                <small>Your guest progress is saved in this browser.</small>
-              </form>
-            )}
-          </section>
+          <AccountGate
+            loading={loading}
+            outfit={outfit}
+            onOutfit={setOutfit}
+            onAuthenticated={() => window.location.reload()}
+          />
         </div>
       )}
       {player && house && (

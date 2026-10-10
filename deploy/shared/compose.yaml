@@ -59,10 +59,12 @@ services:
       PORT: "3000"
       DATABASE_URL: postgresql://amamihe:${POSTGRES_APP_PASSWORD:?Set private application database password}@postgres:5432/amamihe?sslmode=verify-full
       NODE_EXTRA_CA_CERTS: /run/postgres-tls/ca.crt
+      EMAIL_CONFIG_FILE: /run/amamihe/email.json
     ports:
       - "127.0.0.1:${APP_LOOPBACK_PORT:?Select an unused explicit loopback port}:3000"
     volumes:
       - ${AMAMIHE_SHARED_DIR:?Set private shared directory}/tls/ca.crt:/run/postgres-tls/ca.crt:ro
+      - ${AMAMIHE_SHARED_DIR:?Set private shared directory}/email.json:/run/amamihe/email.json:ro
     networks:
       - web
       - database

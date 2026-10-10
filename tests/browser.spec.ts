@@ -1,14 +1,13 @@
+import { createAccount, signupInBrowser } from "./auth-helpers";
 import { test, expect } from "@playwright/test";
-test("3D browser journey: guest, recorded chunks, clearance, classification, persistence and idempotency", async ({
+test("3D browser journey: verified account, recorded chunks, clearance, classification, persistence and idempotency", async ({
   page,
   context,
 }) => {
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
   await page.goto("/");
-  await page.getByLabel("Your explorer name").fill("Browser Explorer");
-  await page.getByLabel("teal outfit").click();
-  await page.getByRole("button", { name: "Enter Venture City" }).click();
+  await signupInBrowser(page, "Browser Explorer", "teal");
   await expect(page.locator("canvas")).toHaveAttribute(
     "data-scene-mode",
     "world",
@@ -83,8 +82,7 @@ test("mobile browser and touch controls, assistance tracking, and incomplete bou
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
-  await page.getByLabel("Your explorer name").fill("Mobile Explorer");
-  await page.getByRole("button", { name: "Enter Venture City" }).click();
+  await signupInBrowser(page, "Mobile Explorer", "terracotta");
   await expect(page.getByRole("button", { name: "Walk Up" })).toBeVisible();
   const a = await context.request.post("/api/attempts", { data: {} });
   const d = await a.json();
@@ -126,9 +124,9 @@ test("player isolation and cross-origin mutation guard", async ({
   const base = process.env.PREVIEW_URL || "http://127.0.0.1:3000";
   const a = await playwright.request.newContext({ baseURL: base });
   const b = await playwright.request.newContext({ baseURL: base });
-  await a.post("/api/session", { data: { name: "Owner", outfit: "teal" } });
+  await createAccount(a, "Owner");
   const attempt = await (await a.post("/api/attempts", { data: {} })).json();
-  await b.post("/api/session", { data: { name: "Other", outfit: "gold" } });
+  await createAccount(b, "Other", "gold");
   expect(
     (
       await b.post("/api/attempts/" + attempt.id + "/complete", { data: {} })
@@ -151,8 +149,7 @@ test("in-progress responses survive a browser refresh", async ({
   context,
 }) => {
   await page.goto("/");
-  await page.getByLabel("Your explorer name").fill("Resuming Explorer");
-  await page.getByRole("button", { name: "Enter Venture City" }).click();
+  await signupInBrowser(page, "Resuming Explorer", "terracotta");
   await page.getByRole("button", { name: "Visit Model Makers" }).click();
   await page.getByRole("button", { name: "Enter course adventure" }).click();
   await page.getByRole("button", { name: /Turns text into token IDs/ }).click();
@@ -190,8 +187,7 @@ test("rigged avatars load and the HUD remains aligned at desktop, tablet, and ph
         (i: HTMLImageElement) => i.complete && i.naturalWidth > 0,
       ),
     ).toBe(true);
-  await page.getByLabel("Your explorer name").fill("Visual Explorer");
-  await page.getByRole("button", { name: "Enter Venture City" }).click();
+  await signupInBrowser(page, "Visual Explorer", "terracotta");
   await expect(page.locator("canvas")).toHaveAttribute(
     "data-avatar-ready",
     "true",
