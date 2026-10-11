@@ -1,65 +1,66 @@
 {
-  "date": "2026-10-10T20:58:57.515Z",
+  "date": "2026-10-11T01:28:48.653Z",
   "browser": "Chromium, software WebGL",
   "viewport": "390 x 844",
   "throttle": "2 Mbps down / 100ms latency / 4x CPU slowdown",
   "accountSetup": "local verified test account",
-  "firstPlayableMs": 60110,
-  "fps": "3 FPS",
+  "serviceWorkers": "blocked for cold-transfer measurement",
+  "firstPlayableMs": 35337,
+  "fps": "9 FPS",
   "fpsSamples": [
-    "4 FPS",
-    "6 FPS",
-    "5 FPS"
+    "8 FPS",
+    "9 FPS",
+    "8 FPS"
   ],
   "renderHeight": 144,
-  "activeTriangles": 102620,
+  "activeTriangles": 65543,
   "activeMaterialTypes": {
     "StandardMaterial": 65,
     "none": 2
   },
-  "renderCpuMs": 103,
-  "encodedBodyBytes": 1909164,
-  "networkEncodedBodyBytes": 1909164,
-  "transferBytes": 1935274,
-  "jsHeapBytes": 36963061,
-  "browserProcessPssBytes": 511531008,
-  "browserProcessRssBytes": 722968576,
-  "rendererAndGpuPssBytes": 378076160,
+  "renderCpuMs": 89,
+  "encodedBodyBytes": 1500981,
+  "networkEncodedBodyBytes": 1500981,
+  "transferBytes": 1527091,
+  "jsHeapBytes": 67082342,
+  "browserProcessPssBytes": 528384000,
+  "browserProcessRssBytes": 739090432,
+  "rendererAndGpuPssBytes": 393387008,
   "processMemory": [
     {
       "type": "browser",
-      "rss": 135147520,
-      "pss": 93986816
+      "rss": 136011776,
+      "pss": 94907392
     },
     {
       "type": "renderer",
-      "rss": 34308096,
-      "pss": 11646976
+      "rss": 34279424,
+      "pss": 11629568
     },
     {
       "type": "renderer",
-      "rss": 196444160,
-      "pss": 155701248
+      "rss": 208453632,
+      "pss": 168061952
     },
     {
       "type": "renderer",
-      "rss": 91275264,
-      "pss": 53228544
+      "rss": 91394048,
+      "pss": 53362688
     },
     {
       "type": "GPU",
-      "rss": 176332800,
-      "pss": 157499392
+      "rss": 178896896,
+      "pss": 160332800
     },
     {
       "type": "network.mojom.NetworkService",
-      "rss": 65794048,
-      "pss": 32931840
+      "rss": 66375680,
+      "pss": 33500160
     },
     {
       "type": "storage.mojom.StorageService",
-      "rss": 23666688,
-      "pss": 6536192
+      "rss": 23678976,
+      "pss": 6589440
     }
   ],
   "memorySampledProcesses": 7,

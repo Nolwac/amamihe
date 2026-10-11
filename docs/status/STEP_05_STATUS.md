@@ -9,3 +9,7 @@ A service worker stores at most 32 successful public art responses. It excludes 
 ## Verification and limits
 
 Node checks cover connection policy, bounded render reduction and smaller texture files. Browser checks cover cached offline reads, an aborted download followed by recovery, and exclusion of private paths. Existing course journeys exercise manual resolution and reload persistence. Automated audits use throttled Chromium/software WebGL; they do not establish physical 2 GB-device support. Initial load, GPU/OS memory and frame-rate budgets require representative hardware validation. No compatibility claim is made for unavailable WebGL, offline grading, or offline external practice services.
+
+## October 11 measurement
+
+Final cold-transfer audit (service workers blocked to avoid timing omissions), 390×844 Chromium/software WebGL, 2 Mbps down, 100 ms latency, 4× CPU: 35,337 ms to playable, 8/9/8 FPS, 65,543 active triangles, 1,527,091 transfer bytes, 528,384,000 bytes total browser PSS. The earlier October 10 run recorded 60,110 ms, 3–6 FPS, 102,620 triangles and 1,935,274 bytes. Runs are not physical-device benchmarks and memory remains above the provisional budget. The initial cached audit undercounted network transfer and is not used for comparison. This milestone delivers adaptive controls and reduced assets; reference-device/load/memory acceptance remains open for evaluation. All 11 browser journeys pass; the existing 49 Node checks pass with one optional PostgreSQL skip, and all three resource-policy/geometry checks pass separately.

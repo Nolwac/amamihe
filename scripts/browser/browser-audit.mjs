@@ -81,6 +81,8 @@ try {
   const context = await browser.newContext({
     baseURL: process.env.PREVIEW_URL || "http://127.0.0.1:3000",
     viewport: { width: 390, height: 844 },
+    // Measure cold page downloads without service-worker timing omissions. Cache recovery is tested separately.
+    serviceWorkers: "block",
   });
   const accountSetup = await authenticate(context.request);
   const page = await context.newPage();
@@ -147,6 +149,7 @@ try {
     viewport: "390 x 844",
     throttle: "2 Mbps down / 100ms latency / 4x CPU slowdown",
     accountSetup,
+    serviceWorkers: "blocked for cold-transfer measurement",
     firstPlayableMs,
     fps,
     fpsSamples,
