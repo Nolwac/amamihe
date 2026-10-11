@@ -38,8 +38,27 @@ test("authentication gates gameplay and password/email-code login restores the s
   await expect(
     page.getByText(credentials.email, { exact: true }),
   ).toBeVisible();
+  // A slow session restore must not weaken logout authorization or fail a UI race.
+  let delayedSession = false;
+  await page.route("**/api/session", async (route) => {
+    if (delayedSession && route.request().method() === "GET") {
+      delayedSession = false;
+      await new Promise((resolve) => setTimeout(resolve, 6500));
+    }
+    await route.continue();
+  });
+  delayedSession = true;
+  const signedOut = page.waitForResponse(
+    (response) =>
+      response.url().endsWith("/api/auth/logout") &&
+      response.request().method() === "POST",
+  );
   await page.getByRole("button", { name: "Sign out", exact: true }).click();
-  await expect(page.getByLabel("Create your explorer")).toBeVisible();
+  expect((await signedOut).ok()).toBe(true);
+  await page.waitForLoadState("domcontentloaded");
+  await expect(page.getByLabel("Create your explorer")).toBeVisible({
+    timeout: 30000,
+  });
   expect(
     (await context.request.post("/api/attempts", { data: {} })).status(),
   ).toBe(401);
