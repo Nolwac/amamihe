@@ -565,3 +565,7 @@
   border: 1px solid #a9c4b370;
   border-radius: 8px;
 }
+
+.modal-backdrop.portal-preview {
+  z-index: 45;
+}

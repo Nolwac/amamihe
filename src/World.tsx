@@ -1085,6 +1085,7 @@ export default function World({
         portal.position.set(-7, 2.7, 38);
         portal.rotation.x = Math.PI / 2;
         portal.material = mat("portal", "#4ab9b3");
+        portal.metadata = { course: "search-portals" };
       }
       if (disposed) return;
       // Contact shadows are inexpensive geometry, not downloaded scene backdrops.

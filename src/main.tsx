@@ -14,6 +14,7 @@ import "@fontsource/manrope/latin-700.css";
 import "@fontsource/manrope/latin-800.css";
 import "./style.css";
 import "./game.css";
+const SearchPortals = lazy(() => import("./SearchPortals"));
 const World = lazy(() => import("./World"));
 const TutorStudio = lazy(() => import("./TutorStudio"));
 const CourseAdventure = lazy(() => import("./CourseAdventure"));
@@ -127,6 +128,8 @@ function Icon({ name, size = 22 }: { name: string; size?: number }) {
   );
 }
 function App() {
+  const [portals, setPortals] = useState(false);
+  const [portalDoor, setPortalDoor] = useState<CourseSummary | null>(null);
   const [studio, setStudio] = useState(false);
   const [directory, setDirectory] = useState(false);
   const [courseId, setCourseId] = useState<string | null>(null);
@@ -199,9 +202,10 @@ function App() {
       alive = false;
     };
   }, [player?.id, directory, courseId]);
-  const publishedHouse = courses.find(
-    (course) => house === "course:" + course.id,
-  );
+  const publishedHouse =
+    portalDoor && house === "course:" + portalDoor.id
+      ? portalDoor
+      : courses.find((course) => house === "course:" + course.id);
   const refreshPoints = () =>
     api<{ player: Player }>("/session")
       .then((s) => {
@@ -319,6 +323,15 @@ function App() {
                 }}
               >
                 Course houses
+              </button>
+              <button
+                onClick={() => {
+                  setPortals(true);
+                  setDirectory(false);
+                  setHouse(null);
+                }}
+              >
+                Search portals
               </button>
               <button
                 className="tutor-toggle"
@@ -525,7 +538,12 @@ function App() {
                 outfit={outfit}
                 quality={quality}
                 peers={social.joined ? social.state.presence : []}
-                onHouse={setHouse}
+                onHouse={(name) => {
+                  if (name === "search-portals") {
+                    setPortals(true);
+                    setHouse(null);
+                  } else setHouse(name);
+                }}
                 onReady={setStats}
               />
             </Suspense>
@@ -650,6 +668,21 @@ function App() {
           <button onClick={() => setTab("learn")}>View my progress ↗</button>
         </footer>
       </main>
+      {player && portals && (
+        <Suspense
+          fallback={
+            <section className="course-directory">Opening portals…</section>
+          }
+        >
+          <SearchPortals
+            onClose={() => setPortals(false)}
+            onDoor={(course) => {
+              setPortalDoor(course);
+              setHouse("course:" + course.id);
+            }}
+          />
+        </Suspense>
+      )}
       {player && directory && (
         <section
           className="course-directory"
@@ -778,7 +811,9 @@ function App() {
         </section>
       )}
       {player && publishedHouse && (
-        <div className="modal-backdrop">
+        <div
+          className={"modal-backdrop" + (portalDoor ? " portal-preview" : "")}
+        >
           <section
             className="modal"
             aria-label="Published course house preview"
@@ -814,6 +849,8 @@ function App() {
                     version: publishedHouse.version,
                   });
                   setCourseId(publishedHouse.id);
+                  setPortals(false);
+                  setPortalDoor(null);
                   setHouse(null);
                   setTab("explore");
                 })
