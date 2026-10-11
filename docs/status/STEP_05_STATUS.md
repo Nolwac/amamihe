@@ -1,0 +1,11 @@
+# Step 5 — Adaptive Rendering and Resource Delivery
+
+The world retains genuine 3D geometry and rigged avatars. City Low caps rendering at 10 FPS with automatic resolution reductions to 144p; Medium/High retain 720p/1080p targets, device viewport permitting. Course adventures now default to automatic 144–360p with independent manual 144/360/720/1080 settings and a 10 FPS cap. Readable HTML controls remain at native resolution. Low background resident derivatives retain their authored human silhouettes at 22% of the source triangles (6,153 rather than 27,976 per pair; 324 KB rather than 876 KB of GLB files). Existing Low playable avatar meshes, static lighting, disabled shadows, geometry merging, lazy scene loading and deferred resident downloads remain active.
+
+Texture downloads are selected separately through connection hints. Save-data, 2G/3G, less than 2 Mbps or unavailable hints choose 128-pixel WebP textures; faster reported links retain standard textures. The four world textures shrink from approximately 16 KB to 1.5 KB. Changing resolution alone does not reduce network downloads.
+
+A service worker stores at most 32 successful public art responses. It excludes HTML, API, account and learner data, range responses and failed downloads; online requests revalidate through the browser cache, while offline requests can reuse completed artwork. Interrupted uncached downloads can be retried after reconnecting. There is no unbounded prefetching. API progress remains durable on the server and answers are not queued offline; pending decisions and interrupted steps use existing restore/retry semantics. Browser cache eviction or private browsing can remove offline art availability.
+
+## Verification and limits
+
+Node checks cover connection policy, bounded render reduction and smaller texture files. Browser checks cover cached offline reads, an aborted download followed by recovery, and exclusion of private paths. Existing course journeys exercise manual resolution and reload persistence. Automated audits use throttled Chromium/software WebGL; they do not establish physical 2 GB-device support. Initial load, GPU/OS memory and frame-rate budgets require representative hardware validation. No compatibility claim is made for unavailable WebGL, offline grading, or offline external practice services.

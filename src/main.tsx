@@ -1,3 +1,5 @@
+import { initializeAssetCache } from "./rendering";
+void initializeAssetCache();
 import React, { Suspense, lazy, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import "@fontsource/dm-sans/latin-400.css";

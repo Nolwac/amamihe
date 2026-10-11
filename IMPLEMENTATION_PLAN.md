@@ -52,6 +52,8 @@ Step 1's technical foundation is delivered with verified-email accounts, persist
 
 ## Phase 5: Adaptive Rendering and Resource Delivery
 
+Implementation: [Step 5 status](docs/status/STEP_05_STATUS.md). Physical reference-device validation remains an evaluation gate.
+
 - Implement manual and automatic 144p/360p/720p/1080p target render-height presets within device limits.
 - Adapt frame rate, lighting, shadows, effects, mesh detail, and compressed texture tiers while preserving true 3D interactions.
 - Separate device-performance adaptation from bandwidth-driven asset selection and downloads.

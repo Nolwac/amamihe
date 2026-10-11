@@ -26,6 +26,16 @@ export default function CourseAdventure({
   onPoints: () => void;
   outfit: string;
 }) {
+  const [online, setOnline] = useState(navigator.onLine);
+  useEffect(() => {
+    const update = () => setOnline(navigator.onLine);
+    window.addEventListener("online", update);
+    window.addEventListener("offline", update);
+    return () => {
+      window.removeEventListener("online", update);
+      window.removeEventListener("offline", update);
+    };
+  }, []);
   const [progress, setProgress] = useState<LearningProgress | null>(null);
   const [answer, setAnswer] = useState<number | null>(null);
   const [help, setHelp] = useState("");
@@ -46,7 +56,7 @@ export default function CourseAdventure({
   );
   const [clock, setClock] = useState(0);
   const [boost, setBoost] = useState(0);
-  const [renderHeight, setRenderHeight] = useState(360);
+  const [renderHeight, setRenderHeight] = useState(0);
   const synced = useRef(Date.now());
   const latest = useRef(progress);
   latest.current = progress;
@@ -239,6 +249,13 @@ export default function CourseAdventure({
           </div>
         </div>
         <div className="adventure-content">
+          {!online && (
+            <p role="status">
+              Offline: cached artwork may remain visible. Answers, grading, and
+              progress require a connection. Reconnect and retry; saved progress
+              is retained.
+            </p>
+          )}
           {error && (
             <div className="course-error" role="alert">
               {error}
@@ -388,6 +405,7 @@ export default function CourseAdventure({
                     value={renderHeight}
                     onChange={(e) => setRenderHeight(Number(e.target.value))}
                   >
+                    <option value={0}>Automatic · 144–360p</option>
                     {[144, 360, 720, 1080].map((h) => (
                       <option key={h} value={h}>
                         {h}p

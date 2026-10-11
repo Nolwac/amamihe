@@ -84,6 +84,7 @@ app.get("/api/health", async () => {
       learningAssessment: true,
       playableThemes: true,
       cosmeticRewards: true,
+      adaptiveResources: true,
     },
   };
 });

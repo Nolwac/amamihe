@@ -1,3 +1,5 @@
+import { resourcePath } from "./rendering";
+import { nextRenderHeight } from "../shared/rendering";
 import { useEffect, useRef } from "react";
 import "@babylonjs/core/Culling/ray";
 import { Viewport } from "@babylonjs/core/Maths/math.viewport";
@@ -81,7 +83,7 @@ export default function CourseScene({
       return m;
     }
     const stone = material("sandstone", "#b99167");
-    const stoneTile = new Texture("/assets/world/limestone.webp", scene);
+    const stoneTile = new Texture(resourcePath("world/limestone.webp"), scene);
     stoneTile.uScale = 2;
     stoneTile.vScale = 2;
     stone.diffuseTexture = stoneTile;
@@ -306,9 +308,15 @@ export default function CourseScene({
     };
     element.addEventListener("pointerdown", press);
     element.addEventListener("pointerup", choose);
+    let adaptiveHeight = 360;
+    let sampleStart = performance.now(),
+      sampleFrames = 0;
     const resize = () => {
       engine.setHardwareScalingLevel(
-        Math.max(1, element.clientHeight / live.current.renderHeight),
+        Math.max(
+          1,
+          element.clientHeight / (live.current.renderHeight || adaptiveHeight),
+        ),
       );
       camera.viewport = new Viewport(
         0,
@@ -341,8 +349,7 @@ export default function CourseScene({
     });
     let last = 0;
     engine.runRenderLoop(() => {
-      if (disposed || document.hidden || performance.now() - last < 1000 / 15)
-        return;
+      if (disposed || document.hidden || performance.now() - last < 100) return;
       last = performance.now();
       const g = live.current.game;
       const t = performance.now() / 1000;
@@ -399,6 +406,17 @@ export default function CourseScene({
         element.dataset.gameBoost = String(g.boost);
       }
       scene.render();
+      sampleFrames++;
+      if (performance.now() - sampleStart > 3000) {
+        const fps = (sampleFrames * 1000) / (performance.now() - sampleStart);
+        if (!live.current.renderHeight) {
+          adaptiveHeight = nextRenderHeight(adaptiveHeight, fps);
+          resize();
+        }
+        element.dataset.fps = String(Math.round(fps));
+        sampleStart = performance.now();
+        sampleFrames = 0;
+      }
       element.dataset.renderHeight = String(engine.getRenderHeight());
       if (g) {
         const point = Vector3.Project(

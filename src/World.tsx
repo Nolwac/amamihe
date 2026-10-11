@@ -1,3 +1,4 @@
+import { resourcePath } from "./rendering";
 import { useEffect, useLayoutEffect, useRef } from "react";
 import { Engine } from "@babylonjs/core/Engines/engine";
 import { Scene } from "@babylonjs/core/scene";
@@ -204,8 +205,7 @@ export default function World({
       let smallScreen =
         canvas.current!.clientWidth < (mode === "avatar" ? 721 : 600);
       if (smallScreen) camera.radius = 9;
-      const asset = (file: string) =>
-        `${import.meta.env.BASE_URL}assets/${file}`;
+      const asset = (file: string) => resourcePath(file);
       const skinTexture = new Texture(
         asset("avatar-skin.jpg"),
         scene,
@@ -1265,7 +1265,7 @@ export default function World({
             const explorerResident =
               quality === "low"
                 ? await LoadAssetContainerAsync(
-                    asset("explorer-resident.glb"),
+                    asset("explorer-resident-low.glb"),
                     scene,
                   )
                 : container;
@@ -1291,7 +1291,10 @@ export default function World({
               residents.push({ root, animations });
               contact(x, z, 0.45);
             }
-            LoadAssetContainerAsync(asset("resident.glb"), scene)
+            LoadAssetContainerAsync(
+              asset(quality === "low" ? "resident-low.glb" : "resident.glb"),
+              scene,
+            )
               .then((residentAsset) => {
                 if (disposed) {
                   residentAsset.dispose();
@@ -1549,7 +1552,7 @@ export default function World({
         }
         if (canvas.current?.dataset.renderState !== "active")
           canvas.current?.setAttribute("data-render-state", "active");
-        if (quality === "low" && now - last < 65) return;
+        if (quality === "low" && now - last < 100) return;
         const dt = Math.min((now - last) / 1000, 0.1);
         last = now;
         let dx = 0,
