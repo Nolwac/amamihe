@@ -549,3 +549,19 @@
   color: #d0dacf;
   line-height: 1.6;
 }
+
+.course-directory p {
+  color: #d0dacf;
+}
+.course-directory .eyebrow {
+  color: #e2cc9f;
+}
+.wardrobe textarea {
+  width: 100%;
+  padding: 12px;
+  min-height: 90px;
+  background: #192f33;
+  color: #faefd8;
+  border: 1px solid #a9c4b370;
+  border-radius: 8px;
+}

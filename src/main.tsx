@@ -17,6 +17,7 @@ import "./game.css";
 const World = lazy(() => import("./World"));
 const TutorStudio = lazy(() => import("./TutorStudio"));
 const CourseAdventure = lazy(() => import("./CourseAdventure"));
+const DeviceCheck = lazy(() => import("./DeviceCheck"));
 const SocialPanel = lazy(() => import("./SocialPanel"));
 const ReviewDesk = lazy(() => import("./ReviewDesk"));
 const WardrobeShop = lazy(() => import("./WardrobeShop"));
@@ -346,7 +347,11 @@ function App() {
             </div>
           ))}
         </div>
-        <div className="district-map" aria-label="Workshop District map">
+        <div
+          role="img"
+          className="district-map"
+          aria-label="Workshop District map"
+        >
           <svg viewBox="0 0 120 120" aria-hidden="true">
             <defs>
               <clipPath id="map-clip">
@@ -434,6 +439,7 @@ function App() {
               {player?.points ? "Learning explorer" : "New explorer"}
             </small>
             <span
+              role="img"
               className="profile-progress"
               aria-label={`${player?.points || 0} activity points; course progress is saved separately`}
             >
@@ -557,7 +563,11 @@ function App() {
           </div>
           <div className="scene-bottom">
             <span>
-              <span className="keyboard-hint" aria-label="W A S D to walk">
+              <span
+                role="img"
+                className="keyboard-hint"
+                aria-label="W A S D to walk"
+              >
                 {["W", "A", "S", "D"].map((key) => (
                   <kbd key={key}>{key}</kbd>
                 ))}
@@ -663,6 +673,7 @@ function App() {
               onChanged={refreshPoints}
             />
             <ReviewDesk />
+            <DeviceCheck />
             <SocialPanel
               social={social}
               playerId={player.id}

@@ -1,0 +1,77 @@
+{
+  "automatedAccessibility": {
+    "widths": [390, 1440],
+    "passingJourneys": 2,
+    "threshold": "critical and serious WCAG A/AA"
+  },
+  "node": {
+    "passed": 58,
+    "skipped": 1
+  },
+  "audit": {
+    "date": "2026-10-11T09:39:45.208Z",
+    "browser": "Chromium, software WebGL",
+    "viewport": "390 x 844",
+    "throttle": "2 Mbps down / 100ms latency / 4x CPU slowdown",
+    "accountSetup": "local verified test account",
+    "serviceWorkers": "blocked for cold-transfer measurement",
+    "firstPlayableMs": 15452,
+    "fps": "7 FPS",
+    "fpsSamples": ["5 FPS", "9 FPS", "7 FPS"],
+    "renderHeight": 147,
+    "activeTriangles": 65543,
+    "activeMaterialTypes": {
+      "StandardMaterial": 65,
+      "none": 2
+    },
+    "renderCpuMs": 44,
+    "encodedBodyBytes": 1502184,
+    "networkEncodedBodyBytes": 1502184,
+    "transferBytes": 1528943,
+    "jsHeapBytes": 52245985,
+    "browserProcessPssBytes": 536939520,
+    "browserProcessRssBytes": 746663936,
+    "rendererAndGpuPssBytes": 402247680,
+    "processMemory": [
+      {
+        "type": "browser",
+        "rss": 135462912,
+        "pss": 94389248
+      },
+      {
+        "type": "renderer",
+        "rss": 34287616,
+        "pss": 11623424
+      },
+      {
+        "type": "renderer",
+        "rss": 197554176,
+        "pss": 157645824
+      },
+      {
+        "type": "renderer",
+        "rss": 100601856,
+        "pss": 63074304
+      },
+      {
+        "type": "GPU",
+        "rss": 188485632,
+        "pss": 169904128
+      },
+      {
+        "type": "network.mojom.NetworkService",
+        "rss": 66457600,
+        "pss": 33575936
+      },
+      {
+        "type": "storage.mojom.StorageService",
+        "rss": 23814144,
+        "pss": 6726656
+      }
+    ],
+    "memorySampledProcesses": 7,
+    "limitations": "CPU/network emulation is not a physical 2 GB device test. Browser process PSS is a Linux snapshot, excludes OS/background apps and hardware GPU allocations; RSS double-counts shared pages. Timing measures authenticated game navigation and excludes account creation, verification, and email-provider latency. Software rendering is not a hardware GPU benchmark. Encoded-body totals include resources reused from cache; networkEncodedBodyBytes excludes cache hits and transferBytes includes document/resource HTTP overhead, but excludes connection/TLS overhead."
+  },
+  "physicalDevicesTested": false,
+  "learnerStudyPerformed": false
+}
