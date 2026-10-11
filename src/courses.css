@@ -471,3 +471,81 @@
 .practice-tool button {
   margin: 6px 6px 6px 0;
 }
+
+.wardrobe {
+  max-width: 1000px;
+  margin: 24px auto;
+  padding: 22px;
+  border: 1px solid #e1bd7950;
+  border-radius: 16px;
+  background: #233e42;
+  color: #faefd8;
+  overflow-wrap: anywhere;
+}
+.wardrobe label {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 8px;
+  width: min(100%, 320px);
+  margin: 12px 14px 12px 0;
+  vertical-align: middle;
+}
+.wardrobe input,
+.wardrobe select {
+  width: 100%;
+  min-width: 0;
+  padding: 12px;
+  background: #192f33;
+  color: #faefd8;
+  border: 1px solid #a9c4b370;
+  border-radius: 8px;
+}
+.wardrobe button {
+  padding: 12px 16px;
+  margin: 6px 8px 6px 0;
+  max-width: 100%;
+  border: 1px solid #a9c4b370;
+  border-radius: 8px;
+  background: #294349;
+  color: #f9e7c6;
+  cursor: pointer;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+.wardrobe button:hover:not(:disabled),
+.wardrobe button[aria-pressed="true"] {
+  border-color: #f2c36f;
+  background: #36584f;
+}
+.wardrobe button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.wardrobe article {
+  padding: 18px;
+  margin-top: 14px;
+  border-radius: 12px;
+  background: #192f33;
+}
+.wardrobe code {
+  color: #f2c36f;
+  word-break: break-all;
+}
+.wardrobe :focus-visible {
+  outline: 2px solid #f2c36f;
+  outline-offset: 3px;
+}
+@media (max-width: 720px) {
+  .wardrobe {
+    margin: 16px;
+    padding: 16px;
+  }
+  .wardrobe label {
+    width: 100%;
+    margin-right: 0;
+  }
+}
+.wardrobe p {
+  color: #d0dacf;
+  line-height: 1.6;
+}

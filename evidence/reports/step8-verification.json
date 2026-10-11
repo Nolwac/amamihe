@@ -1,0 +1,64 @@
+{
+  "date": "2026-10-11T02:20:39.730075+00:00",
+  "node": {
+    "total": 59,
+    "passed": 58,
+    "skipped": 1,
+    "failed": 0,
+    "skip": "Optional disposable external PostgreSQL fixture; isolated PGlite API fixtures passed."
+  },
+  "browser": {
+    "baselineJourneys": 14,
+    "baselinePassed": 14,
+    "finalFocusedSocialJourney": "passed on rebuilt release candidate",
+    "viewports": [
+      [1440, 900],
+      [390, 844]
+    ]
+  },
+  "apiFixture": [
+    "Eight-player room plus ninth-player shard",
+    "Four members per team and private captain consent",
+    "Pinned enrollment after new publication",
+    "Unauthorized access and client-score rejection",
+    "Idempotent ordered answers and atomic rewards",
+    "Empty timeout and rolling-day reward caps",
+    "Immediate moderator mute, report/block/unblock",
+    "Stale presence and unchanged individual mastery"
+  ],
+  "build": "TypeScript/Vite passed; existing large Babylon chunk advisory remains.",
+  "format": "passed",
+  "captures": [
+    "evidence/screenshots/step8-shared-city.png",
+    "evidence/screenshots/step8-shared-course.png",
+    "evidence/screenshots/step8-team-battle.png",
+    "evidence/screenshots/step8-mobile-team.png"
+  ],
+  "priorMilestoneDeployments": [
+    {
+      "step": 5,
+      "commit": "2690c9b8abccb015b7d5cef4be6c133c83edc8e4",
+      "run": 38102024663,
+      "allFourJobs": "success"
+    },
+    {
+      "step": 6,
+      "commit": "2df3559e1af7d3eeaa5d99f53f06f01459c86541",
+      "run": 38103227148,
+      "allFourJobs": "success"
+    },
+    {
+      "step": 7,
+      "commit": "9b320e762f3cfd46cf4d98be95d7558ec50407fd",
+      "run": 38103981726,
+      "allFourJobs": "success"
+    }
+  ],
+  "limitations": [
+    "Physical 2 GB performance and eight-player concurrency load remain unverified.",
+    "Peer meshes are static and presence uses foreground three-second polling.",
+    "Production moderator IDs are not assigned by this release.",
+    "OpenRouter remains an explicit mock; practical metrics are unverified learner evidence.",
+    "Search portals, billboards and Learning Police remain roadmap work."
+  ]
+}

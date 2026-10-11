@@ -92,23 +92,29 @@ export default function PracticeTool({
   }
   function download() {
     const raw = resource.content;
-    const offset = raw.indexOf("# A small decoder");
-    const blob = new Blob(
-      [
-        JSON.stringify(
-          notebookDocument(offset >= 0 ? raw.slice(offset) : raw),
-          null,
-          2,
-        ),
-      ],
-      { type: "application/json" },
-    );
-    const url = URL.createObjectURL(blob);
-    const a = window.document.createElement("a");
-    a.href = url;
-    a.download = "amamihe-story-model.ipynb";
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    const offset = raw.trimStart().startsWith("{")
+      ? -1
+      : raw.indexOf("# A small decoder");
+    try {
+      const blob = new Blob(
+        [
+          JSON.stringify(
+            notebookDocument(offset >= 0 ? raw.slice(offset) : raw),
+            null,
+            2,
+          ),
+        ],
+        { type: "application/json" },
+      );
+      const url = URL.createObjectURL(blob);
+      const a = window.document.createElement("a");
+      a.href = url;
+      a.download = "amamihe-story-model.ipynb";
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (error) {
+      setMessage(String(error));
+    }
   }
   if (resource.kind === "video" && approvedEmbed(resource.url))
     return (

@@ -1,3 +1,4 @@
+import { useSocialPresence } from "./socialPresence";
 import { initializeAssetCache } from "./rendering";
 void initializeAssetCache();
 import React, { Suspense, lazy, useEffect, useState } from "react";
@@ -16,6 +17,7 @@ import "./game.css";
 const World = lazy(() => import("./World"));
 const TutorStudio = lazy(() => import("./TutorStudio"));
 const CourseAdventure = lazy(() => import("./CourseAdventure"));
+const SocialPanel = lazy(() => import("./SocialPanel"));
 const ReviewDesk = lazy(() => import("./ReviewDesk"));
 const WardrobeShop = lazy(() => import("./WardrobeShop"));
 const CourseScene = lazy(() => import("./CourseScene"));
@@ -237,6 +239,7 @@ function App() {
       setBusy(false);
     }
   }
+  const social = useSocialPresence(player?.id);
   const q = attempt?.questions[index];
   const begin = () =>
     action(async () => {
@@ -515,6 +518,7 @@ function App() {
                 mode={player ? "world" : "avatar"}
                 outfit={outfit}
                 quality={quality}
+                peers={social.joined ? social.state.presence : []}
                 onHouse={setHouse}
                 onReady={setStats}
               />
@@ -654,8 +658,17 @@ function App() {
             </button>
           </header>
           <Suspense fallback={<p>Opening wardrobe…</p>}>
-            <WardrobeShop onChanged={refreshPoints} />
+            <WardrobeShop
+              key={`${player.points}:${player.outfit}`}
+              onChanged={refreshPoints}
+            />
             <ReviewDesk />
+            <SocialPanel
+              social={social}
+              playerId={player.id}
+              courses={courses}
+              onRewards={refreshPoints}
+            />
           </Suspense>
           {enrollments.length > 0 && (
             <div
@@ -832,6 +845,7 @@ function App() {
             key={courseId}
             courseId={courseId}
             outfit={outfit}
+            peers={social.joined ? social.state.presence : []}
             onClose={() => setCourseId(null)}
             onPoints={() => {
               void refreshPoints();

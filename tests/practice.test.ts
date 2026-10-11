@@ -68,3 +68,34 @@ test("only allowlisted video embeds can execute externally", () => {
   ])
     assert.equal(approvedEmbed(u), null);
 });
+
+test("imported notebooks preserve Python cells and discard execution output", () => {
+  const original = {
+    nbformat: 4,
+    cells: [
+      {
+        cell_type: "markdown",
+        source: ["# A small decoder\n"],
+        metadata: {},
+        attachments: { unsafe: {} },
+      },
+      {
+        cell_type: "code",
+        source: ["print(4)\n"],
+        metadata: {},
+        outputs: [{ data: { "text/html": "<script>unsafe</script>" } }],
+        execution_count: 7,
+      },
+    ],
+  };
+  const document = notebookDocument(JSON.stringify(original));
+  assert.equal(document.cells[0].cell_type, "markdown");
+  assert.deepEqual(document.cells[1].source, ["print(4)\n"]);
+  assert.deepEqual(document.cells[1].outputs, []);
+  assert.equal(document.cells[1].execution_count, null);
+  assert.throws(() =>
+    notebookDocument(
+      '{"nbformat":4,"cells":[{"cell_type":"code","source":42}]}',
+    ),
+  );
+});

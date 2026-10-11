@@ -1,3 +1,6 @@
+import { createPeerRenderer } from "./peerScene";
+import { publishPosition } from "./socialPresence";
+import type { Presence } from "../shared/social";
 import { resourcePath } from "./rendering";
 import { useEffect, useLayoutEffect, useRef } from "react";
 import { Engine } from "@babylonjs/core/Engines/engine";
@@ -27,6 +30,7 @@ import "@babylonjs/core/Lights/Shadows/shadowGeneratorSceneComponent";
 import { DynamicTexture } from "@babylonjs/core/Materials/Textures/dynamicTexture";
 
 type Props = {
+  peers?: Presence[];
   mode?: "world" | "avatar";
   paused?: boolean;
   outfit: string;
@@ -54,11 +58,14 @@ export default function World({
   courses = [],
   onHouse,
   onReady,
+  peers = [],
 }: Props) {
   const canvas = useRef<HTMLCanvasElement>(null),
     houseCb = useRef(onHouse),
     statsCb = useRef(onReady),
     pausedRef = useRef(paused);
+  const peerRef = useRef(peers);
+  peerRef.current = peers;
   houseCb.current = onHouse;
   statsCb.current = onReady;
   useLayoutEffect(() => {
@@ -108,6 +115,7 @@ export default function World({
       };
       scaleResolution();
       const scene = new Scene(engine);
+      const synchronizePeers = createPeerRenderer(scene, () => peerRef.current);
       const releaseScene = () => {
         engine.stopRenderLoop();
         scene.detachControl();
@@ -1611,6 +1619,16 @@ export default function World({
           scaleResolution();
           lastResolutionChange = now;
         }
+        synchronizePeers();
+        if (mode === "world")
+          publishPosition({
+            space: "city",
+            position: {
+              x: player.root.position.x,
+              z: player.root.position.z,
+              heading: player.root.rotation.y,
+            },
+          });
         const renderStart = performance.now();
         scene.render();
         if (

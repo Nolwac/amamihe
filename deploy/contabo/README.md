@@ -35,3 +35,7 @@ The PostgreSQL server certificate expires one year after issuance; renew it befo
 This deployment publishes the existing foundation prototype, including its clearly labeled mock classifier. It does not establish completed OpenRouter integration, final artwork acceptance, or physical low-memory-device performance.
 
 The application image stamps its release identity from an explicit build argument or the detached checkout HEAD. Only `.git/HEAD` enters the build context; Git configuration, credentials, and history are excluded, and no Git files enter the runtime image.
+
+## Social moderation configuration
+
+The optional private server setting `SOCIAL_MODERATOR_IDS` contains comma-separated verified player IDs permitted to review reports and mute preset messages. Keep this role assignment in the existing private application environment file; never expose it through `VITE_*`. With no assigned IDs, learner reporting/blocking still works, but moderator controls remain unavailable. Assign and test operational moderation before opening social participation to an unrestricted pilot. This release does not modify the host environment or assign an account automatically.

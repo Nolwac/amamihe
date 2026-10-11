@@ -1,3 +1,4 @@
+import type { Presence } from "../shared/social";
 import PracticeTool from "./PracticeTool";
 import { lazy, Suspense, useEffect, useState, useRef } from "react";
 import type { LearningProgress } from "../shared/course";
@@ -21,11 +22,13 @@ export default function CourseAdventure({
   onClose,
   onPoints,
   outfit,
+  peers = [],
 }: {
   courseId: string;
   onClose: () => void;
   onPoints: () => void;
   outfit: string;
+  peers?: Presence[];
 }) {
   const [online, setOnline] = useState(navigator.onLine);
   useEffect(() => {
@@ -187,6 +190,10 @@ export default function CourseAdventure({
               outfit={outfit}
               onReady={() => setSceneReady(true)}
               renderHeight={renderHeight}
+              peers={peers}
+              presenceSpace={
+                progress ? { courseId, levelId: progress.levelId } : undefined
+              }
               onChoose={(i) => {
                 if (question && i < question.options.length) setAnswer(i);
               }}

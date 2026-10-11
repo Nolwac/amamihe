@@ -55,6 +55,40 @@ export function validPracticeEvidence(
   );
 }
 export function notebookDocument(code: string) {
+  let importedCells;
+  if (code.trimStart().startsWith("{")) {
+    const imported = JSON.parse(code);
+    if (
+      imported.nbformat !== 4 ||
+      !Array.isArray(imported.cells) ||
+      imported.cells.length > 200
+    )
+      throw new Error(
+        "Upload a valid version 4 notebook with at most 200 cells.",
+      );
+    importedCells = imported.cells.map(
+      (cell: Record<string, unknown>, index: number) => {
+        const source =
+          typeof cell.source === "string" ? [cell.source] : cell.source;
+        if (
+          !["code", "markdown", "raw"].includes(String(cell.cell_type)) ||
+          !Array.isArray(source) ||
+          !source.every((line) => typeof line === "string") ||
+          source.join("").length > 100000
+        )
+          throw new Error("Notebook cells must contain bounded text sources.");
+        return {
+          cell_type: String(cell.cell_type),
+          id: `imported-${index}`,
+          metadata: {},
+          source,
+          ...(cell.cell_type === "code"
+            ? { outputs: [], execution_count: null }
+            : {}),
+        };
+      },
+    );
+  }
   return {
     nbformat: 4,
     nbformat_minor: 5,
@@ -65,7 +99,7 @@ export function notebookDocument(code: string) {
         name: "python3",
       },
     },
-    cells: [
+    cells: importedCells ?? [
       {
         cell_type: "markdown",
         id: "practice-context",

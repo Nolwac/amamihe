@@ -1,3 +1,4 @@
+import { initializeSocialSchema, registerSocial } from "./social.js";
 import { initializeReviewSchema, registerReviews } from "./reviews.js";
 import { initializePracticeSchema, registerPractice } from "./practice.js";
 import { registerRewards } from "./rewards.js";
@@ -32,6 +33,7 @@ await initializeSchema(db);
 await initializeCourseSchema(db);
 await initializePracticeSchema(db);
 await initializeReviewSchema(db);
+await initializeSocialSchema(db);
 const email = await emailConfiguration();
 const auth = new Authentication(db, email.provider, email.codeSecret);
 const app = Fastify({
@@ -77,6 +79,7 @@ registerCourses(app, db, auth);
 registerRewards(app, db, auth);
 registerPractice(app, db, auth);
 registerReviews(app, db, auth);
+registerSocial(app, db, auth);
 app.get("/api/health", async () => {
   await db.query("SELECT 1");
   return {
@@ -93,6 +96,8 @@ app.get("/api/health", async () => {
       adaptiveResources: true,
       practiceEnvironments: true,
       reviewScheduling: true,
+      sharedWorld: true,
+      teamBattles: true,
     },
   };
 });

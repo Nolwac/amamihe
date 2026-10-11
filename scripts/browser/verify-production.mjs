@@ -44,6 +44,8 @@ while (true) {
       candidate.features?.adaptiveResources &&
       candidate.features?.practiceEnvironments &&
       candidate.features?.reviewScheduling &&
+      candidate.features?.sharedWorld &&
+      candidate.features?.teamBattles &&
       candidate.storage === "PostgreSQL"
     ) {
       const html = await fetch(base + "/", {
@@ -116,6 +118,12 @@ try {
     (await context.request.get(base + "/api/rewards")).status(),
     401,
   );
+  for (const endpoint of [
+    "/api/reviews",
+    "/api/social",
+    "/api/practice/missing/history",
+  ])
+    assert.equal((await context.request.get(base + endpoint)).status(), 401);
   const catalogue = await context.request.get(
     base + "/api/courses?limit=4&offset=0",
   );

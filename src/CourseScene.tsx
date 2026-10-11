@@ -1,3 +1,6 @@
+import { createPeerRenderer } from "./peerScene";
+import { publishPosition } from "./socialPresence";
+import type { Presence } from "../shared/social";
 import { resourcePath } from "./rendering";
 import { nextRenderHeight } from "../shared/rendering";
 import { useEffect, useRef } from "react";
@@ -38,6 +41,8 @@ export default function CourseScene({
   onReady,
   renderHeight = 360,
   onChoose,
+  peers = [],
+  presenceSpace,
 }: {
   theme: Theme;
   outfit?: string;
@@ -45,10 +50,26 @@ export default function CourseScene({
   onReady?: () => void;
   renderHeight?: number;
   onChoose?: (index: number) => void;
+  peers?: Presence[];
+  presenceSpace?: { courseId: string; levelId: string };
 }) {
   const canvas = useRef<HTMLCanvasElement>(null);
-  const live = useRef({ game, onReady, renderHeight, onChoose });
-  live.current = { game, onReady, renderHeight, onChoose };
+  const live = useRef({
+    game,
+    onReady,
+    renderHeight,
+    onChoose,
+    peers,
+    presenceSpace,
+  });
+  live.current = {
+    game,
+    onReady,
+    renderHeight,
+    onChoose,
+    peers,
+    presenceSpace,
+  };
   const resizeLive = useRef<() => void>(() => {});
   useEffect(() => resizeLive.current(), [renderHeight]);
   useEffect(() => {
@@ -60,6 +81,11 @@ export default function CourseScene({
       powerPreference: "low-power",
     });
     const scene = new Scene(engine);
+    const synchronizePeers = createPeerRenderer(
+      scene,
+      () => live.current.peers,
+      theme === "wrestling" ? 0.65 : 0.1,
+    );
     const temple = theme === "temple-chase";
     scene.clearColor = Color4.FromHexString(temple ? "#162d32ff" : "#aec5c7ff");
     const camera = new ArcRotateCamera(
@@ -405,6 +431,17 @@ export default function CourseScene({
         element.dataset.gameProgress = String(g.progress);
         element.dataset.gameBoost = String(g.boost);
       }
+      synchronizePeers();
+      if (actor && live.current.presenceSpace)
+        publishPosition({
+          space: live.current.presenceSpace.courseId,
+          levelId: live.current.presenceSpace.levelId,
+          position: {
+            x: actor.position.x,
+            z: actor.position.z,
+            heading: actor.rotation.y,
+          },
+        });
       scene.render();
       sampleFrames++;
       if (performance.now() - sampleStart > 3000) {
