@@ -1,3 +1,7 @@
+import {
+  initializeAdvertisingSchema,
+  registerAdvertising,
+} from "./advertising.js";
 import { decisionConfiguration } from "./decision-provider.js";
 import { initializeSocialSchema, registerSocial } from "./social.js";
 import { initializeReviewSchema, registerReviews } from "./reviews.js";
@@ -35,6 +39,7 @@ await initializeCourseSchema(db);
 await initializePracticeSchema(db);
 await initializeReviewSchema(db);
 await initializeSocialSchema(db);
+await initializeAdvertisingSchema(db);
 const email = await emailConfiguration();
 const auth = new Authentication(db, email.provider, email.codeSecret);
 const app = Fastify({
@@ -83,6 +88,7 @@ registerRewards(app, db, auth);
 registerPractice(app, db, auth);
 registerReviews(app, db, auth);
 registerSocial(app, db, auth);
+registerAdvertising(app, db, auth);
 app.get("/api/health", async () => {
   await db.query("SELECT 1");
   return {
@@ -102,6 +108,7 @@ app.get("/api/health", async () => {
       reviewScheduling: true,
       sharedWorld: true,
       teamBattles: true,
+      authorizedBillboards: true,
     },
   };
 });

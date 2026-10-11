@@ -1,3 +1,4 @@
+import { createBillboards, useBillboards } from "./billboards";
 import { createPeerRenderer } from "./peerScene";
 import { publishPosition } from "./socialPresence";
 import type { Presence } from "../shared/social";
@@ -64,6 +65,9 @@ export default function World({
     houseCb = useRef(onHouse),
     statsCb = useRef(onReady),
     pausedRef = useRef(paused);
+  const ads = useBillboards();
+  const adRef = useRef(ads);
+  adRef.current = ads;
   const peerRef = useRef(peers);
   peerRef.current = peers;
   houseCb.current = onHouse;
@@ -115,6 +119,7 @@ export default function World({
       };
       scaleResolution();
       const scene = new Scene(engine);
+      const synchronizeAds = createBillboards(scene, () => adRef.current);
       const synchronizePeers = createPeerRenderer(scene, () => peerRef.current);
       const releaseScene = () => {
         engine.stopRenderLoop();
@@ -1074,7 +1079,7 @@ export default function World({
           17.84,
           4.3,
           3.3,
-          ["AD · COMMUNITY", "A BRIGHTER FUTURE", "STARTS WITH A SKILL"],
+          ["COMMUNITY", "A BRIGHTER FUTURE", "STARTS WITH A SKILL"],
           "#b65c38",
         );
         const portal = MeshBuilder.CreateTorus(
@@ -1621,6 +1626,7 @@ export default function World({
           lastResolutionChange = now;
         }
         synchronizePeers();
+        synchronizeAds();
         if (mode === "world")
           publishPosition({
             space: "city",

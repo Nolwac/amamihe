@@ -14,6 +14,7 @@ import "@fontsource/manrope/latin-700.css";
 import "@fontsource/manrope/latin-800.css";
 import "./style.css";
 import "./game.css";
+const AdDesk = lazy(() => import("./AdDesk"));
 const SearchPortals = lazy(() => import("./SearchPortals"));
 const World = lazy(() => import("./World"));
 const TutorStudio = lazy(() => import("./TutorStudio"));
@@ -707,6 +708,7 @@ function App() {
             />
             <ReviewDesk />
             <DeviceCheck />
+            <AdDesk />
             <SocialPanel
               social={social}
               playerId={player.id}

@@ -181,7 +181,10 @@ function ResourceEditor({
         <select
           value={resource.kind}
           onChange={(event) =>
-            patch({ kind: event.target.value as CourseResource["kind"] })
+            patch({
+              kind: event.target.value as CourseResource["kind"],
+              practiceCheck: undefined,
+            })
           }
         >
           <option value="reading">Reading / explainer</option>

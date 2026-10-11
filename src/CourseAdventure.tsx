@@ -1,3 +1,5 @@
+import { useBillboards } from "./billboards";
+import BillboardLinks from "./BillboardLinks";
 import type { Presence } from "../shared/social";
 import PracticeTool from "./PracticeTool";
 import { lazy, Suspense, useEffect, useState, useRef } from "react";
@@ -47,6 +49,7 @@ export default function CourseAdventure({
     };
   }, []);
   const [progress, setProgress] = useState<LearningProgress | null>(null);
+  const ads = useBillboards(courseId, progress?.version, progress?.levelId);
   const [answer, setAnswer] = useState<number | null>(null);
   const [help, setHelp] = useState("");
   const [error, setError] = useState("");
@@ -192,6 +195,7 @@ export default function CourseAdventure({
         <div className="adventure-world">
           <Suspense fallback={<p>Loading 3D scenery…</p>}>
             <CourseScene
+              billboards={ads}
               theme={theme}
               outfit={outfit}
               onReady={() => setSceneReady(true)}
@@ -269,6 +273,7 @@ export default function CourseAdventure({
           </div>
         </div>
         <div className="adventure-content">
+          <BillboardLinks ads={ads} />
           {!online && (
             <p role="status">
               Offline: cached artwork may remain visible. Answers, grading, and

@@ -1,3 +1,4 @@
+import { createBillboards, type Billboard } from "./billboards";
 import { createPeerRenderer } from "./peerScene";
 import { publishPosition } from "./socialPresence";
 import type { Presence } from "../shared/social";
@@ -42,6 +43,7 @@ export default function CourseScene({
   renderHeight = 360,
   onChoose,
   peers = [],
+  billboards = [],
   presenceSpace,
 }: {
   theme: Theme;
@@ -51,6 +53,7 @@ export default function CourseScene({
   renderHeight?: number;
   onChoose?: (index: number) => void;
   peers?: Presence[];
+  billboards?: Billboard[];
   presenceSpace?: { courseId: string; levelId: string };
 }) {
   const canvas = useRef<HTMLCanvasElement>(null);
@@ -60,6 +63,7 @@ export default function CourseScene({
     renderHeight,
     onChoose,
     peers,
+    billboards,
     presenceSpace,
   });
   live.current = {
@@ -68,6 +72,7 @@ export default function CourseScene({
     renderHeight,
     onChoose,
     peers,
+    billboards,
     presenceSpace,
   };
   const resizeLive = useRef<() => void>(() => {});
@@ -81,6 +86,11 @@ export default function CourseScene({
       powerPreference: "low-power",
     });
     const scene = new Scene(engine);
+    const synchronizeAds = createBillboards(
+      scene,
+      () => live.current.billboards,
+      true,
+    );
     const synchronizePeers = createPeerRenderer(
       scene,
       () => live.current.peers,
@@ -432,6 +442,7 @@ export default function CourseScene({
         element.dataset.gameBoost = String(g.boost);
       }
       synchronizePeers();
+      synchronizeAds();
       if (actor && live.current.presenceSpace)
         publishPosition({
           space: live.current.presenceSpace.courseId,
