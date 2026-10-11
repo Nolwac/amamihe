@@ -1,3 +1,4 @@
+import PracticeTool from "./PracticeTool";
 import { lazy, Suspense, useEffect, useState, useRef } from "react";
 import type { LearningProgress } from "../shared/course";
 import "./courses.css";
@@ -613,6 +614,11 @@ export default function CourseAdventure({
                     <span>{resource.kind}</span>
                   </summary>
                   <pre>{resource.content}</pre>
+                  <PracticeTool
+                    resource={resource}
+                    courseId={courseId}
+                    deliveryId={progress.question?.id}
+                  />
                   {resource.url && (
                     <a
                       href={resource.url}

@@ -335,10 +335,13 @@ function eligibleLevel(definition: CourseDefinition, completed: string[]) {
       ).every((id) => masteredConcepts.has(id)),
   );
 }
-function deliveryId(state: StoredProgress, question: CourseQuestion) {
+export function deliveryId(state: StoredProgress, question: CourseQuestion) {
   return `${state.levelId}:${state.retry ? "retry" : "primary"}:${question.id}${state.game?.run ? ":run" + state.game.run : ""}`;
 }
-function currentQuestion(definition: CourseDefinition, state: StoredProgress) {
+export function currentQuestion(
+  definition: CourseDefinition,
+  state: StoredProgress,
+) {
   const level = definition.levels.find((l) => l.id === state.levelId);
   if (!level) throw new CourseError("Saved course level is unavailable.", 409);
   const question = (state.retry ? level.retryQuestions : level.questions)[
@@ -390,7 +393,11 @@ function progressResponse(
       : {}),
   };
 }
-async function enrolled(db: DatabaseQueries, id: string, playerId: string) {
+export async function enrolled(
+  db: DatabaseQueries,
+  id: string,
+  playerId: string,
+) {
   const row = (
     await db.query<EnrollmentRow>(
       "SELECT version,progress FROM course_enrollments WHERE course_id=$1 AND player_id=$2 FOR UPDATE",

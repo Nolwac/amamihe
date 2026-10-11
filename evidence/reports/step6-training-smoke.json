@@ -1,0 +1,39 @@
+{
+  "date": "2026-10-11T01:31:08.387Z",
+  "runtime": "Existing isolated CPU Python/PyTorch; no purchased service",
+  "parameters": 1040768,
+  "trainingSteps": 20,
+  "checkpointBytes": 4186107,
+  "durationMs": 23957,
+  "trainingLossSamples": [
+    {
+      "step": 0,
+      "loss": 5.5391
+    },
+    {
+      "step": 5,
+      "loss": 4.7398
+    },
+    {
+      "step": 10,
+      "loss": 4.4576
+    },
+    {
+      "step": 15,
+      "loss": 4.1263
+    }
+  ],
+  "split": {
+    "train": [
+      "smoke-0",
+      "smoke-5",
+      "smoke-3",
+      "smoke-1",
+      "smoke-2"
+    ],
+    "heldout": [
+      "smoke-4"
+    ]
+  },
+  "limitations": "Synthetic repeated smoke fixtures verify parameter counting, optimization, held-out mechanics and checkpoint output only. They do not establish storytelling quality, independent practical mastery, or available Colab/Kaggle accounts and quotas."
+}

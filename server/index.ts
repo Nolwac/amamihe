@@ -1,3 +1,4 @@
+import { initializePracticeSchema, registerPractice } from "./practice.js";
 import { registerRewards } from "./rewards.js";
 import Fastify from "fastify";
 import cookie from "@fastify/cookie";
@@ -28,6 +29,7 @@ const db = await openDatabase({
 });
 await initializeSchema(db);
 await initializeCourseSchema(db);
+await initializePracticeSchema(db);
 const email = await emailConfiguration();
 const auth = new Authentication(db, email.provider, email.codeSecret);
 const app = Fastify({
@@ -71,6 +73,7 @@ async function player(req: { cookies: Record<string, string | undefined> }) {
 registerAuthentication(app, auth);
 registerCourses(app, db, auth);
 registerRewards(app, db, auth);
+registerPractice(app, db, auth);
 app.get("/api/health", async () => {
   await db.query("SELECT 1");
   return {
@@ -85,6 +88,7 @@ app.get("/api/health", async () => {
       playableThemes: true,
       cosmeticRewards: true,
       adaptiveResources: true,
+      practiceEnvironments: true,
     },
   };
 });

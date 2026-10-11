@@ -64,6 +64,8 @@ Implementation: [Step 5 status](docs/status/STEP_05_STATUS.md). Physical referen
 
 ## Phase 6: Embedded Learning Environments
 
+Implementation: [Step 6 status](docs/status/STEP_06_STATUS.md). Trusted practical grading and hosted-runtime access remain explicit integration gates.
+
 - Define the practice-environment adapter contract and studio bindings.
 - Prepare a Google Colab free notebook for the pilot, with Kaggle Notebooks or existing shared Python/PyTorch compute as alternatives. Use launch-and-return integration unless embedding is explicitly supported. Implement parameter-count checks, short training experiments, checkpoints, and evaluation tasks. Add a drawing canvas and isolated JavaScript practice without preloading heavy runtimes into 2 GB game clients.
 - Support approved external embeds and a contextual launch/return path when embedding is blocked.

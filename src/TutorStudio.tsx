@@ -273,8 +273,9 @@ function ResourceEditor({
         />
       </Label>
       <p className="studio-small">
-        External resources open in a separate tab. Embedded execution is a later
-        milestone.
+        JavaScript and drawing resources open in isolated practice tools during
+        the adventure. Notebook resources support download and launch/return.
+        External runtime access may require an account.
       </p>
       <div className="studio-dialog-actions">
         <button onClick={onClose}>Cancel</button>

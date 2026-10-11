@@ -454,3 +454,20 @@
     width: 95px;
   }
 }
+
+.practice-tool {
+  padding: 12px;
+  border: 1px solid #789990;
+  border-radius: 8px;
+}
+.practice-tool textarea {
+  display: block;
+  width: 100%;
+  min-height: 100px;
+  margin: 8px 0;
+  background: #eff5ed;
+  color: #173e3c;
+}
+.practice-tool button {
+  margin: 6px 6px 6px 0;
+}

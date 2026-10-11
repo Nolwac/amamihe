@@ -42,6 +42,7 @@ while (true) {
       candidate.features?.playableThemes &&
       candidate.features?.cosmeticRewards &&
       candidate.features?.adaptiveResources &&
+      candidate.features?.practiceEnvironments &&
       candidate.storage === "PostgreSQL"
     ) {
       const html = await fetch(base + "/", {
