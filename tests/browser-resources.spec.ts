@@ -31,21 +31,20 @@ test("art cache recovers interrupted/offline downloads without caching private d
     return (await c.keys()).map((r) => new URL(r.url).pathname);
   });
   expect(cached.every((p) => p.startsWith("/assets/"))).toBe(true);
+  const probe = "/assets/world/low/wood.webp?recovery=" + Date.now();
   await context.setOffline(true);
   expect(
-    await page.evaluate(async () => {
+    await page.evaluate(async (url) => {
       try {
-        await fetch("/assets/world/low/wood.webp");
+        await fetch(url);
         return false;
       } catch {
         return true;
       }
-    }),
+    }, probe),
   ).toBe(true);
   await context.setOffline(false);
-  expect(
-    await page.evaluate(
-      async () => (await fetch("/assets/world/low/wood.webp")).ok,
-    ),
-  ).toBe(true);
+  expect(await page.evaluate(async (url) => (await fetch(url)).ok, probe)).toBe(
+    true,
+  );
 });
