@@ -45,6 +45,11 @@ export type CourseLevel = {
   retryQuestions: CourseQuestion[];
 };
 export type CourseDefinition = {
+  reviewPolicy?: {
+    window: number;
+    minimumEvidence: number;
+    errorThreshold: number;
+  };
   title: string;
   summary: string;
   language: string;
@@ -476,5 +481,24 @@ export function validateCourse(value: unknown): ValidationIssue[] {
   for (const [conceptId, concept] of concepts)
     if (![...levels.values()].some((level) => level.conceptId === conceptId))
       add(concept.path, "Provide a playable level for this concept.");
+  if (value.reviewPolicy !== undefined) {
+    const policy = value.reviewPolicy;
+    if (
+      !record(policy) ||
+      !Number.isInteger(policy.window) ||
+      Number(policy.window) < 3 ||
+      Number(policy.window) > 20 ||
+      !Number.isInteger(policy.minimumEvidence) ||
+      Number(policy.minimumEvidence) < 3 ||
+      Number(policy.minimumEvidence) > Number(policy.window) ||
+      !Number.isInteger(policy.errorThreshold) ||
+      Number(policy.errorThreshold) < 2 ||
+      Number(policy.errorThreshold) > Number(policy.minimumEvidence)
+    )
+      add(
+        "reviewPolicy",
+        "Use a 3–20 response window, at least three observations, and an error/help threshold of at least two within that minimum.",
+      );
+  }
   return issues;
 }

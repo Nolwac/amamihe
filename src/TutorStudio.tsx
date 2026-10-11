@@ -1426,6 +1426,48 @@ export default function TutorStudio({
                     placeholder="What will learners be able to do?"
                   />
                 </Label>
+                <Label title="Review evidence window (3–20)">
+                  <input
+                    type="number"
+                    min={3}
+                    max={20}
+                    value={definition.reviewPolicy?.window ?? 5}
+                    onChange={(event) =>
+                      modify((previous) => ({
+                        ...previous,
+                        reviewPolicy: {
+                          ...(previous.reviewPolicy ?? {
+                            window: 5,
+                            minimumEvidence: 3,
+                            errorThreshold: 2,
+                          }),
+                          window: Number(event.target.value),
+                        },
+                      }))
+                    }
+                  />
+                </Label>
+                <Label title="Minimum review evidence (at least 3)">
+                  <input
+                    type="number"
+                    min={3}
+                    max={20}
+                    value={definition.reviewPolicy?.minimumEvidence ?? 3}
+                    onChange={(event) =>
+                      modify((previous) => ({
+                        ...previous,
+                        reviewPolicy: {
+                          ...(previous.reviewPolicy ?? {
+                            window: 5,
+                            minimumEvidence: 3,
+                            errorThreshold: 2,
+                          }),
+                          minimumEvidence: Number(event.target.value),
+                        },
+                      }))
+                    }
+                  />
+                </Label>
                 <Label title="Course language">
                   <input
                     value={definition.language}

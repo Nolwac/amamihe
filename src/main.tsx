@@ -16,6 +16,7 @@ import "./game.css";
 const World = lazy(() => import("./World"));
 const TutorStudio = lazy(() => import("./TutorStudio"));
 const CourseAdventure = lazy(() => import("./CourseAdventure"));
+const ReviewDesk = lazy(() => import("./ReviewDesk"));
 const WardrobeShop = lazy(() => import("./WardrobeShop"));
 const CourseScene = lazy(() => import("./CourseScene"));
 import type { CourseSummary } from "../shared/course";
@@ -654,6 +655,7 @@ function App() {
           </header>
           <Suspense fallback={<p>Opening wardrobe…</p>}>
             <WardrobeShop onChanged={refreshPoints} />
+            <ReviewDesk />
           </Suspense>
           {enrollments.length > 0 && (
             <div

@@ -76,6 +76,8 @@ Implementation: [Step 6 status](docs/status/STEP_06_STATUS.md). Trusted practica
 
 ## Phase 7: Review Scheduling and Deeper Adaptation
 
+Implementation: [Step 7 status](docs/status/STEP_07_STATUS.md). Learning-effectiveness and trusted practical-grading validation remain evaluation gates.
+
 - Integrate FSRS or SM-2 using recorded review evidence and timezone-aware due dates.
 - Select authored review encounters and remedial resources from the course bank.
 - Configure adaptation windows and minimum evidence; match recurring errors to tutor-defined misconceptions.
