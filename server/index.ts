@@ -1,3 +1,4 @@
+import { decisionConfiguration } from "./decision-provider.js";
 import { initializeSocialSchema, registerSocial } from "./social.js";
 import { initializeReviewSchema, registerReviews } from "./reviews.js";
 import { initializePracticeSchema, registerPractice } from "./practice.js";
@@ -75,7 +76,9 @@ async function player(req: { cookies: Record<string, string | undefined> }) {
   return auth.player(req.cookies.amamihe);
 }
 registerAuthentication(app, auth);
-registerCourses(app, db, auth);
+const decisions = decisionConfiguration();
+registerCourses(app, db, auth, decisions.provider);
+app.get("/api/decision-status", async () => decisions.status);
 registerRewards(app, db, auth);
 registerPractice(app, db, auth);
 registerReviews(app, db, auth);
@@ -85,7 +88,8 @@ app.get("/api/health", async () => {
   return {
     ok: true,
     storage: db.kind === "pglite" ? "PostgreSQL / PGlite" : "PostgreSQL",
-    classifier: "mock-classifier-v1",
+    classifier: decisions.provider.identity,
+    decisionService: decisions.status,
     release,
     features: {
       courseStudio: true,

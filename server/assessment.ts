@@ -18,7 +18,8 @@ export type Grade = {
 };
 export type Assessment = {
   status: "confirmed" | "pending";
-  mocked: true;
+  mocked: boolean;
+  provider?: string;
   grades: Grade[];
   criteria: { id: string; score: number; independent: boolean }[];
   assistanceCount: number;
@@ -28,6 +29,8 @@ export type Assessment = {
   reason: string;
 };
 export interface ClassificationProvider {
+  readonly identity?: string;
+  readonly mocked?: boolean;
   grade(input: {
     evidence: Evidence;
     criterionId: string;
@@ -39,6 +42,8 @@ export interface ClassificationProvider {
   }): Promise<unknown>;
 }
 export const mockProvider: ClassificationProvider = {
+  identity: "mock-classifier-v1",
+  mocked: true,
   async grade({ evidence, criterionId }) {
     return {
       deliveryId: evidence.delivery_id,
@@ -129,7 +134,8 @@ export async function assessLevel(
 ): Promise<Assessment> {
   const result: Assessment = {
     status: "pending",
-    mocked: true,
+    mocked: provider.mocked !== false,
+    provider: provider.identity ?? "injected-provider",
     grades: [],
     criteria: level.questions.map((q) => ({
       id: q.id,
@@ -205,8 +211,7 @@ export async function assessLevel(
     result.status = "confirmed";
     result.nextLevelId = selected?.id ?? null;
     result.taskIds = selected?.taskIds ?? [];
-    result.reason =
-      "Mock answer-key grades confirm independent criteria; routing selected an eligible authored task set. This is not practical mastery certification.";
+    result.reason = `${provider.mocked !== false ? "Mock answer-key" : "Typed classifier"} grades confirm independent criteria; routing selected an eligible authored task set. This is not practical mastery certification.`;
   } catch {
     /* Preserve evidence and stay pending; never silently grant mastery. */
   }

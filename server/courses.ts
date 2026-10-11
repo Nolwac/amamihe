@@ -473,7 +473,7 @@ async function classify(
     [id, playerId, level.id, JSON.stringify(state.assessment)],
   );
   state.result = {
-    mocked: true,
+    mocked: state.assessment.mocked,
     label:
       state.assessment.status === "pending"
         ? "Level cleared · assessment pending"

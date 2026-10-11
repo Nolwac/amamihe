@@ -30,6 +30,12 @@ export default function CourseAdventure({
   outfit: string;
   peers?: Presence[];
 }) {
+  const [decision, setDecision] = useState({ mode: "mock", ready: true });
+  useEffect(() => {
+    void request<{ mode: string; ready: boolean }>("/decision-status")
+      .then(setDecision)
+      .catch(() => setDecision({ mode: "unavailable", ready: false }));
+  }, []);
   const [online, setOnline] = useState(navigator.onLine);
   useEffect(() => {
     const update = () => setOnline(navigator.onLine);
@@ -253,7 +259,13 @@ export default function CourseAdventure({
               {progress?.completedLevelIds.length || 0} levels cleared
             </strong>
             <span>✦ {progress?.points || 0} course points</span>
-            <span>MOCK CLASSIFIER</span>
+            <span>
+              {decision.mode === "mock"
+                ? "MOCK CLASSIFIER"
+                : decision.ready
+                  ? "TYPED CLASSIFIER"
+                  : "CLASSIFIER UNAVAILABLE"}
+            </span>
           </div>
         </div>
         <div className="adventure-content">
@@ -330,7 +342,7 @@ export default function CourseAdventure({
                   })
                 }
               >
-                Retry mock assessment
+                Retry assessment
               </button>
             </section>
           ) : progress?.finished || celebration ? (
@@ -349,8 +361,11 @@ export default function CourseAdventure({
                   "Your independent responses have been recorded."}
               </p>
               <p className="mock-note">
-                MOCK CLASSIFICATION · This checkpoint uses authored answer keys.
-                It does not certify practical model training or mastery.
+                {progress?.assessment?.mocked !== false
+                  ? "MOCK CLASSIFICATION"
+                  : "TYPED CLASSIFICATION"}{" "}
+                · This checkpoint uses authored answer keys. It does not certify
+                practical model training or mastery.
               </p>
               {progress?.assessment && (
                 <p>

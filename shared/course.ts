@@ -112,7 +112,7 @@ export type LearningProgress = {
   level?: Omit<PublicCourseLevel, "questions" | "retryQuestions">;
   assessment?: import("../server/assessment.js").Assessment;
   result?: {
-    mocked: true;
+    mocked: boolean;
     label: string;
     nextLevelId: string | null;
     awardedPoints: number;
