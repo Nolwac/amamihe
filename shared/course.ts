@@ -19,6 +19,7 @@ export type CourseQuestion = {
   retryFor?: string;
 };
 export type CourseResource = {
+  practiceCheck?: "embedding-parameters" | "average-loss" | "attention-score";
   id: string;
   title: string;
   kind: "reading" | "video" | "notebook" | "javascript" | "drawing";
@@ -272,6 +273,17 @@ export function validateCourse(value: unknown): ValidationIssue[] {
     )
       add(`${path}.kind`, "Choose a supported resource kind.");
     text(resource.content, `${path}.content`, 0, 60000);
+    if (
+      resource.practiceCheck !== undefined &&
+      (kind !== "javascript" ||
+        !["embedding-parameters", "average-loss", "attention-score"].includes(
+          String(resource.practiceCheck),
+        ))
+    )
+      add(
+        `${path}.practiceCheck`,
+        "Choose a supported JavaScript arithmetic check.",
+      );
     https(resource.url, `${path}.url`, true);
     https(resource.source, `${path}.source`);
     if (

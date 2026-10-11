@@ -226,6 +226,7 @@ function draftDefinition(value: unknown): CourseDefinition {
       content: r.content,
       url: r.url,
       source: r.source,
+      ...(r.practiceCheck ? { practiceCheck: r.practiceCheck } : {}),
     })),
     levels: (data.levels as CourseLevel[]).map((l) => ({
       ...levelMetadata(l),

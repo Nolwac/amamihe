@@ -1,3 +1,5 @@
+import { checkPractice } from "./trusted-practice.js";
+import type { CourseDefinition } from "../shared/course.js";
 import { randomUUID } from "node:crypto";
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import type { Database } from "./db.js";
@@ -10,7 +12,7 @@ import {
 } from "../shared/practice.js";
 export async function initializePracticeSchema(db: Database) {
   await db.exec(
-    `CREATE TABLE IF NOT EXISTS practice_attempts (id TEXT PRIMARY KEY,player_id TEXT NOT NULL REFERENCES players(id),course_id TEXT NOT NULL,version INTEGER NOT NULL,level_id TEXT NOT NULL,delivery_id TEXT NOT NULL,resource_id TEXT NOT NULL,kind TEXT NOT NULL,expires_at BIGINT NOT NULL,status TEXT NOT NULL DEFAULT 'open',evidence JSONB,created_at TIMESTAMPTZ NOT NULL DEFAULT now(),FOREIGN KEY(course_id,version) REFERENCES course_versions(course_id,version)); CREATE INDEX IF NOT EXISTS practice_player ON practice_attempts(player_id,course_id);`,
+    `CREATE TABLE IF NOT EXISTS practice_attempts (id TEXT PRIMARY KEY,player_id TEXT NOT NULL REFERENCES players(id),course_id TEXT NOT NULL,version INTEGER NOT NULL,level_id TEXT NOT NULL,delivery_id TEXT NOT NULL,resource_id TEXT NOT NULL,kind TEXT NOT NULL,expires_at BIGINT NOT NULL,status TEXT NOT NULL DEFAULT 'open',evidence JSONB,created_at TIMESTAMPTZ NOT NULL DEFAULT now(),FOREIGN KEY(course_id,version) REFERENCES course_versions(course_id,version)); ALTER TABLE practice_attempts ADD COLUMN IF NOT EXISTS receipt JSONB; CREATE INDEX IF NOT EXISTS practice_player ON practice_attempts(player_id,course_id);`,
   );
 }
 export function registerPractice(
@@ -98,6 +100,10 @@ export function registerPractice(
           expires_at: string;
           status: string;
           evidence: unknown;
+          receipt: unknown;
+          course_id: string;
+          version: number;
+          resource_id: string;
         }>(
           "SELECT * FROM practice_attempts WHERE id=$1 AND player_id=$2 FOR UPDATE",
           [id, p],
@@ -108,7 +114,7 @@ export function registerPractice(
         return {
           status: "received",
           evidence: a.evidence,
-          assessment: "unverified-practice",
+          assessment: a.receipt ?? "unverified-practice",
         };
       if (Number(a.expires_at) < now())
         throw new Error(
@@ -119,14 +125,34 @@ export function registerPractice(
         throw new Error(
           "Evidence does not match the configured practice tool.",
         );
+      const definition = (
+        await tx.query<{ definition: CourseDefinition }>(
+          "SELECT definition FROM course_versions WHERE course_id=$1 AND version=$2",
+          [a.course_id, a.version],
+        )
+      ).rows[0]?.definition;
+      const resource = definition?.resources.find(
+        (r) => r.id === a.resource_id,
+      );
+      const receipt =
+        a.kind === "javascript" && resource?.practiceCheck
+          ? checkPractice(
+              resource.practiceCheck,
+              (evidence as { code: string }).code,
+            )
+          : null;
       await tx.query(
-        "UPDATE practice_attempts SET status='received',evidence=$2 WHERE id=$1",
-        [id, JSON.stringify(evidence)],
+        "UPDATE practice_attempts SET status='received',evidence=$2,receipt=$3 WHERE id=$1",
+        [
+          id,
+          JSON.stringify(evidence),
+          receipt ? JSON.stringify(receipt) : null,
+        ],
       );
       return {
         status: "received",
         evidence,
-        assessment: "unverified-practice",
+        assessment: receipt ?? "unverified-practice",
       };
     }),
   );
@@ -136,7 +162,7 @@ export function registerPractice(
     async (req, p) =>
       (
         await db.query(
-          "SELECT id,version,level_id,delivery_id,resource_id,kind,status,evidence FROM practice_attempts WHERE player_id=$1 AND course_id=$2 ORDER BY created_at DESC LIMIT 20",
+          "SELECT id,version,level_id,delivery_id,resource_id,kind,status,evidence,receipt FROM practice_attempts WHERE player_id=$1 AND course_id=$2 ORDER BY created_at DESC LIMIT 20",
           [p, (req.params as { courseId: string }).courseId],
         )
       ).rows,

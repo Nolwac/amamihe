@@ -191,6 +191,27 @@ function ResourceEditor({
           <option value="drawing">Drawing canvas</option>
         </select>
       </Label>
+      {resource.kind === "javascript" && (
+        <Label title="Server practice check">
+          <select
+            value={resource.practiceCheck || ""}
+            onChange={(e) =>
+              patch({
+                ...resource,
+                practiceCheck: (e.target.value ||
+                  undefined) as CourseResource["practiceCheck"],
+              })
+            }
+          >
+            <option value="">Unverified exploration</option>
+            <option value="embedding-parameters">
+              Embedding parameters: tokens × width
+            </option>
+            <option value="average-loss">Mean loss: (a + b + c) ÷ 3</option>
+            <option value="attention-score">Two-component score: a × b</option>
+          </select>
+        </Label>
+      )}
       <Label title="Authored content">
         <textarea
           rows={7}

@@ -36,7 +36,7 @@ export default function PracticeTool({
   const frame = useRef<HTMLIFrameElement>(null);
   const nonce = useRef(crypto.randomUUID());
   const timer = useRef<number | undefined>(undefined);
-  const workerSource = `self.onmessage=async e=>{try{const result=await (new Function(e.data))();self.postMessage({output:String(result).slice(0,4000)});}catch(error){self.postMessage({output:'Error: '+String(error).slice(0,1000)});}}`;
+  const workerSource = `self.onmessage=async e=>{try{const result=await (new Function('tokens','width','a','b','c',e.data))(256,64,2,4,6);self.postMessage({output:String(result).slice(0,4000)});}catch(error){self.postMessage({output:'Error: '+String(error).slice(0,1000)});}}`;
   const document = `<!doctype html><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' blob:; worker-src blob:; connect-src 'none'; img-src 'none'"><script>let worker;addEventListener('message',e=>{if(e.source!==parent||e.data.token!==${JSON.stringify(nonce.current)})return;worker?.terminate();worker=new Worker(URL.createObjectURL(new Blob([${JSON.stringify(workerSource)}],{type:'text/javascript'})));worker.onmessage=m=>{parent.postMessage({token:${JSON.stringify(nonce.current)},output:m.data.output},'*');worker.terminate();};worker.postMessage(e.data.code);});</script>`;
   useEffect(() => {
     const receive = (e: MessageEvent) => {
@@ -80,9 +80,11 @@ export default function PracticeTool({
           : resource.kind === "drawing"
             ? { points }
             : JSON.parse(notebookEvidence);
-      await call(attempt.id + "/submit", { evidence });
+      const saved = await call(attempt.id + "/submit", { evidence });
       setMessage(
-        "Practice saved as unverified evidence. Course criteria and points are unchanged.",
+        typeof saved.assessment === "object"
+          ? `Server check: ${saved.assessment.status}. ${saved.assessment.passed}/${saved.assessment.total} fixtures pass. Course criteria and points are unchanged.`
+          : "Practice saved as unverified evidence. Course criteria and points are unchanged.",
       );
     } catch (e) {
       setMessage(String(e));
@@ -152,6 +154,14 @@ export default function PracticeTool({
           </p>
           {resource.kind === "javascript" && (
             <>
+              {resource.practiceCheck && (
+                <p>
+                  Server arithmetic check: {resource.practiceCheck}. Use one
+                  return expression with numbers, parentheses and + − * /.
+                  Preview variables: tokens=256, width=64, a=2, b=4, c=6. The
+                  server checks additional inputs independently.
+                </p>
+              )}
               <label>
                 JavaScript workspace
                 <textarea
