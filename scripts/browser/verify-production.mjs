@@ -148,11 +148,39 @@ try {
   const catalogueData = await catalogue.json();
   assert.ok(Array.isArray(catalogueData.courses));
   assert.ok(catalogueData.courses.length <= 4);
+  const pilotResponse = await context.request.get(
+    base + "/api/courses/amamihe-story-model",
+  );
+  assert.equal(
+    pilotResponse.status(),
+    200,
+    "The pilot must actually be published.",
+  );
+  const pilot = await pilotResponse.json();
+  assert.equal(pilot.definition.levels.length, 6);
+  assert.equal(
+    pilot.definition.levels.reduce(
+      (total, level) => total + level.questions.length,
+      0,
+    ),
+    12,
+  );
+  assert.ok(
+    pilot.definition.resources.some((resource) => resource.kind === "notebook"),
+  );
+  for (const level of pilot.definition.levels)
+    for (const question of [...level.questions, ...level.retryQuestions])
+      assert.equal(
+        question.answer,
+        undefined,
+        "Published previews must hide answer keys.",
+      );
   evidence.checks.push(
     "exact promoted revision and client bundle",
     "verified TLS, HTTPS redirect and HSTS",
     "private studio requires authentication",
     "published course catalogue responds",
+    "maintained storytelling pilot is published with six levels, twelve tasks and a training notebook",
   );
   for (const viewport of [
     { width: 1280, height: 900 },

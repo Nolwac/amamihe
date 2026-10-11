@@ -217,7 +217,49 @@ export function storytellingCourse(): CourseDefinition {
       content:
         "Record train/held-out document IDs, parameter count, random seed, step count, device and corpus license manifest. Evaluate fixed unseen windows with model.eval() and no gradients before and after training. Byte-level perplexity is exp(mean next-byte cross-entropy), measured in natural-log units; it is not word-level perplexity and cannot be compared blindly across tokenizers. Keep a final independent test set for later experiments rather than repeatedly tuning against held-out results. Inspect fresh prompts for repetition, coherence, leakage, harmful output and invalid UTF-8; a lower loss alone does not prove good storytelling. Save generated samples with their settings. No actual learner training or useful narrative quality is implied by completing this course's authored quizzes.",
     },
+    {
+      id: "embedding-practice",
+      title: "Check embedding parameter arithmetic",
+      kind: "javascript",
+      url: "",
+      source:
+        "https://docs.pytorch.org/docs/stable/generated/torch.nn.Embedding.html",
+      content:
+        "// An embedding has one width-dimensional vector per token.\n// Complete the expression for arbitrary tokens and width.\nreturn 0;",
+      practiceCheck: "embedding-parameters",
+    },
+    {
+      id: "loss-practice",
+      title: "Check mean held-out loss arithmetic",
+      kind: "javascript",
+      url: "",
+      source:
+        "https://docs.pytorch.org/docs/stable/generated/torch.nn.CrossEntropyLoss.html",
+      content:
+        "// Three equally sized held-out windows have losses a, b and c.\n// Complete their mean; this exercise does not train a model.\nreturn 0;",
+      practiceCheck: "average-loss",
+    },
   ];
+  const assignments: Record<string, string> = {
+    "data-guide":
+      "Practical assignment: create corpus.jsonl with at least five distinct original or licensed stories longer than 128 bytes. Keep id, text, author, source and license for each. Review near duplicates and decide document groups before splitting. Deliver the corpus and a provenance manifest; do not include personal information.",
+    "token-guide":
+      "Practical assignment: encode one corpus story with list(text.encode('utf-8')), decode it back, and record byte count versus character count. Inspect one 128-ID input window and its one-position-shifted target. Deliver a small script and an example showing that targets are the next bytes, not copies of the inputs.",
+    "architecture-guide":
+      "Practical assignment: trace embeddings, five causal blocks, final normalization and tied output projection in the reference notebook. Draw their tensor shapes for a batch of two 128-byte windows. Identify the future-position mask and demonstrate which attention positions must be hidden.",
+    "parameter-guide":
+      "Practical assignment: compute token, position, block and final-normalization parameter totals on paper, then compare with sum(p.numel() for p in model.parameters()) in the notebook. Explain the 1,040,768 total and why tied output weights are counted once. Complete the checked embedding exercise in the workbench.",
+    "training-notebook":
+      "Practical assignment: download the notebook, provide your reviewed corpus.jsonl, and execute it in Python with PyTorch. Retain split.json, the printed parameter count, training losses, before/after held-out loss, and story-model.pt. Twenty steps verify the training loop only. Increase training gradually if your own compute permits, without repeatedly tuning against held-out data. A quiz answer is not a training run.",
+    "evaluation-guide":
+      "Practical assignment: record fixed held-out loss and byte perplexity, generate samples from at least three new prompts, and document repetition, broken text, leakage and narrative weaknesses. Retain sample settings and a model report alongside the checkpoint. Complete the checked mean-loss exercise; neither its receipt nor a course badge proves storytelling quality.",
+  };
+  for (const resource of resources) {
+    const assignment = assignments[resource.id];
+    if (assignment)
+      resource.content +=
+        "\n\n" + (resource.kind === "notebook" ? "# " : "") + assignment;
+  }
   const stages = [
     {
       id: "data",
@@ -587,7 +629,11 @@ export function storytellingCourse(): CourseDefinition {
       theme: stage.theme,
       timeLimitSeconds: 240,
       points: 40,
-      resourceIds: [stage.resource],
+      resourceIds: [
+        stage.resource,
+        ...(stage.id === "parameters" ? ["embedding-practice"] : []),
+        ...(stage.id === "evaluation" ? ["loss-practice"] : []),
+      ],
       // The Python reference is displayed/launchable content; no Python sandbox is claimed.
       widget: "quiz",
       questions: stage.questions,

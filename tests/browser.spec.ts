@@ -32,7 +32,12 @@ test("3D browser journey: verified account, recorded chunks, clearance, classifi
     "true",
     { timeout: 30000 },
   );
-  await page.getByRole("button", { name: "Visit Model Makers" }).click();
+  await page
+    .getByRole("button", { name: "Course houses", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Try foundations checkpoint", exact: true })
+    .click();
   await page.getByRole("button", { name: "Enter course adventure" }).click();
   await expect(page.locator("canvas")).toHaveAttribute(
     "data-render-state",
@@ -72,6 +77,9 @@ test("3D browser journey: verified account, recorded chunks, clearance, classifi
   await page.reload();
   await expect(page.locator(".player-chip")).toContainText("Browser Explorer");
   await page.getByRole("button", { name: /My learning/ }).click();
+  await page
+    .getByRole("button", { name: "View foundations checkpoint progress" })
+    .click();
   await expect(page.getByText("Data Workshop", { exact: true })).toBeVisible();
   // Visual captures run separately; this journey verifies progress and recovery.
   expect(errors).toEqual([]);
@@ -150,7 +158,12 @@ test("in-progress responses survive a browser refresh", async ({
 }) => {
   await page.goto("/");
   await signupInBrowser(page, "Resuming Explorer", "terracotta");
-  await page.getByRole("button", { name: "Visit Model Makers" }).click();
+  await page
+    .getByRole("button", { name: "Course houses", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Try foundations checkpoint", exact: true })
+    .click();
   await page.getByRole("button", { name: "Enter course adventure" }).click();
   await page.getByRole("button", { name: /Turns text into token IDs/ }).click();
   await page

@@ -1,4 +1,5 @@
 import { registerOperations } from "./operations.js";
+import { publishPilotCourse } from "./pilot-course.js";
 import {
   initializeWorldPolicySchema,
   registerWorldPolicy,
@@ -41,6 +42,7 @@ const db = await openDatabase({
 });
 await initializeSchema(db);
 await initializeCourseSchema(db);
+await publishPilotCourse(db);
 await initializePracticeSchema(db);
 await initializeReviewSchema(db);
 await initializeSocialSchema(db);

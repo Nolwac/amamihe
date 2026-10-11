@@ -1,0 +1,26 @@
+{
+  "recordedAt": "2026-10-11T11:44:12.725323+00:00",
+  "purpose": "Verify the actual learner entrance and maintained pilot publication",
+  "localNode": {
+    "passed": 68,
+    "skipped": 1,
+    "skip": "Optional external PostgreSQL fixture"
+  },
+  "localBrowser": {
+    "focusedJourneysPassed": 7,
+    "accessibilityJourneysPassed": 2,
+    "fullPilotLevelsCleared": 6,
+    "primaryQuestionsSubmitted": 12,
+    "savedPoints": 240,
+    "refreshResume": true,
+    "serverCheckedEmbeddingPractice": true,
+    "trainingNotebookDownloaded": true
+  },
+  "publishedNotebookPythonSyntax": "passed",
+  "boundaries": [
+    "Python training is executed in a learner-owned environment, not the browser.",
+    "Quiz clearance and checked arithmetic do not verify learner training or useful storytelling.",
+    "No production learners or progress were modified by test fixtures.",
+    "Public deployment verification is recorded separately by the release workflow."
+  ]
+}

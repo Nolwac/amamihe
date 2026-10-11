@@ -27,7 +27,8 @@ const SocialPanel = lazy(() => import("./SocialPanel"));
 const ReviewDesk = lazy(() => import("./ReviewDesk"));
 const WardrobeShop = lazy(() => import("./WardrobeShop"));
 const CourseScene = lazy(() => import("./CourseScene"));
-import type { CourseSummary } from "../shared/course";
+import type { CourseSummary, PublishedCourse } from "../shared/course";
+import { STORYTELLING_COURSE_ID } from "../shared/catalogue";
 import "./courses.css";
 import { AccountGate, AccountControls, type Player } from "./AccountGate";
 type Question = {
@@ -140,6 +141,8 @@ function App() {
   const [studio, setStudio] = useState(false);
   const [directory, setDirectory] = useState(false);
   const [courseId, setCourseId] = useState<string | null>(null);
+  const [pilot, setPilot] = useState<PublishedCourse | null>(null);
+  const [pilotError, setPilotError] = useState("");
   const [courses, setCourses] = useState<CourseSummary[]>([]);
   const [catalogueOffset, setCatalogueOffset] = useState(0);
   const [catalogueTotal, setCatalogueTotal] = useState(0);
@@ -213,10 +216,34 @@ function App() {
     Boolean(player),
     breakMode ? "break" : courseId || studio || loading ? "waiting" : "active",
   );
+  useEffect(() => {
+    if (house !== "MODEL MAKERS") return;
+    let alive = true;
+    setPilotError("");
+    api<PublishedCourse>("/courses/" + STORYTELLING_COURSE_ID)
+      .then((data) => {
+        if (alive) setPilot(data);
+      })
+      .catch((e) => {
+        if (alive) setPilotError(e.message);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [house]);
   const publishedHouse =
-    portalDoor && house === "course:" + portalDoor.id
-      ? portalDoor
-      : courses.find((course) => house === "course:" + course.id);
+    house === "MODEL MAKERS" && pilot
+      ? {
+          id: pilot.id,
+          version: pilot.version,
+          title: pilot.definition.title,
+          summary: pilot.definition.summary,
+          language: pilot.definition.language,
+          levelCount: pilot.definition.levels.length,
+        }
+      : portalDoor && house === "course:" + portalDoor.id
+        ? portalDoor
+        : courses.find((course) => house === "course:" + course.id);
   const refreshPoints = () =>
     api<{ player: Player }>("/session")
       .then((s) => {
@@ -319,9 +346,7 @@ function App() {
           </button>
           <button
             className={tab === "learn" ? "active" : ""}
-            onClick={() =>
-              enrollments.length ? setDirectory(true) : setTab("learn")
-            }
+            onClick={() => setDirectory(true)}
           >
             <Icon name="book" size={17} /> My learning
           </button>
@@ -660,14 +685,20 @@ function App() {
               <span className="tag">AI & MACHINE LEARNING</span>
               <h3>Build a small storytelling model</h3>
               <p>
-                Meet tokens, training, and the ideas behind your first
-                1M-parameter model.
+                Prepare stories, build a causal model, count its parameters,
+                train from scratch, and evaluate the results.
               </p>
               <span className="course-meta">
-                3-question foundations demo <span>•</span> Beginner checkpoint
+                6 levels <span>•</span> 12 checkpoint tasks + practice resources
               </span>
             </div>
             <span className="course-arrow">↗</span>
+          </button>
+          <button
+            className="course-secondary"
+            onClick={() => setHouse("FOUNDATIONS CHECKPOINT")}
+          >
+            Try foundations checkpoint · 3 questions
           </button>
           <div className="preview-note">
             <span>◈</span>
@@ -681,9 +712,9 @@ function App() {
           </div>
         </section>
         <footer>
-          <span>AMAMIHE · STEP 01</span>
+          <span>AMAMIHE · LEARNING WORLD</span>
           <span>Built for curiosity. Designed for growth.</span>
-          <button onClick={() => setTab("learn")}>View my progress ↗</button>
+          <button onClick={() => setDirectory(true)}>View my progress ↗</button>
         </footer>
       </main>
       {player && (
@@ -754,6 +785,33 @@ function App() {
               onRewards={refreshPoints}
             />
           </Suspense>
+          <article className="directory-card">
+            <h2>Foundations checkpoint · 3 questions</h2>
+            <p>
+              Separate introductory checkpoint. This does not complete the
+              model-training course.
+            </p>
+            <button
+              className="course-secondary"
+              onClick={() => {
+                setDirectory(false);
+                setHouse("FOUNDATIONS CHECKPOINT");
+              }}
+            >
+              Try foundations checkpoint
+            </button>
+            {(attempt || result) && (
+              <button
+                className="course-secondary"
+                onClick={() => {
+                  setDirectory(false);
+                  setTab("learn");
+                }}
+              >
+                View foundations checkpoint progress
+              </button>
+            )}
+          </article>
           {enrollments.length > 0 && (
             <div
               className="course-directory-grid"
@@ -898,6 +956,23 @@ function App() {
               <span>{publishedHouse.language}</span>
               <span>Tutor-authored tasks</span>
             </div>
+            {house === "MODEL MAKERS" && pilot && (
+              <details open aria-label="Course learning path">
+                <summary>Learning path and practice</summary>
+                <ol>
+                  {pilot.definition.levels.map((level) => (
+                    <li key={level.id}>
+                      {level.title} · {level.questions.length} checkpoints
+                    </li>
+                  ))}
+                </ol>
+                <p>
+                  Training includes a downloadable Python/PyTorch notebook. Run
+                  it in your own environment; the browser does not run Python
+                  training. Quiz clearance does not certify a trained model.
+                </p>
+              </details>
+            )}
             <p className="mock-note">
               MOCK CLASSIFIER · Your enrollment stays on this published version.
               Task-driven adventures include timed sections, step retries, and
@@ -1013,7 +1088,27 @@ function App() {
           />
         </div>
       )}
-      {player && house && !publishedHouse && (
+      {player && house === "MODEL MAKERS" && !pilot && (
+        <div className="modal-backdrop">
+          <section
+            className="modal"
+            aria-label="Published course house preview"
+          >
+            <button
+              className="close"
+              aria-label="Close course preview"
+              onClick={() => setHouse(null)}
+            >
+              ×
+            </button>
+            <h2>Build a 1M-parameter storytelling model</h2>
+            <p role={pilotError ? "alert" : "status"}>
+              {pilotError || "Loading the published course…"}
+            </p>
+          </section>
+        </div>
+      )}
+      {player && house && house !== "MODEL MAKERS" && !publishedHouse && (
         <div className="modal-backdrop">
           <section className="modal" aria-label="Course preview">
             <button
@@ -1025,16 +1120,16 @@ function App() {
             </button>
             <span className="eyebrow">
               COURSE HOUSE ·{" "}
-              {house === "MODEL MAKERS" ? "OPEN DOOR" : "COMING SOON"}
+              {house === "FOUNDATIONS CHECKPOINT" ? "OPEN DOOR" : "COMING SOON"}
             </span>
             <h2>
-              {house === "MODEL MAKERS"
-                ? "Model Makers Workshop"
+              {house === "FOUNDATIONS CHECKPOINT"
+                ? "Foundations checkpoint"
                 : house.replaceAll("_", " ")}
             </h2>
             <p>
-              {house === "MODEL MAKERS"
-                ? "Your first step toward training a small storytelling model from scratch. Start with three foundational concepts."
+              {house === "FOUNDATIONS CHECKPOINT"
+                ? "A separate three-question introduction to tokens, evaluation, and fresh weights. This checkpoint is not the six-level model-training course."
                 : "This house is part of the city preview. Its course adventure is not yet available."}
             </p>
             <div className="detail-row">
@@ -1042,7 +1137,7 @@ function App() {
               <span>✦ Up to 60 points</span>
               <span>◎ Authored tasks</span>
             </div>
-            {house === "MODEL MAKERS" && (
+            {house === "FOUNDATIONS CHECKPOINT" && (
               <>
                 <ul className="objectives">
                   <li>Understand token IDs</li>
