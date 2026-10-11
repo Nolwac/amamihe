@@ -43,8 +43,14 @@ jobs:
             sleep 1
           done
           exit 1
-      - run: npm run test:browser
+      - name: Verify browser journeys
+        run: |
+          result=0
+          npm run test:browser -- --reporter=list,json || result=$?
+          node scripts/browser/report-ci-failures.mjs /tmp/amamihe-browser-report.json
+          exit "$result"
         env:
+          PLAYWRIGHT_JSON_OUTPUT_FILE: /tmp/amamihe-browser-report.json
           PLAYWRIGHT_MANAGED_BROWSER: '1'
           EMAIL_TEST_OUTBOX: /tmp/amamihe-test-outbox
       - uses: actions/upload-artifact@v4
