@@ -1,3 +1,4 @@
+import WorldPolicy, { useWorldPolicy } from "./WorldPolicy";
 import { useSocialPresence } from "./socialPresence";
 import { initializeAssetCache } from "./rendering";
 void initializeAssetCache();
@@ -129,6 +130,7 @@ function Icon({ name, size = 22 }: { name: string; size?: number }) {
   );
 }
 function App() {
+  const [breakMode, setBreakMode] = useState(false);
   const [portals, setPortals] = useState(false);
   const [portalDoor, setPortalDoor] = useState<CourseSummary | null>(null);
   const [studio, setStudio] = useState(false);
@@ -203,6 +205,10 @@ function App() {
       alive = false;
     };
   }, [player?.id, directory, courseId]);
+  const policy = useWorldPolicy(
+    Boolean(player),
+    breakMode ? "break" : courseId || studio || loading ? "waiting" : "active",
+  );
   const publishedHouse =
     portalDoor && house === "course:" + portalDoor.id
       ? portalDoor
@@ -533,7 +539,13 @@ function App() {
                   .join("|")}
                 courses={courses.map(({ id, title }) => ({ id, title }))}
                 paused={Boolean(
-                  player && (house || directory || tab === "learn"),
+                  player &&
+                  (house ||
+                    directory ||
+                    portals ||
+                    tab === "learn" ||
+                    breakMode ||
+                    policy.state?.status === "arrested"),
                 )}
                 mode={player ? "world" : "avatar"}
                 outfit={outfit}
@@ -669,6 +681,26 @@ function App() {
           <button onClick={() => setTab("learn")}>View my progress ↗</button>
         </footer>
       </main>
+      {player && (
+        <WorldPolicy
+          state={policy.state}
+          error={policy.error}
+          action={policy.action}
+          breakMode={breakMode}
+          onBreak={setBreakMode}
+          learningOpen={Boolean(
+            courseId || studio || portals || publishedHouse,
+          )}
+          courses={enrollments}
+          onCourse={(id) => {
+            setCourseId(id);
+            setDirectory(false);
+          }}
+          onSearch={() => setPortals(true)}
+          onStudio={() => setStudio(true)}
+          onPoints={refreshPoints}
+        />
+      )}
       {player && portals && (
         <Suspense
           fallback={
@@ -850,6 +882,11 @@ function App() {
                   await api("/courses/" + publishedHouse.id + "/enroll", {
                     version: publishedHouse.version,
                   });
+                  if (policy.state?.status === "arrested")
+                    await policy.action({
+                      action: "release-course",
+                      courseId: publishedHouse.id,
+                    });
                   setCourseId(publishedHouse.id);
                   setPortals(false);
                   setPortalDoor(null);

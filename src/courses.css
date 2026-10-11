@@ -569,3 +569,42 @@
 .modal-backdrop.portal-preview {
   z-index: 45;
 }
+
+.police-controls {
+  position: fixed;
+  top: 105px;
+  left: 18px;
+  z-index: 21;
+  max-width: 220px;
+  padding: 8px 12px;
+  background: #163a37e8;
+  color: #edf2df;
+  border-radius: 12px;
+  font-size: 11px;
+}
+.police-controls h2 {
+  font-size: 12px;
+  margin: 0 0 5px;
+}
+.police-controls p {
+  margin: 5px 0;
+}
+.police-controls button {
+  font-size: 11px;
+  padding: 5px 10px;
+}
+.police-detention {
+  z-index: 50;
+}
+.police-detention label {
+  display: block;
+  margin: 14px 0;
+}
+.police-detention textarea {
+  width: 100%;
+  max-width: 500px;
+  min-height: 90px;
+}
+.police-detention button {
+  margin: 6px;
+}

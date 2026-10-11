@@ -1,4 +1,8 @@
 import {
+  initializeWorldPolicySchema,
+  registerWorldPolicy,
+} from "./world-policy.js";
+import {
   initializeAdvertisingSchema,
   registerAdvertising,
 } from "./advertising.js";
@@ -40,6 +44,7 @@ await initializePracticeSchema(db);
 await initializeReviewSchema(db);
 await initializeSocialSchema(db);
 await initializeAdvertisingSchema(db);
+await initializeWorldPolicySchema(db);
 const email = await emailConfiguration();
 const auth = new Authentication(db, email.provider, email.codeSecret);
 const app = Fastify({
@@ -80,6 +85,7 @@ app.addHook("onRequest", async (req, reply) => {
 async function player(req: { cookies: Record<string, string | undefined> }) {
   return auth.player(req.cookies.amamihe);
 }
+registerWorldPolicy(app, db, auth);
 registerAuthentication(app, auth);
 const decisions = decisionConfiguration();
 registerCourses(app, db, auth, decisions.provider);
@@ -109,6 +115,7 @@ app.get("/api/health", async () => {
       sharedWorld: true,
       teamBattles: true,
       authorizedBillboards: true,
+      learningPolice: true,
     },
   };
 });

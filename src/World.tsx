@@ -1288,7 +1288,7 @@ export default function World({
               return;
             }
             for (const [i, x, z, heading, color] of [
-              [0, -3.4, -2.1, 0.9, "#f2c899"],
+              [0, -3.4, -2.1, 0.9, "#316eb1"],
               [3, 1.8, 10, Math.PI, "#f1d3a3"],
             ] as const) {
               const root = new TransformNode("resident-" + i, scene);
@@ -1303,6 +1303,19 @@ export default function World({
                 explorerResident,
               );
               residents.push({ root, animations });
+              if (i === 0) {
+                label(
+                  "learning-police",
+                  x,
+                  3.3,
+                  z,
+                  1.8,
+                  0.4,
+                  ["LEARNING POLICE"],
+                  "#19374d",
+                );
+                canvas.current?.setAttribute("data-police-ready", "true");
+              }
               contact(x, z, 0.45);
             }
             LoadAssetContainerAsync(

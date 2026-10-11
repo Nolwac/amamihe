@@ -1,0 +1,11 @@
+# Step 14 — Learning Police
+
+A named, human 3D Learning Police NPC now accompanies an auditable server policy. Connected foreground idle time produces a warning after ten minutes and temporary city eviction after fifteen. Thresholds are versioned as `engagement-v1` and configurable through private `WORLD_IDLE_WARNING_SECONDS` and `WORLD_IDLE_ARREST_SECONDS` settings. Movement alone does not reset the counter. Successful question activities, practice submissions and draft saves are recorded as engagement. Course discovery receives one five-minute grace period until another learning activity; repeated searches do not renew it indefinitely.
+
+Break controls, hidden tabs, loading/course work and connection gaps are protected. Heartbeats count only bounded server-time intervals; gaps longer than ten seconds consume no idle time. Browser activity declarations support accessibility and interruption protection, rather than proving attention. This prototype is not an anti-cheat surveillance system.
+
+An arrested learner retains progress, mastery and purchased gear. Release options are two new server-recorded independent question answers in a selected enrolled adventure (or completing its remaining questions), publishing a valid course, or spending five cosmetic points. No real payment is required. The course option remains available at zero balance. A learner can enroll through search portals when no adventure is available. Other course mutations are restricted after a release course is selected; the learner can change that selection through detention controls.
+
+Fine deductions lock state and balance, and use the detention identifier as a unique ledger event. Replays cannot deduct twice. Appeals preserve a bounded explanation and record one event. Privately configured moderators can review and dismiss arrests; no account receives moderation authority automatically.
+
+Two API checks cover protected intervals, warnings/arrests, concurrent fine replay, enrollment validation, independent-evidence release and appeal authorization. Both browser journeys pass: the real NPC/break controls and a detention UI fixture covering appeal and course selection. Phone and desktop accessibility checks pass. The detention fixture does not establish an actual fifteen-minute human session or long-term motivational benefit.
