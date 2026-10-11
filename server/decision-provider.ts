@@ -1,5 +1,21 @@
 import { mockProvider, type ClassificationProvider } from "./assessment.js";
 
+function validProbabilities(value: unknown, labels: string[]): boolean {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const vector = value as Record<string, number>;
+  return (
+    Object.keys(vector).length === labels.length &&
+    labels.every(
+      (label) =>
+        Object.hasOwn(vector, label) &&
+        Number.isFinite(vector[label]) &&
+        vector[label] >= 0 &&
+        vector[label] <= 1,
+    ) &&
+    Math.abs(Object.values(vector).reduce((a, b) => a + b, 0) - 1) <= 0.001
+  );
+}
+
 /** Typed System One decisions; this endpoint never requests generated prose. */
 export class JevProvider implements ClassificationProvider {
   readonly identity = "openrouter:typesafe/jev-1.13";
@@ -15,6 +31,10 @@ export class JevProvider implements ClassificationProvider {
       state,
       questions,
     });
+    if (Buffer.byteLength(body) > 24576)
+      throw new Error(
+        "Typed decision context exceeds its conservative budget.",
+      );
     // Published input price: $0.042/M. Byte count is a conservative token bound.
     // Reserve overhead and reject before making a paid request.
     const upperCost = ((Buffer.byteLength(body) + 2048) * 0.042) / 1_000_000;
@@ -46,7 +66,7 @@ export class JevProvider implements ClassificationProvider {
     const result = JSON.parse(text);
     if (
       typeof result.model !== "string" ||
-      !result.model.startsWith("typesafe/jev-1.13") ||
+      !/^typesafe\/jev-1\.13(?:-\d{8})?$/.test(result.model) ||
       result.provider !== "TypeSafe" ||
       !result.answers ||
       !Number.isFinite(result.usage?.cost) ||
@@ -79,7 +99,12 @@ export class JevProvider implements ClassificationProvider {
       !Number.isFinite(a.confidence) ||
       a.confidence < 0 ||
       a.confidence > 1 ||
-      !Number.isFinite(a.probabilities?.[a.choice])
+      !validProbabilities(a.probabilities, [
+        "independent",
+        "assisted",
+        "incorrect",
+        "uncertain",
+      ])
     )
       throw new Error("Malformed grade.");
     return {
@@ -114,7 +139,10 @@ export class JevProvider implements ClassificationProvider {
       !Number.isFinite(a.confidence) ||
       a.confidence < 0.8 ||
       a.confidence > 1 ||
-      !Number.isFinite(a.probabilities?.[level.id])
+      !validProbabilities(
+        a.probabilities,
+        input.eligible.map((l) => l.id),
+      )
     )
       throw new Error("Uncertain routing.");
     return { nextLevelId: level.id, taskIds: level.taskIds };

@@ -1,4 +1,5 @@
-import { createBillboards, useBillboards } from "./billboards";
+import { createBillboards } from "./billboards";
+import { useBillboards, type Billboard } from "./billboardPresence";
 import { createPeerRenderer } from "./peerScene";
 import { publishPosition } from "./socialPresence";
 import type { Presence } from "../shared/social";
@@ -31,6 +32,7 @@ import "@babylonjs/core/Lights/Shadows/shadowGeneratorSceneComponent";
 import { DynamicTexture } from "@babylonjs/core/Materials/Textures/dynamicTexture";
 
 type Props = {
+  onAdvertisement?: (advertisement: Billboard) => void;
   peers?: Presence[];
   mode?: "world" | "avatar";
   paused?: boolean;
@@ -59,10 +61,12 @@ export default function World({
   courses = [],
   onHouse,
   onReady,
+  onAdvertisement,
   peers = [],
 }: Props) {
   const canvas = useRef<HTMLCanvasElement>(null),
     houseCb = useRef(onHouse),
+    adCb = useRef(onAdvertisement),
     statsCb = useRef(onReady),
     pausedRef = useRef(paused);
   const ads = useBillboards();
@@ -71,6 +75,7 @@ export default function World({
   const peerRef = useRef(peers);
   peerRef.current = peers;
   houseCb.current = onHouse;
+  adCb.current = onAdvertisement;
   statsCb.current = onReady;
   useLayoutEffect(() => {
     pausedRef.current = paused;
@@ -119,8 +124,17 @@ export default function World({
       };
       scaleResolution();
       const scene = new Scene(engine);
-      const synchronizeAds = createBillboards(scene, () => adRef.current);
+      const synchronizeAds = createBillboards(scene, () =>
+        mode === "world" ? adRef.current : [],
+      );
       const synchronizePeers = createPeerRenderer(scene, () => peerRef.current);
+      scene.onPointerObservable.add((event) => {
+        if (
+          event.type === 1 &&
+          event.pickInfo?.pickedMesh?.metadata?.advertisement
+        )
+          adCb.current?.(event.pickInfo.pickedMesh.metadata.advertisement);
+      });
       const releaseScene = () => {
         engine.stopRenderLoop();
         scene.detachControl();

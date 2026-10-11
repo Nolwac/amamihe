@@ -1,4 +1,4 @@
-import { useBillboards } from "./billboards";
+import { useBillboards } from "./billboardPresence";
 import BillboardLinks from "./BillboardLinks";
 import type { Presence } from "../shared/social";
 import PracticeTool from "./PracticeTool";

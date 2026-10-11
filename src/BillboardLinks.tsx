@@ -1,4 +1,4 @@
-import type { Billboard } from "./billboards";
+import type { Billboard } from "./billboardPresence";
 export default function BillboardLinks({ ads }: { ads: Billboard[] }) {
   return ads.length ? (
     <section className="wardrobe" aria-label="Approved advertisements">

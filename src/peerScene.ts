@@ -1,3 +1,4 @@
+import type { AnimationGroup } from "@babylonjs/core/Animations/animationGroup";
 import type { Scene } from "@babylonjs/core/scene";
 import { LoadAssetContainerAsync } from "@babylonjs/core/Loading/sceneLoader";
 import type { AssetContainer } from "@babylonjs/core/assetContainer";
@@ -9,7 +10,7 @@ import { PBRMaterial } from "@babylonjs/core/Materials/PBR/pbrMaterial";
 import { DynamicTexture } from "@babylonjs/core/Materials/Textures/dynamicTexture";
 import { Color3 } from "@babylonjs/core/Maths/math.color";
 import type { Presence } from "../shared/social";
-/** Static authored human meshes share geometry; only opted-in room members are loaded. */
+/** Rigged human peers use bounded animation and time-based interpolation. */
 export function createPeerRenderer(
   scene: Scene,
   peers: () => Presence[],
@@ -17,8 +18,20 @@ export function createPeerRenderer(
 ) {
   let source: AssetContainer | undefined,
     loading = false,
-    disposed = false;
+    disposed = false,
+    retryAfter = 0,
+    retries = 0;
   const models = new Map<string, TransformNode>();
+  const clips = new Map<
+    string,
+    {
+      groups: AnimationGroup[];
+      idle?: AnimationGroup;
+      walk?: AnimationGroup;
+      current?: string;
+    }
+  >();
+  const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
   const canvas = scene.getEngine().getRenderingCanvas();
   if (canvas) canvas.dataset.peerCount = "0";
   scene.onDisposeObservable.addOnce(() => {
@@ -30,9 +43,9 @@ export function createPeerRenderer(
     const visible = peers().slice(0, 7);
     if (!visible.length && !models.size) return;
     if (!source) {
-      if (!loading) {
+      if (!loading && performance.now() >= retryAfter) {
         loading = true;
-        void LoadAssetContainerAsync("/assets/explorer-resident-low.glb", scene)
+        void LoadAssetContainerAsync("/assets/explorer-low.glb", scene)
           .then((a) => {
             if (disposed) {
               a.dispose();
@@ -42,6 +55,7 @@ export function createPeerRenderer(
           })
           .catch(() => {
             loading = false;
+            retryAfter = performance.now() + Math.min(30000, 5000 * ++retries);
           });
       }
       return;
@@ -63,6 +77,8 @@ export function createPeerRenderer(
             material.diffuseTexture.dispose();
           material?.dispose(false, false);
         }
+        clips.get(id)?.groups.forEach((group) => group.dispose());
+        clips.delete(id);
         root.dispose();
         models.delete(id);
       }
@@ -92,6 +108,10 @@ export function createPeerRenderer(
         const converted = new Map<PBRMaterial, StandardMaterial>();
         for (const m of root.getChildMeshes()) {
           m.isPickable = false;
+          if (m instanceof Mesh && m.skeleton) {
+            m.makeGeometryUnique();
+            m.computeBonesUsingShaders = false;
+          }
           if (m.material instanceof PBRMaterial) {
             const original = m.material;
             let simple = converted.get(original);
@@ -163,17 +183,55 @@ export function createPeerRenderer(
         shade.alpha = 0.2;
         shade.disableLighting = true;
         shadow.material = shade;
+        clips.set(p.id, {
+          groups: instances.animationGroups,
+          idle: instances.animationGroups.find((g) => /idle/i.test(g.name)),
+          walk: instances.animationGroups.find((g) => /walk/i.test(g.name)),
+        });
         models.set(p.id, root);
       }
-      root.position.x += (p.x - root.position.x) * 0.25;
-      root.position.z += (p.z - root.position.z) * 0.25;
+      const distance = Math.hypot(p.x - root.position.x, p.z - root.position.z);
+      const clip = clips.get(p.id)!;
+      // At most three peer skeletons animate. Farther peers retain a human pose.
+      const focused = visible
+        .slice()
+        .sort((a, b) => {
+          const focus = scene.activeCamera?.position;
+          return focus
+            ? Math.hypot(a.x - focus.x, a.z - focus.z) -
+                Math.hypot(b.x - focus.x, b.z - focus.z)
+            : a.id.localeCompare(b.id);
+        })
+        .slice(0, 3)
+        .some((peer) => peer.id === p.id);
+      const desired =
+        reducedMotion.matches || !focused
+          ? "still"
+          : distance > 0.08
+            ? "walk"
+            : "idle";
+      if (clip.current !== desired) {
+        clip.groups.forEach((g) => g.stop());
+        if (desired === "walk") clip.walk?.start(true);
+        else if (desired === "idle") clip.idle?.start(true);
+        clip.current = desired;
+      }
+      const alpha =
+        1 - Math.exp(-Math.min(scene.getEngine().getDeltaTime(), 250) / 140);
+      root.position.x += (p.x - root.position.x) * alpha;
+      root.position.z += (p.z - root.position.z) * alpha;
       root.rotation.y +=
         Math.atan2(
           Math.sin(p.heading - root.rotation.y),
           Math.cos(p.heading - root.rotation.y),
-        ) * 0.25;
+        ) * alpha;
     }
     const canvas = scene.getEngine().getRenderingCanvas();
-    if (canvas) canvas.dataset.peerCount = String(models.size);
+    if (canvas) {
+      canvas.dataset.peerCount = String(models.size);
+      canvas.dataset.animatedPeerCount = String(
+        [...clips.values()].filter((c) => c.current !== "still").length,
+      );
+    }
   };
 }

@@ -1,3 +1,4 @@
+import { registerOperations } from "./operations.js";
 import {
   initializeWorldPolicySchema,
   registerWorldPolicy,
@@ -95,6 +96,7 @@ registerPractice(app, db, auth);
 registerReviews(app, db, auth);
 registerSocial(app, db, auth);
 registerAdvertising(app, db, auth);
+registerOperations(app, db, auth);
 app.get("/api/health", async () => {
   await db.query("SELECT 1");
   return {
@@ -116,6 +118,7 @@ app.get("/api/health", async () => {
       teamBattles: true,
       authorizedBillboards: true,
       learningPolice: true,
+      worldOperations: true,
     },
   };
 });

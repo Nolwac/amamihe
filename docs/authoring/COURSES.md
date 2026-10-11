@@ -34,22 +34,21 @@ Activity points are authoritative and awarded once per level. The post-clearance
 
 `course_drafts` stores creator ownership, optimistic revisions, and the editable definition. `course_versions` stores fixed published snapshots. `course_enrollments` pins a player to a snapshot; `course_chunks` records immutable responses and assistance. All transitions use the existing PostgreSQL/PGlite adapter and transactions.
 
-| Endpoint | Purpose |
-| --- | --- |
-| `GET/POST /api/studio/courses` | List owned drafts or create one from a template |
-| `GET/PUT /api/studio/courses/:id` | Read/update an owned revision |
-| `POST /api/studio/courses/:id/validate` | Check a saved revision |
-| `POST /api/studio/courses/:id/publish` | Publish a valid immutable version |
-| `GET /api/courses?offset=0&limit=4` | Browse published houses |
-| `GET /api/courses/:id?version=1` | Read public content with answer keys removed |
-| `POST /api/courses/:id/enroll` | Enroll explicitly, preserving an existing version |
-| `GET /api/learning` | List the player's saved adventures |
-| `GET /api/learning/:courseId` | Restore the current authored checkpoint |
-| `POST /api/learning/:courseId/help` | Record assistance and reveal authored help |
-| `POST /api/learning/:courseId/answer` | Store an ordered response and return progress |
+| Endpoint                                | Purpose                                           |
+| --------------------------------------- | ------------------------------------------------- |
+| `GET/POST /api/studio/courses`          | List owned drafts or create one from a template   |
+| `GET/PUT /api/studio/courses/:id`       | Read/update an owned revision                     |
+| `POST /api/studio/courses/:id/validate` | Check a saved revision                            |
+| `POST /api/studio/courses/:id/publish`  | Publish a valid immutable version                 |
+| `GET /api/courses?offset=0&limit=4`     | Browse published houses                           |
+| `GET /api/courses/:id?version=1`        | Read public content with answer keys removed      |
+| `POST /api/courses/:id/enroll`          | Enroll explicitly, preserving an existing version |
+| `GET /api/learning`                     | List the player's saved adventures                |
+| `GET /api/learning/:courseId`           | Restore the current authored checkpoint           |
+| `POST /api/learning/:courseId/help`     | Record assistance and reveal authored help        |
+| `POST /api/learning/:courseId/answer`   | Store an ordered response and return progress     |
 
 Course saves accept at most 256 KiB; publication validates bounded lists and content sizes. No HTML or learner code is executed. Draft APIs require ownership; player evidence remains private. Public question payloads omit answers, hints, explanations, and rubrics.
-
 
 ## Playing Published Themes
 
@@ -64,3 +63,9 @@ prerequisites, independent-retry requirements, or rewards. Help still records
 pedagogical assistance and requires a fresh independent retry. Confirmed course
 checkpoint completion earns a badge; accumulated points unlock cosmetic jackets
 from the wardrobe in Course Houses.
+
+## Checked Practice and Course Billboards
+
+JavaScript resources offer three optional server arithmetic checks: embedding parameter counts (`tokens * width`), mean loss (`(a + b + c) / 3`) and a two-component score (`a * b`). Submit one bounded return expression; the server recomputes several fixture inputs and ignores client output. A verified receipt covers that exercise only. Unrestricted code, drawings and imported training metrics remain unverified and never automatically grant mastery.
+
+Course Houses includes billboard submissions. Choose a published course version and one of its published levels; new placements remain pending until a privately assigned moderator approves them. Editing a draft does not move an existing placement to another version. All displays carry an advertisement label; withdrawal removes the placement on the next bounded refresh.

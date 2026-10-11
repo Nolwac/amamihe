@@ -46,6 +46,9 @@ while (true) {
       candidate.features?.reviewScheduling &&
       candidate.features?.sharedWorld &&
       candidate.features?.teamBattles &&
+      candidate.features?.authorizedBillboards &&
+      candidate.features?.learningPolice &&
+      candidate.features?.worldOperations &&
       candidate.storage === "PostgreSQL"
     ) {
       const html = await fetch(base + "/", {
@@ -124,6 +127,20 @@ try {
     "/api/practice/missing/history",
   ])
     assert.equal((await context.request.get(base + endpoint)).status(), 401);
+  assert.equal(
+    (await context.request.get(base + "/api/world-policy")).status(),
+    401,
+  );
+  assert.equal(
+    (await context.request.get(base + "/api/operations")).status(),
+    401,
+  );
+  const ads = await context.request.get(base + "/api/billboards");
+  assert.equal(ads.status(), 200);
+  assert.ok(Array.isArray(await ads.json()));
+  const decisions = await context.request.get(base + "/api/decision-status");
+  assert.equal(decisions.status(), 200);
+  assert.ok(["mock", "openrouter"].includes((await decisions.json()).mode));
   const catalogue = await context.request.get(
     base + "/api/courses?limit=4&offset=0",
   );

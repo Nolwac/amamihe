@@ -106,18 +106,18 @@ Tutors provide assessment rubrics, answer keys, and executable test cases where 
 
 The ten teaching roles remain functions of the learning system rather than ten content-generating agents.
 
-| Role | Implementation in the authored-content approach |
-| --- | --- |
-| Mapmaker | Validate the tutor's concept graph and bind it to story levels. |
-| Interviewer | Select tutor-authored baseline questions and goal prompts. |
-| Socratic Questioner | Select graduated, predefined reasoning prompts. |
-| Explainer | Present a tutor-authored explanation suited to the concept and learner level. |
-| Examiner | Select questions and challenges from approved difficulty banks. |
-| Checker | Evaluate intermediate work and final answers using configured criteria. |
-| Listener | Capture text, optional speech transcripts, and spatial submissions for assessment. |
-| Diagnostician | Match recurring errors to tutor-defined misconceptions and prerequisite resources. |
-| Sparring Partner | Run configured practice encounters and learning battles. |
-| Clerk | Assemble progress and takeaways from recorded evidence and approved summary templates. |
+| Role                | Implementation in the authored-content approach                                        |
+| ------------------- | -------------------------------------------------------------------------------------- |
+| Mapmaker            | Validate the tutor's concept graph and bind it to story levels.                        |
+| Interviewer         | Select tutor-authored baseline questions and goal prompts.                             |
+| Socratic Questioner | Select graduated, predefined reasoning prompts.                                        |
+| Explainer           | Present a tutor-authored explanation suited to the concept and learner level.          |
+| Examiner            | Select questions and challenges from approved difficulty banks.                        |
+| Checker             | Evaluate intermediate work and final answers using configured criteria.                |
+| Listener            | Capture text, optional speech transcripts, and spatial submissions for assessment.     |
+| Diagnostician       | Match recurring errors to tutor-defined misconceptions and prerequisite resources.     |
+| Sparring Partner    | Run configured practice encounters and learning battles.                               |
+| Clerk               | Assemble progress and takeaways from recorded evidence and approved summary templates. |
 
 ## Learning Loop and Story Progression
 
@@ -147,11 +147,11 @@ Load the current level's essentials first and prefetch cautiously. Cache reusabl
 
 Course adventures are built in the visual studio from preset themes, section templates, task banks, and approved resources. Tutors configure task-to-action bindings, section deadlines, point rules, checkpoints, failure animations, and step-level retries. The same concept graph can be presented through different gameplay themes without changing its learning criteria.
 
-| Preset | Learning-to-game binding | Failure and progression |
-| --- | --- | --- |
+| Preset       | Learning-to-game binding                                                                                                       | Failure and progression                                                                                                                                               |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Temple chase | Completing authored tasks within their allotted section time keeps the avatar ahead of pursuing monsters and clears obstacles. | Exceeding the active section deadline triggers a monster catch or obstacle collision and Game Over. Retry that specific step, preserving prior completed checkpoints. |
-| Racing | Correct, faster task completion grants bounded speed boosts and advances the avatar along a track. | Tutor-defined minimum completion criteria and timers determine checkpoint clearance or step retry. Speed alone does not prove mastery. |
-| Wrestling | Correct, faster task completion produces more effective avatar punches or combos against a fictional game opponent. | Task outcomes and configured match rules determine level clearance and step retry. Keep action stylized and non-graphic. |
+| Racing       | Correct, faster task completion grants bounded speed boosts and advances the avatar along a track.                             | Tutor-defined minimum completion criteria and timers determine checkpoint clearance or step retry. Speed alone does not prove mastery.                                |
+| Wrestling    | Correct, faster task completion produces more effective avatar punches or combos against a fictional game opponent.            | Task outcomes and configured match rules determine level clearance and step retry. Keep action stylized and non-graphic.                                              |
 
 These are preset behaviors, not demands that tutors program a game. Preview must demonstrate deadlines, point awards, task widgets, and failure/retry behavior before publication. Tutoring content never needs to be generated during play.
 
@@ -183,21 +183,21 @@ Support solo progression alongside social play. Define communication permissions
 
 The React/TypeScript, Babylon.js, Fastify, and PostgreSQL foundation is implemented and deployed. Course authoring, mock assessment, task-driven adventures, and cosmetic rewards are verified. Adaptive rendering, isolated practice workspaces, conservative FSRS scheduling, opt-in eight-player rooms and consented asynchronous team battles are implemented. The status documents distinguish working behavior from remaining integration and evaluation targets. Live OpenRouter classification is deferred. See [foundation status](docs/status/STEP_01_STATUS.md) and [hosting configuration](docs/deployment/HOSTING.md) for verified implementation boundaries.
 
-| Area | Recommendation | Rationale |
-| --- | --- | --- |
-| Frontend | React, TypeScript, and Vite | One application can support the course studio and game shell; keep the render loop outside React state updates. |
-| 3D engine | Babylon.js with WebGL 2 as the baseline | Integrated scene, camera, picking, animation, and asset tooling reduce custom game infrastructure. WebGPU is an optional enhancement. |
-| Visual editor | React Flow plus an in-engine preview | Reusable node editing for concept/story paths, with preview using the same runtime as the published course. |
-| Backend | Node.js LTS, TypeScript, and Fastify | A modular API supports authoring, attempts, rewards, and WebSockets without an initial microservice fleet. |
-| Database | PostgreSQL | Transactions protect progression and reward integrity; relational references support versioned course structure. Use JSONB for validated widget settings, not all relationships. |
-| Assets | Versioned compressed files on existing infrastructure; optional verified free static hosting | Avoid purchased storage/CDN services; keep the delivery interface replaceable. |
-| Hosting | Render Free application service and Neon Free PostgreSQL for the preview | Same-origin client/API delivery and durable progress without a paid disk. Idle suspension and quotas limit this to a bounded pilot; account access is still needed for deployment. |
-| Decision model | Decision-only LLM through a verified no-purchase OpenRouter classification endpoint | Select approved IDs using compact context and strict response validation; chunk-level rubric grading and route selection; no instructional generation. |
-| Inference placement | Remote free endpoint behind the backend; cached decisions and deterministic fallback routes | Keep inference off 2 GB devices. Fallback rules are resilience measures, not a replacement for the classification/decision model. |
-| Open-ended grading | Decision-LLM rubric scoring per question/interaction chunk | Store scores and evidence; aggregate compact results for routing. Deterministic checks corroborate applicable answers and tutor review resolves uncertainty. |
-| Review scheduler | `ts-fsrs` behind a versioned scheduling adapter | Fits the TypeScript stack and isolates scheduler changes from course/game logic. |
-| Python practice | Notebook adapter with an existing shared Python/PyTorch runtime or an available no-charge notebook service | Keep model training separate from the 3D client. Browser-local tools remain optional for small exercises after memory testing. |
-| Social transport | WebSockets through the API for small rooms | Sufficient for a limited presence and team-battle prototype; scale services only after measured demand. |
+| Area                | Recommendation                                                                                             | Rationale                                                                                                                                                                          |
+| ------------------- | ---------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Frontend            | React, TypeScript, and Vite                                                                                | One application can support the course studio and game shell; keep the render loop outside React state updates.                                                                    |
+| 3D engine           | Babylon.js with WebGL 2 as the baseline                                                                    | Integrated scene, camera, picking, animation, and asset tooling reduce custom game infrastructure. WebGPU is an optional enhancement.                                              |
+| Visual editor       | React Flow plus an in-engine preview                                                                       | Reusable node editing for concept/story paths, with preview using the same runtime as the published course.                                                                        |
+| Backend             | Node.js LTS, TypeScript, and Fastify                                                                       | A modular API supports authoring, attempts, rewards, and WebSockets without an initial microservice fleet.                                                                         |
+| Database            | PostgreSQL                                                                                                 | Transactions protect progression and reward integrity; relational references support versioned course structure. Use JSONB for validated widget settings, not all relationships.   |
+| Assets              | Versioned compressed files on existing infrastructure; optional verified free static hosting               | Avoid purchased storage/CDN services; keep the delivery interface replaceable.                                                                                                     |
+| Hosting             | Render Free application service and Neon Free PostgreSQL for the preview                                   | Same-origin client/API delivery and durable progress without a paid disk. Idle suspension and quotas limit this to a bounded pilot; account access is still needed for deployment. |
+| Decision model      | Decision-only LLM through a verified no-purchase OpenRouter classification endpoint                        | Select approved IDs using compact context and strict response validation; chunk-level rubric grading and route selection; no instructional generation.                             |
+| Inference placement | Remote free endpoint behind the backend; cached decisions and deterministic fallback routes                | Keep inference off 2 GB devices. Fallback rules are resilience measures, not a replacement for the classification/decision model.                                                  |
+| Open-ended grading  | Decision-LLM rubric scoring per question/interaction chunk                                                 | Store scores and evidence; aggregate compact results for routing. Deterministic checks corroborate applicable answers and tutor review resolves uncertainty.                       |
+| Review scheduler    | `ts-fsrs` behind a versioned scheduling adapter                                                            | Fits the TypeScript stack and isolates scheduler changes from course/game logic.                                                                                                   |
+| Python practice     | Notebook adapter with an existing shared Python/PyTorch runtime or an available no-charge notebook service | Keep model training separate from the 3D client. Browser-local tools remain optional for small exercises after memory testing.                                                     |
+| Social transport    | WebSockets through the API for small rooms                                                                 | Sufficient for a limited presence and team-battle prototype; scale services only after measured demand.                                                                            |
 
 ### Decision Policy and Learning Evidence
 
@@ -223,19 +223,19 @@ Assess a completed question or meaningful event group rather than every keystrok
 
 Provider choice: OpenRouter. The public `/api/v1/models` catalogue was inspected on 2026-10-08; catalogue evidence is not an authenticated inference or grading benchmark.
 
-| Catalogue finding | Relevance and limit |
-| --- | --- |
-| `typesafe/jev-router` | Described as using Jev to choose a downstream model and reasoning effort. This does not establish an educational classification/scoring API. Prompt/completion pricing fields are `-1`, so no fixed price comparison or free-access claim is justified. |
-| `liquid/lfm-2.5-2.6b:free` | Listed with zero input/output token prices and structured-output support. It is a general-purpose reasoning model, not a verified Jev-style classifier; it is not the selected substitute. |
-| `nvidia/nemotron-3.5-content-safety:free` | Listed with zero token prices, but specialized in content safety. It does not establish suitability for grading subject knowledge or choosing pedagogy. |
+| Catalogue finding                         | Relevance and limit                                                                                                                                                                                                                                     |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `typesafe/jev-router`                     | Described as using Jev to choose a downstream model and reasoning effort. This does not establish an educational classification/scoring API. Prompt/completion pricing fields are `-1`, so no fixed price comparison or free-access claim is justified. |
+| `liquid/lfm-2.5-2.6b:free`                | Listed with zero input/output token prices and structured-output support. It is a general-purpose reasoning model, not a verified Jev-style classifier; it is not the selected substitute.                                                              |
+| `nvidia/nemotron-3.5-content-safety:free` | Listed with zero token prices, but specialized in content safety. It does not establish suitability for grading subject knowledge or choosing pedagogy.                                                                                                 |
 
-No cheaper purpose-built educational classification endpoint has been verified from this catalogue. Keep the classifier integration unresolved until endpoint documentation confirms custom categories/scoring, access, quotas, and no-purchase deployment. A general chat model that emits JSON is not automatically an equivalent classifier. Do not silently route through paid models or call a model router a grading model.
+The official Jev guide was subsequently verified on 2026-10-11. OpenRouter exposes `POST /api/alpha/decisions` with typed `choice`, `noul` and `score` questions for `typesafe/jev-1.13`. The server adapter uses question-sized choice classification and a separate aggregate routing request; it never calls chat completions. Published input pricing is $0.042 per million tokens, with zero output-token price. This is not free: production remains mock while the private key and an explicitly authorized nonzero budget are absent. No cheaper free purpose-built equivalent has been verified. A general chat model that emits JSON is not automatically an equivalent classifier. Do not silently route through paid models or call a model router a grading model.
 
-Build a provider adapter for chunk assessment and route classification, plus tutor-scored benchmark fixtures. Test provider-confirmed candidates against those fixtures before selection. Keep provider/model identity, calibration version, typed outputs, and pending statuses in the assessment store.
+The typed provider adapter validates provenance, confidence, bounded input/output and authored identifiers, and records pending results on failure. Tutor-scored calibration and authenticated live endpoint verification remain external acceptance gates. Keep provider/model identity, calibration version, typed outputs, and pending statuses in the assessment store.
 
 Use Google Colab free notebooks for the training-course integration, with Kaggle or existing shared compute as alternatives. Session/account restrictions and free GPU availability still require testing. Use launch-and-return when embedding is prohibited. These training tools do not change the OpenRouter requirement for operational classification.
 
-Source: [OpenRouter model catalogue](https://openrouter.ai/api/v1/models). No authenticated model request was made.
+Sources: [OpenRouter model catalogue](https://openrouter.ai/api/v1/models), [Jev typed decision guide](https://openrouter.ai/docs/guides/community/jev), [API tutorial](https://openrouter.ai/docs/guides/community/jev-tutorial). No authenticated model request was made.
 
 ### No-Purchase Prototype Constraint
 

@@ -98,6 +98,8 @@ Implementation: [Step 8 status](docs/status/STEP_08_STATUS.md). Physical-device 
 
 ## Phase 9: Proof-of-Concept Evaluation
 
+Implementation: [Step 9 status](docs/status/STEP_09_STATUS.md). Physical-device and learner studies remain unperformed.
+
 - Run the complete tutor-to-learner flow on representative devices and connections.
 - Check source traceability, actual supported languages, authorization, privacy, reward integrity, code sandboxing, and accessibility controls.
 - Measure decision cost, asset transfer, rendering performance, completion, return visits, delayed recall, and transfer to practical work.
@@ -136,12 +138,12 @@ Deliver these alongside the existing phases; they are part of the product rather
 
 **Acceptance:** A tutor previews and publishes a preset-driven adventure without coding. A learner earns validated activity points, progresses through timed tasks, can fail/retry a step, clears the level, and only then enters classification-based routing. The same task contract supports all three themes without generated teaching content or per-frame model calls.
 
-## Remaining Implementation Milestones
+## Integration and World Implementation Milestones
 
 The original Phase 9 evaluates the prototype. The remaining integration and world work is delivered as separate milestones, each with its own tests, source revision, deployment and public verification.
 
 - **Step 9 — Evaluation:** automated complete journeys, WCAG checks, measured resource/rendering audit, optional local device reports and an explicit physical-device/learner evidence checklist.
-- **Step 10 — Classification integration:** bounded provider calls, model capability and zero-price validation, structured results, provenance and conservative pending behavior. A live purpose-built endpoint and private key are prerequisites for live inference acceptance.
+- **Step 10 — Classification integration:** bounded typed provider calls, a zero-budget guard, structured results, provenance and conservative pending behavior. A live purpose-built endpoint and private key are prerequisites for live inference acceptance.
 - **Step 11 — Practical assessment:** trusted checks for bounded authored exercises, ownership-bound receipts and visible separation from unverified notebook metrics.
 - **Step 12 — Search portals:** searchable course previews in a genuine 3D portal universe, course doorstep navigation and a return route.
 - **Step 13 — Billboards:** creator submissions, authorized placements, reviewed destinations and moderated street/course displays.
@@ -149,3 +151,5 @@ The original Phase 9 evaluates the prototype. The remaining integration and worl
 - **Step 15 — Multiplayer refinement:** animated peer representation, bounded synchronization, reconnect checks and operational moderation tools.
 
 No milestone claims physical 2 GB-device acceptance, learner effectiveness, live provider access or human moderation coverage solely from automated fixtures. No purchased services or paid inference fallback are introduced.
+
+Implementation records: [Step 10](docs/status/STEP_10_STATUS.md), [Step 11](docs/status/STEP_11_STATUS.md), [Step 12](docs/status/STEP_12_STATUS.md), [Step 13](docs/status/STEP_13_STATUS.md), [Step 14](docs/status/STEP_14_STATUS.md), [Step 15](docs/status/STEP_15_STATUS.md). These records distinguish working behavior, fixture coverage and outstanding external acceptance gates.

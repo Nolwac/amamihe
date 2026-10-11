@@ -1,3 +1,5 @@
+import BillboardLinks from "./BillboardLinks";
+import { useBillboards, type Billboard } from "./billboardPresence";
 import WorldPolicy, { useWorldPolicy } from "./WorldPolicy";
 import { useSocialPresence } from "./socialPresence";
 import { initializeAssetCache } from "./rendering";
@@ -130,6 +132,8 @@ function Icon({ name, size = 22 }: { name: string; size?: number }) {
   );
 }
 function App() {
+  const cityAds = useBillboards();
+  const [advertisement, setAdvertisement] = useState<Billboard | null>(null);
   const [breakMode, setBreakMode] = useState(false);
   const [portals, setPortals] = useState(false);
   const [portalDoor, setPortalDoor] = useState<CourseSummary | null>(null);
@@ -551,6 +555,7 @@ function App() {
                 outfit={outfit}
                 quality={quality}
                 peers={social.joined ? social.state.presence : []}
+                onAdvertisement={setAdvertisement}
                 onHouse={(name) => {
                   if (name === "search-portals") {
                     setPortals(true);
@@ -741,6 +746,7 @@ function App() {
             <ReviewDesk />
             <DeviceCheck />
             <AdDesk />
+            <BillboardLinks ads={cityAds} />
             <SocialPanel
               social={social}
               playerId={player.id}
@@ -843,6 +849,29 @@ function App() {
             </button>
           </div>
         </section>
+      )}
+      {player && advertisement && (
+        <div className="modal-backdrop portal-preview">
+          <section className="modal" aria-label="Advertisement preview">
+            <button
+              className="close"
+              aria-label="Close advertisement"
+              onClick={() => setAdvertisement(null)}
+            >
+              ×
+            </button>
+            <span className="eyebrow">ADVERTISEMENT</span>
+            <h2>{advertisement.title}</h2>
+            <p>{advertisement.description}</p>
+            <a
+              href={advertisement.destination}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Visit advertised opportunity ↗
+            </a>
+          </section>
+        </div>
       )}
       {player && publishedHouse && (
         <div

@@ -42,5 +42,16 @@ test("billboard submission stays pending and the world renders a bounded approve
     "data-billboard-count",
     "1",
   );
+  await page
+    .getByRole("button", { name: "Course houses", exact: true })
+    .click();
+  await expect(
+    page
+      .getByRole("region", { name: "Approved advertisements" })
+      .getByRole("link"),
+  ).toHaveAttribute("href", "https://pytorch.org/docs");
+  await page
+    .getByRole("button", { name: "Return to city", exact: true })
+    .click();
   await page.screenshot({ path: "test-results/step13-billboard-city.png" });
 });

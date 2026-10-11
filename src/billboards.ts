@@ -1,47 +1,10 @@
-import { useEffect, useState } from "react";
+import type { Billboard } from "./billboardPresence";
 import type { Scene } from "@babylonjs/core/scene";
 import { MeshBuilder } from "@babylonjs/core/Meshes/meshBuilder";
 import { TransformNode } from "@babylonjs/core/Meshes/transformNode";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import { DynamicTexture } from "@babylonjs/core/Materials/Textures/dynamicTexture";
 import { Color3 } from "@babylonjs/core/Maths/math.color";
-export type Billboard = {
-  id: string;
-  title: string;
-  description: string;
-  destination: string;
-};
-export function useBillboards(
-  courseId?: string,
-  version?: number,
-  levelId?: string,
-) {
-  const [ads, setAds] = useState<Billboard[]>([]);
-  useEffect(() => {
-    const controller = new AbortController();
-    setAds([]);
-    const load = () => {
-      if (document.hidden || (courseId && (!version || !levelId))) return;
-      void fetch(
-        "/api/billboards" +
-          (courseId
-            ? `?courseId=${encodeURIComponent(courseId)}&version=${version}&levelId=${encodeURIComponent(levelId || "")}`
-            : ""),
-        { signal: controller.signal, cache: "no-store" },
-      )
-        .then((r) => (r.ok ? r.json() : []))
-        .then(setAds)
-        .catch(() => {});
-    };
-    load();
-    const timer = setInterval(load, 30000);
-    return () => {
-      controller.abort();
-      clearInterval(timer);
-    };
-  }, [courseId, version, levelId]);
-  return ads;
-}
 export function createBillboards(
   scene: Scene,
   ads: () => Billboard[],
@@ -92,7 +55,8 @@ export function createBillboards(
       );
       plane.parent = root!;
       plane.position.set(x, 3, z);
-      plane.isPickable = false;
+      plane.isPickable = true;
+      plane.metadata = { advertisement: ad };
       const texture = new DynamicTexture(
         "approved-ad-" + ad.id,
         { width: 512, height: 192 },

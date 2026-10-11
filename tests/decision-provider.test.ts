@@ -30,6 +30,12 @@ test("typed classifier is mock by default and makes no paid request without budg
   });
   await assert.rejects(provider.grade(input));
   assert.equal(called, false);
+  const bounded = new JevProvider("fixture", 0.01, async () => {
+    called = true;
+    throw new Error();
+  });
+  await assert.rejects(bounded.grade({ ...input, rubric: "x".repeat(30000) }));
+  assert.equal(called, false);
 });
 test("typed request uses Decisions API, preserves identifiers and validates model provenance", async () => {
   const provider = new JevProvider(
@@ -50,7 +56,12 @@ test("typed request uses Decisions API, preserves identifiers and validates mode
               type: "choice",
               choice: "independent",
               confidence: 0.95,
-              probabilities: { independent: 0.98 },
+              probabilities: {
+                independent: 0.98,
+                assisted: 0.01,
+                incorrect: 0.01,
+                uncertain: 0,
+              },
             },
           },
           usage: { cost: 0.00002 },
@@ -104,4 +115,34 @@ test("routing cannot invent task IDs or accept uncertain choices", async () => {
     taskIds: ["authored-question"],
   });
   await assert.rejects(fixture(0.3).route(route));
+});
+
+test("malformed probability distributions never certify evidence", async () => {
+  for (const probabilities of [
+    { independent: 2, assisted: 0, incorrect: 0, uncertain: 0 },
+    { independent: 1 },
+    { independent: 0.4, assisted: 0.1, incorrect: 0.1, uncertain: 0.1 },
+  ]) {
+    const provider = new JevProvider(
+      "fixture",
+      0.001,
+      async () =>
+        new Response(
+          JSON.stringify({
+            model: "typesafe/jev-1.13",
+            provider: "TypeSafe",
+            usage: { cost: 0 },
+            answers: {
+              evidence: {
+                type: "choice",
+                choice: "independent",
+                confidence: 0.99,
+                probabilities,
+              },
+            },
+          }),
+        ),
+    );
+    await assert.rejects(provider.grade(input));
+  }
 });

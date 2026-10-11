@@ -1,3 +1,4 @@
+import OperationsDesk from "./OperationsDesk";
 import type { CourseSummary } from "../shared/course";
 import { useState, useEffect } from "react";
 import { SIGNALS, type BattleView } from "../shared/social";
@@ -124,6 +125,7 @@ export default function SocialPanel({
           ))}
         </>
       )}
+      <p role="status">Shared connection: {social.connection}</p>
       {social.state.blocked.map((p) => (
         <button
           key={p.id}
@@ -341,6 +343,7 @@ export default function SocialPanel({
       )}
       {social.state.canModerate && (
         <section aria-label="Moderator review">
+          <OperationsDesk />
           <button
             onClick={() =>
               void action(async () => {

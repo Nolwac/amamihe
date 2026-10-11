@@ -82,6 +82,28 @@ test("two browsers share real 3D avatars, course rooms and a consented team batt
       "1",
       { timeout: 60000 },
     );
+    await expect(page.locator("canvas[data-scene-mode=world]")).toHaveAttribute(
+      "data-animated-peer-count",
+      "1",
+      { timeout: 60000 },
+    );
+    await beta
+      .getByRole("button", { name: "Course houses", exact: true })
+      .click();
+    await expect(
+      betaPanel.getByText("Shared connection: connected", { exact: true }),
+    ).toBeVisible();
+    await other.setOffline(true);
+    await expect(
+      betaPanel.getByText("Shared connection: reconnecting", { exact: true }),
+    ).toBeVisible({ timeout: 20000 });
+    await other.setOffline(false);
+    await expect(
+      betaPanel.getByText("Shared connection: connected", { exact: true }),
+    ).toBeVisible({ timeout: 20000 });
+    await beta
+      .getByRole("button", { name: "Return to city", exact: true })
+      .click();
     for (const p of [page, beta])
       await expect(p.locator("canvas[data-scene-mode=world]")).toHaveAttribute(
         "data-avatar-ready",
@@ -272,9 +294,11 @@ test("two browsers share real 3D avatars, course rooms and a consented team batt
     await alphaPanel
       .getByRole("button", { name: "Report Social Beta", exact: true })
       .click();
-    await expect(alphaPanel.getByRole("status")).toHaveText(
-      "Report saved for moderator review.",
-    );
+    await expect(
+      alphaPanel
+        .getByRole("status")
+        .filter({ hasText: "Report saved for moderator review." }),
+    ).toHaveText("Report saved for moderator review.");
     await alphaPanel
       .getByRole("button", { name: "Block Social Beta", exact: true })
       .click();

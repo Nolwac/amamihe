@@ -13,12 +13,16 @@ export async function socialCall(path: string, body?: unknown) {
     method: body === undefined ? "GET" : "POST",
     headers: { "Content-Type": "application/json" },
     body: body === undefined ? undefined : JSON.stringify(body),
+    signal: AbortSignal.timeout(5000),
   });
   const d = await r.json();
   if (!r.ok) throw new Error(d.error);
   return d;
 }
 export function useSocialPresence(playerId?: string) {
+  const [connection, setConnection] = useState<
+    "solo" | "connecting" | "connected" | "reconnecting"
+  >("solo");
   const [joined, setJoined] = useState(false),
     [state, setState] = useState<{
       presence: Presence[];
@@ -43,6 +47,7 @@ export function useSocialPresence(playerId?: string) {
   };
   useEffect(() => {
     setJoined(false);
+    setConnection("solo");
     signal.current = "";
     setState({
       presence: [],
@@ -58,6 +63,7 @@ export function useSocialPresence(playerId?: string) {
   }, [playerId]);
   useEffect(() => {
     if (!playerId || !joined) return;
+    setConnection("connecting");
     let alive = true,
       pending = false;
     const pulse = async () => {
@@ -71,32 +77,45 @@ export function useSocialPresence(playerId?: string) {
         const d = await socialCall("");
         if (alive) {
           setState(d);
+          setConnection("connected");
           setMessage("");
         }
       } catch (e) {
-        if (alive)
+        if (alive) {
+          setConnection("reconnecting");
+          setState((previous) => ({ ...previous, presence: [] }));
           setMessage(
             "Connection interrupted; saved learning is retained. " + String(e),
           );
+        }
       } finally {
         pending = false;
       }
     };
     void pulse();
     const timer = window.setInterval(() => void pulse(), 3000);
+    const resume = () => {
+      if (!document.hidden && navigator.onLine) void pulse();
+    };
+    window.addEventListener("online", resume);
+    document.addEventListener("visibilitychange", resume);
     return () => {
       alive = false;
       clearInterval(timer);
+      window.removeEventListener("online", resume);
+      document.removeEventListener("visibilitychange", resume);
     };
   }, [playerId, joined]);
   return {
     joined,
+    connection,
     state,
     message,
     refresh,
     join: () => setJoined(true),
     leave: async () => {
       setJoined(false);
+      setConnection("solo");
       setState((s) => ({ ...s, presence: [] }));
       await socialCall("/leave", {});
     },

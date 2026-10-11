@@ -14,6 +14,13 @@ Product architecture, implementation milestones, and mandatory rules remain at t
 - [Isolated practice environments](status/STEP_06_STATUS.md)
 - [Scheduled recall and authored remediation](status/STEP_07_STATUS.md)
 - [Shared world and team learning battles](status/STEP_08_STATUS.md)
+- [Accessibility and device evaluation](status/STEP_09_STATUS.md)
+- [Typed classification integration](status/STEP_10_STATUS.md)
+- [Trusted bounded practice](status/STEP_11_STATUS.md)
+- [3D course search portals](status/STEP_12_STATUS.md)
+- [Authorized billboards](status/STEP_13_STATUS.md)
+- [Learning Police and release paths](status/STEP_14_STATUS.md)
+- [Animated peers and world operations](status/STEP_15_STATUS.md)
 - [Course authoring and versioning](authoring/COURSES.md)
 - [Live Contabo operations](../deploy/contabo/README.md)
 

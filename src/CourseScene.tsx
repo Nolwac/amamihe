@@ -1,4 +1,5 @@
-import { createBillboards, type Billboard } from "./billboards";
+import { createBillboards } from "./billboards";
+import type { Billboard } from "./billboardPresence";
 import { createPeerRenderer } from "./peerScene";
 import { publishPosition } from "./socialPresence";
 import type { Presence } from "../shared/social";

@@ -1,0 +1,22 @@
+{
+  "date": "2026-10-11T10:29:49.943Z",
+  "browser": "Chromium, software WebGL",
+  "viewport": "390 x 844",
+  "throttle": "none",
+  "simulatedPlayers": 8,
+  "browserClients": 1,
+  "apiOnlyPeers": 7,
+  "visiblePeers": 7,
+  "animatedPeers": 3,
+  "fpsSamples": [
+    "8 FPS",
+    "9 FPS",
+    "9 FPS",
+    "9 FPS"
+  ],
+  "renderHeight": 144,
+  "activeTriangles": 113295,
+  "jsHeapBytes": 85535786,
+  "pageErrors": [],
+  "limitations": "Seven API-only synthetic peers and one software-rendered browser exercise the room and animation caps. This does not measure eight browser clients, real human behavior, physical 2 GB devices, hardware GPU performance or total process/device memory."
+}
