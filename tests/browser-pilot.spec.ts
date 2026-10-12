@@ -1,3 +1,4 @@
+import { openCityMenu, openAdventurePanels } from "./game-ui-helpers";
 import { test, expect } from "@playwright/test";
 import { readFile } from "node:fs/promises";
 import { createAccount } from "./auth-helpers";
@@ -25,6 +26,7 @@ test("Model Makers enters the published six-level pilot, saves practice and a no
   await preview
     .getByRole("button", { name: "Enroll & enter adventure" })
     .click();
+  await openAdventurePanels(page);
   const definition = storytellingCourse();
   let progress: LearningProgress = await (
     await context.request.get(`/api/learning/${STORYTELLING_COURSE_ID}`)
@@ -110,18 +112,18 @@ test("Model Makers enters the published six-level pilot, saves practice and a no
       await page
         .getByRole("button", { name: "Continue adventure", exact: true })
         .click();
+      await openAdventurePanels(page);
     }
     if (submitted === 2) {
       await page.reload();
-      await page
-        .getByRole("button", { name: "My learning", exact: false })
-        .click();
-      await page
-        .getByRole("button", {
-          name: `Resume ${definition.title}`,
+      await openAdventurePanels(page);
+      await expect(
+        page.getByRole("heading", {
+          name: definition.levels.find((l) => l.id === progress.levelId)!
+            .questions[progress.questionIndex].prompt,
           exact: true,
-        })
-        .click();
+        }),
+      ).toBeVisible();
     }
     expect(submitted).toBeLessThanOrEqual(12);
   }
@@ -156,6 +158,7 @@ test("phone Model Makers entrance opens the actual pilot rather than the foundat
     page.getByLabel("Course learning path").locator("li"),
   ).toHaveCount(6);
   await page.getByRole("button", { name: "Enroll & enter adventure" }).click();
+  await openAdventurePanels(page);
   await expect(page.getByLabel("Published course adventure")).toBeVisible();
   const progress = await (
     await context.request.get(`/api/learning/${STORYTELLING_COURSE_ID}`)

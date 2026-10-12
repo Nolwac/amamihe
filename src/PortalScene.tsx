@@ -1,3 +1,4 @@
+import { configureCameraControls } from "./cameraControls";
 import { useEffect, useRef } from "react";
 import { Engine } from "@babylonjs/core/Engines/engine";
 import { Scene } from "@babylonjs/core/scene";
@@ -39,6 +40,7 @@ export default function PortalScene({
       new Vector3(0, 1.5, 0),
       scene,
     );
+    configureCameraControls(camera);
     camera.attachControl(element, true);
     camera.lowerRadiusLimit = 8;
     camera.upperRadiusLimit = 20;

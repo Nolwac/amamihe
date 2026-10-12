@@ -213,6 +213,24 @@ function App() {
       alive = false;
     };
   }, [player?.id, directory, courseId]);
+  useEffect(() => {
+    if (!player) return;
+    try {
+      const saved = localStorage.getItem("amamihe-active-course:" + player.id);
+      if (saved) setCourseId(saved);
+    } catch {
+      /* Device storage optional. */
+    }
+  }, [player?.id]);
+  useEffect(() => {
+    if (!player) return;
+    try {
+      if (courseId)
+        localStorage.setItem("amamihe-active-course:" + player.id, courseId);
+    } catch {
+      /* Device storage optional. */
+    }
+  }, [courseId, player?.id]);
   const policy = useWorldPolicy(
     Boolean(player),
     breakMode ? "break" : courseId || studio || loading ? "waiting" : "active",
@@ -338,138 +356,147 @@ function App() {
             amamihe<small>A WORLD OF POSSIBILITY</small>
           </span>
         </a>
-        <nav aria-label="Main navigation">
-          <button
-            className={tab === "explore" ? "active" : ""}
-            onClick={() => setTab("explore")}
+        <details className="city-menu">
+          <summary aria-label="Open city menu">☰</summary>
+          <nav aria-label="Main navigation">
+            <button
+              className={tab === "explore" ? "active" : ""}
+              onClick={() => setTab("explore")}
+            >
+              <Icon name="compass" size={17} /> Explore the world
+            </button>
+            <button
+              className={tab === "learn" ? "active" : ""}
+              onClick={() => setDirectory(true)}
+            >
+              <Icon name="book" size={17} /> My learning
+            </button>
+            {player && (
+              <>
+                <button
+                  onClick={() => {
+                    setDirectory(true);
+                    setHouse(null);
+                  }}
+                >
+                  Course houses
+                </button>
+                <button
+                  onClick={() => {
+                    setPortals(true);
+                    setDirectory(false);
+                    setHouse(null);
+                  }}
+                >
+                  Search portals
+                </button>
+                <button
+                  className="tutor-toggle"
+                  onClick={() => {
+                    setStudio(true);
+                    setHouse(null);
+                  }}
+                >
+                  Tutor studio
+                </button>
+              </>
+            )}
+          </nav>
+        </details>
+        <details className="city-skills">
+          <summary aria-label="Show skill categories">✦</summary>
+          <div className="skills-hud" aria-label="Skill categories">
+            {[
+              ["crown", "Creativity"],
+              ["tech", "Tech"],
+              ["chat", "Communication"],
+              ["team", "Leadership"],
+            ].map(([icon, label]) => (
+              <div key={label} className={"skill-category " + icon}>
+                <span className="skill-hex">
+                  <Icon name={icon} />
+                </span>
+                <small>{label}</small>
+              </div>
+            ))}
+          </div>
+        </details>
+        <details className="city-map">
+          <summary aria-label="Show district map">⌖</summary>
+          <div
+            role="img"
+            className="district-map"
+            aria-label="Workshop District map"
           >
-            <Icon name="compass" size={17} /> Explore the world
-          </button>
-          <button
-            className={tab === "learn" ? "active" : ""}
-            onClick={() => setDirectory(true)}
-          >
-            <Icon name="book" size={17} /> My learning
-          </button>
-          {player && (
-            <>
-              <button
-                onClick={() => {
-                  setDirectory(true);
-                  setHouse(null);
-                }}
-              >
-                Course houses
-              </button>
-              <button
-                onClick={() => {
-                  setPortals(true);
-                  setDirectory(false);
-                  setHouse(null);
-                }}
-              >
-                Search portals
-              </button>
-              <button
-                className="tutor-toggle"
-                onClick={() => {
-                  setStudio(true);
-                  setHouse(null);
-                }}
-              >
-                Tutor studio
-              </button>
-            </>
-          )}
-        </nav>
-        <div className="skills-hud" aria-label="Skill categories">
-          {[
-            ["crown", "Creativity"],
-            ["tech", "Tech"],
-            ["chat", "Communication"],
-            ["team", "Leadership"],
-          ].map(([icon, label]) => (
-            <div key={label} className={"skill-category " + icon}>
-              <span className="skill-hex">
-                <Icon name={icon} />
-              </span>
-              <small>{label}</small>
-            </div>
-          ))}
-        </div>
-        <div
-          role="img"
-          className="district-map"
-          aria-label="Workshop District map"
-        >
-          <svg viewBox="0 0 120 120" aria-hidden="true">
-            <defs>
-              <clipPath id="map-clip">
-                <circle cx="60" cy="60" r="55" />
-              </clipPath>
-            </defs>
-            <g clipPath="url(#map-clip)">
-              <rect width="120" height="120" fill="#657a71" />
-              <path
-                d="M55-10v140M-10 77h140"
-                stroke="#aa9c7d"
-                strokeWidth="21"
-              />
-              <path
-                d="M55-10v140M-10 77h140"
-                stroke="#d4bfa1"
-                strokeWidth="12"
-              />
-              {[
-                [22, 64, 18, 26, "#bb7050"],
-                [80, 55, 20, 27, "#667f92"],
-                [39, 23, 30, 23, "#37877d"],
-                [15, 22, 18, 29, "#cea357"],
-                [85, 23, 19, 24, "#915e69"],
-              ].map(([x, y, w, h, c], i) => (
-                <rect
-                  key={i}
-                  x={x}
-                  y={y}
-                  width={w}
-                  height={h}
-                  rx="2"
-                  fill={String(c)}
-                  stroke="#ddcbb3"
-                  strokeWidth="1"
-                />
-              ))}
-              {[
-                [12, 90],
-                [92, 92],
-                [14, 10],
-                [100, 40],
-                [80, 14],
-              ].map(([cx, cy], i) => (
-                <circle key={i} cx={cx} cy={cy} r="7" fill="#3c6854" />
-              ))}
-              <g
-                transform={`translate(${55 + stats.x * 3},${98 - (stats.z + 5) * 3}) rotate(${(stats.heading * 180) / Math.PI})`}
-              >
+            <svg viewBox="0 0 120 120" aria-hidden="true">
+              <defs>
+                <clipPath id="map-clip">
+                  <circle cx="60" cy="60" r="55" />
+                </clipPath>
+              </defs>
+              <g clipPath="url(#map-clip)">
+                <rect width="120" height="120" fill="#657a71" />
                 <path
-                  d="M0-7 5 6 0 3-5 6Z"
-                  fill="#fff4db"
-                  stroke="#17362f"
-                  strokeWidth="1.5"
+                  d="M55-10v140M-10 77h140"
+                  stroke="#aa9c7d"
+                  strokeWidth="21"
                 />
+                <path
+                  d="M55-10v140M-10 77h140"
+                  stroke="#d4bfa1"
+                  strokeWidth="12"
+                />
+                {[
+                  [22, 64, 18, 26, "#bb7050"],
+                  [80, 55, 20, 27, "#667f92"],
+                  [39, 23, 30, 23, "#37877d"],
+                  [15, 22, 18, 29, "#cea357"],
+                  [85, 23, 19, 24, "#915e69"],
+                ].map(([x, y, w, h, c], i) => (
+                  <rect
+                    key={i}
+                    x={x}
+                    y={y}
+                    width={w}
+                    height={h}
+                    rx="2"
+                    fill={String(c)}
+                    stroke="#ddcbb3"
+                    strokeWidth="1"
+                  />
+                ))}
+                {[
+                  [12, 90],
+                  [92, 92],
+                  [14, 10],
+                  [100, 40],
+                  [80, 14],
+                ].map(([cx, cy], i) => (
+                  <circle key={i} cx={cx} cy={cy} r="7" fill="#3c6854" />
+                ))}
+                <g
+                  transform={`translate(${55 + stats.x * 3},${98 - (stats.z + 5) * 3}) rotate(${(stats.heading * 180) / Math.PI})`}
+                >
+                  <path
+                    d="M0-7 5 6 0 3-5 6Z"
+                    fill="#fff4db"
+                    stroke="#17362f"
+                    strokeWidth="1.5"
+                  />
+                </g>
               </g>
-            </g>
-            <circle
-              cx="60"
-              cy="60"
-              r="56"
-              stroke="#d9bf85"
-              strokeWidth="3"
-              fill="none"
-            />
-          </svg>
-          <small>WORKSHOP DISTRICT</small>
-        </div>
+              <circle
+                cx="60"
+                cy="60"
+                r="56"
+                stroke="#d9bf85"
+                strokeWidth="3"
+                fill="none"
+              />
+            </svg>
+            <small>WORKSHOP DISTRICT</small>
+          </div>
+        </details>
         <div className="points-chip" aria-label="Earned skill points">
           <Icon name="coin" size={26} />
           <b>{player?.points || 0}</b>
@@ -543,18 +570,21 @@ function App() {
             <span className="location-pill">
               ⌖ &nbsp; Venture City <span>•</span> Workshop District
             </span>
-            <label className="quality-control">
-              Graphics{" "}
-              <select
-                aria-label="Graphics quality"
-                value={quality}
-                onChange={(e) => setQuality(e.target.value)}
-              >
-                <option value="low">Low · adaptive 144–360p</option>
-                <option value="medium">Medium · 720p</option>
-                <option value="high">High · 1080p</option>
-              </select>
-            </label>
+            <details className="city-graphics">
+              <summary aria-label="City graphics settings">⚙</summary>
+              <label className="quality-control">
+                Graphics{" "}
+                <select
+                  aria-label="Graphics quality"
+                  value={quality}
+                  onChange={(e) => setQuality(e.target.value)}
+                >
+                  <option value="low">Low · adaptive 144–360p</option>
+                  <option value="medium">Medium · 720p</option>
+                  <option value="high">High · 1080p</option>
+                </select>
+              </label>
+            </details>
           </div>
           {studio || courseId ? (
             <div className="world-loading">
@@ -572,6 +602,8 @@ function App() {
                 key={courses
                   .map((course) => course.id + ":" + course.version)
                   .join("|")}
+                enforcementStatus={policy.state?.status}
+                detentionId={policy.state?.detentionId}
                 courses={courses.map(({ id, title }) => ({ id, title }))}
                 paused={Boolean(
                   player &&
@@ -1043,9 +1075,13 @@ function App() {
           <CourseAdventure
             key={courseId}
             courseId={courseId}
+            playerId={player.id}
             outfit={outfit}
             peers={social.joined ? social.state.presence : []}
-            onClose={() => setCourseId(null)}
+            onClose={() => {
+              localStorage.removeItem("amamihe-active-course:" + player.id);
+              setCourseId(null);
+            }}
             onPoints={() => {
               void refreshPoints();
             }}

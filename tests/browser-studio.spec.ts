@@ -1,3 +1,4 @@
+import { openCityMenu, openAdventurePanels } from "./game-ui-helpers";
 import { randomUUID } from "node:crypto";
 import {
   test,
@@ -19,6 +20,7 @@ async function starter(request: APIRequestContext): Promise<CourseDraft> {
 }
 
 async function enterPublishedHouse(page: Page, title: string) {
+  await openCityMenu(page);
   await page
     .getByRole("button", { name: "Course houses", exact: true })
     .click();
@@ -28,6 +30,7 @@ async function enterPublishedHouse(page: Page, title: string) {
   await page
     .getByRole("button", { name: "Enroll & enter adventure", exact: true })
     .click();
+  await openAdventurePanels(page);
   await expect(page.getByLabel("Published course adventure")).toBeVisible({
     timeout: 30000,
   });
@@ -43,6 +46,7 @@ test("tutor publishes an authored 3D course and a separate learner resumes and c
   page.on("pageerror", (error) => errors.push(error.stack || error.message));
   await createAccount(context.request, "Storytelling Tutor");
   await page.goto("/");
+  await openCityMenu(page);
   await page.getByRole("button", { name: "Tutor studio", exact: true }).click();
   const created = page.waitForResponse(
     (response) =>
@@ -168,7 +172,7 @@ test("tutor publishes an authored 3D course and a separate learner resumes and c
       if (!refreshed) {
         const savedQuestionId = progress.question?.id;
         await learnerPage.reload();
-        await enterPublishedHouse(learnerPage, title);
+        await openAdventurePanels(learnerPage);
         const restored: LearningProgress = await (
           await learner.request.get(`/api/learning/${original.id}`)
         ).json();
@@ -183,6 +187,7 @@ test("tutor publishes an authored 3D course and a separate learner resumes and c
         await learnerPage
           .getByRole("button", { name: "Continue adventure", exact: true })
           .click();
+        await openAdventurePanels(learnerPage);
       }
       expect(submissionCount).toBeLessThanOrEqual(12);
     }
@@ -217,6 +222,7 @@ test("mobile studio supports keyboard editing, theme preview, and actionable pub
   await page.setViewportSize({ width: 390, height: 844 });
   await createAccount(context.request, "Mobile Tutor");
   await page.goto("/");
+  await openCityMenu(page);
   await page.getByRole("button", { name: "Tutor studio", exact: true }).click();
   await page.getByRole("button", { name: "New course", exact: true }).click();
   const title = page.getByLabel("Course title", { exact: true });

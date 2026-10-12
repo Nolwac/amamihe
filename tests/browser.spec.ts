@@ -1,3 +1,4 @@
+import { openCityMenu, openAdventurePanels } from "./game-ui-helpers";
 import { createAccount, signupInBrowser } from "./auth-helpers";
 import { test, expect } from "@playwright/test";
 test("3D browser journey: verified account, recorded chunks, clearance, classification, persistence and idempotency", async ({
@@ -22,6 +23,7 @@ test("3D browser journey: verified account, recorded chunks, clearance, classifi
   await page.keyboard.down("w");
   await expect(mapPosition).not.toHaveAttribute("transform", before!);
   await page.keyboard.up("w");
+  await page.getByLabel("City graphics settings", { exact: true }).click();
   await page.getByLabel("Graphics quality").selectOption("medium");
   await expect(page.locator("canvas")).toHaveAttribute(
     "data-scene-quality",
@@ -32,6 +34,7 @@ test("3D browser journey: verified account, recorded chunks, clearance, classifi
     "true",
     { timeout: 30000 },
   );
+  await openCityMenu(page);
   await page
     .getByRole("button", { name: "Course houses", exact: true })
     .click();
@@ -76,6 +79,7 @@ test("3D browser journey: verified account, recorded chunks, clearance, classifi
   );
   await page.reload();
   await expect(page.locator(".player-chip")).toContainText("Browser Explorer");
+  await openCityMenu(page);
   await page.getByRole("button", { name: /My learning/ }).click();
   await page
     .getByRole("button", { name: "View foundations checkpoint progress" })
@@ -158,6 +162,7 @@ test("in-progress responses survive a browser refresh", async ({
 }) => {
   await page.goto("/");
   await signupInBrowser(page, "Resuming Explorer", "terracotta");
+  await openCityMenu(page);
   await page
     .getByRole("button", { name: "Course houses", exact: true })
     .click();
@@ -229,8 +234,12 @@ test("rigged avatars load and the HUD remains aligned at desktop, tablet, and ph
   const overlap = async (a: string, b: string) =>
     page.evaluate(
       ([first, second]) => {
-        const x = document.querySelector(first)!.getBoundingClientRect(),
-          y = document.querySelector(second)!.getBoundingClientRect();
+        const firstElement = document.querySelector(first)!,
+          secondElement = document.querySelector(second)!;
+        if (!firstElement.checkVisibility() || !secondElement.checkVisibility())
+          return false;
+        const x = firstElement.getBoundingClientRect(),
+          y = secondElement.getBoundingClientRect();
         return (
           x.left < y.right &&
           x.right > y.left &&
@@ -244,13 +253,24 @@ test("rigged avatars load and the HUD remains aligned at desktop, tablet, and ph
     await page.setViewportSize({ width, height: width > 600 ? 900 : 844 });
     await page.waitForTimeout(900);
     expect(await overlap(".player-chip", ".points-chip")).toBe(false);
+    await page.getByLabel("Show district map", { exact: true }).click();
+    await expect(
+      page.getByLabel("Workshop District map", { exact: true }),
+    ).toBeVisible();
     expect(await overlap(".points-chip", ".district-map")).toBe(false);
+    await page.getByLabel("Show district map", { exact: true }).click();
     expect(await overlap(".scene-bottom", ".topbar nav")).toBe(false);
     await expect(
       page.getByRole("button", { name: "Visit Model Makers" }),
     ).toBeVisible();
-    if (width > 900)
+    if (width > 900) {
+      await page.getByLabel("Show skill categories", { exact: true }).click();
+      await expect(
+        page.getByLabel("Skill categories", { exact: true }),
+      ).toBeVisible();
       expect(await overlap(".player-chip", ".skills-hud")).toBe(false);
+      await page.getByLabel("Show skill categories", { exact: true }).click();
+    }
     if (width < 600) {
       expect(await overlap(".touch-controls", ".topbar nav")).toBe(false);
       const canvas = await page.locator("canvas").boundingBox();

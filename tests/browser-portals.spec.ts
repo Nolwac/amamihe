@@ -1,3 +1,4 @@
+import { openCityMenu, openAdventurePanels } from "./game-ui-helpers";
 import { test, expect } from "@playwright/test";
 import { createAccount } from "./auth-helpers";
 import type { CourseDraft } from "../shared/course";
@@ -26,6 +27,7 @@ test("3D search portals preview a published doorstep and preserve enrollment on 
   ).toBe(true);
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
+  await openCityMenu(page);
   await page
     .getByRole("button", { name: "Search portals", exact: true })
     .click();
@@ -50,6 +52,7 @@ test("3D search portals preview a published doorstep and preserve enrollment on 
     .getByRole("button", { name: "Teleport to " + draft.definition.title })
     .click();
   await page.getByRole("button", { name: "Enroll & enter adventure" }).click();
+  await openAdventurePanels(page);
   await expect(
     page.getByRole("button", { name: "Return to city" }),
   ).toBeVisible();

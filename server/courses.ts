@@ -1,4 +1,9 @@
 import {
+  LEARNING_ROLES,
+  type LearningRole,
+  type LearningJourney,
+} from "../shared/learning-journey.js";
+import {
   assessLevel,
   mockProvider,
   type Assessment,
@@ -70,6 +75,14 @@ CREATE TABLE IF NOT EXISTS course_assessments (
  PRIMARY KEY(course_id,player_id,level_id),
  FOREIGN KEY(course_id,player_id) REFERENCES course_enrollments(course_id,player_id)
 );
+CREATE TABLE IF NOT EXISTS course_assessment_runs (
+ course_id TEXT NOT NULL,player_id TEXT NOT NULL,level_id TEXT NOT NULL,attempt INTEGER NOT NULL,result JSONB NOT NULL,
+ updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+ PRIMARY KEY(course_id,player_id,level_id,attempt),
+ FOREIGN KEY(course_id,player_id) REFERENCES course_enrollments(course_id,player_id)
+);
+INSERT INTO course_assessment_runs(course_id,player_id,level_id,attempt,result)
+SELECT course_id,player_id,level_id,0,result FROM course_assessments ON CONFLICT DO NOTHING;
 CREATE TABLE IF NOT EXISTS course_chunks (
   course_id TEXT NOT NULL,
   player_id TEXT NOT NULL,
@@ -78,6 +91,7 @@ CREATE TABLE IF NOT EXISTS course_chunks (
   question_id TEXT NOT NULL,
   retry BOOLEAN NOT NULL,
   answer INTEGER NOT NULL,
+  attempt INTEGER NOT NULL DEFAULT 0,
   correct BOOLEAN NOT NULL,
   assisted BOOLEAN NOT NULL,
   elapsed_ms INTEGER NOT NULL,
@@ -85,6 +99,7 @@ CREATE TABLE IF NOT EXISTS course_chunks (
   PRIMARY KEY(course_id, player_id, delivery_id),
   FOREIGN KEY(course_id, player_id) REFERENCES course_enrollments(course_id, player_id)
 );
+ALTER TABLE course_chunks ADD COLUMN IF NOT EXISTS attempt INTEGER NOT NULL DEFAULT 0;
 `);
 }
 
@@ -96,6 +111,22 @@ type DraftRow = {
   definition: CourseDefinition;
 };
 type StoredProgress = {
+  lastAwardedPoints?: number;
+  attemptCounter?: number;
+  resumeCheckpoint?: StoredProgress;
+  journey?: {
+    observed: LearningRole[];
+    goal: string;
+    reasoning: string;
+    reflection: string;
+    reasoningPrompt?: string;
+  };
+  revealedQuestionIds?: string[];
+  attempt?: number;
+  deliverySerial?: number;
+  replayMode?: "course" | "level";
+  replayCompletedLevelIds?: string[];
+  practiceOnly?: boolean;
   levelId: string;
   questionIndex: number;
   retry: boolean;
@@ -348,7 +379,7 @@ function eligibleLevel(definition: CourseDefinition, completed: string[]) {
   );
 }
 export function deliveryId(state: StoredProgress, question: CourseQuestion) {
-  return `${state.levelId}:${state.retry ? "retry" : "primary"}:${question.id}${state.game?.run ? ":run" + state.game.run : ""}`;
+  return `${state.levelId}:${state.retry ? "retry" : "primary"}:${question.id}${state.game?.run ? ":run" + state.game.run : ""}${state.attempt ? ":attempt" + state.attempt : ""}${state.deliverySerial ? ":repeat" + state.deliverySerial : ""}`;
 }
 export function currentQuestion(
   definition: CourseDefinition,
@@ -388,6 +419,16 @@ function progressResponse(
   state: StoredProgress,
 ): LearningProgress {
   const { level, question } = currentQuestion(definition, state);
+  // Completed checkpoints predate the camp in older enrollments. Their
+  // authoritative response/checking history still fulfils these three roles.
+  const observed = [
+    ...new Set<LearningRole>([
+      ...(state.journey?.observed ?? []),
+      ...(state.completedLevelIds.length
+        ? (["Examiner", "Checker", "Listener"] as const)
+        : []),
+    ]),
+  ];
   return {
     courseId,
     version,
@@ -405,7 +446,45 @@ function progressResponse(
     completedLevelIds: state.completedLevelIds,
     points: state.points,
     finished: state.finished,
+    journey: {
+      observed,
+      goal: state.journey?.goal ?? "",
+      reasoning: state.journey?.reasoning ?? "",
+      reflection: state.journey?.reflection ?? "",
+      completed:
+        state.finished &&
+        definition.levels.every((l) =>
+          state.completedLevelIds.includes(l.id),
+        ) &&
+        LEARNING_ROLES.every((role) => observed.includes(role)),
+      path: definition.levels.map((l) => ({
+        id: l.id,
+        title: l.title,
+        cleared: state.completedLevelIds.includes(l.id),
+      })),
+      reasoningPrompt: state.finished
+        ? level.questions[0].hint
+        : (state.journey?.reasoningPrompt ?? ""),
+      rehearsal: publicQuestion(level.retryQuestions[0]),
+      diagnosis:
+        state.assessment?.reason ??
+        "Complete a checkpoint to review criterion evidence, recorded assistance and any gaps.",
+    } satisfies LearningJourney,
+    practiceOnly: state.practiceOnly,
+    replayMode: state.replayMode,
+    canResumeCheckpoint: Boolean(state.resumeCheckpoint),
+    practiceDeliveryId:
+      question && !state.finished
+        ? deliveryId(state, question)
+        : `practice:${state.levelId}:${state.attempt ?? 0}`,
+    checkpoint: `${state.attempt ?? 0}:${state.levelId}:${state.questionIndex}:${state.deliverySerial ?? 0}`,
+    replayableLevels: definition.levels
+      .filter(
+        (l) => l.id === state.levelId || state.completedLevelIds.includes(l.id),
+      )
+      .map((l) => ({ id: l.id, title: l.title })),
     ...(state.blocked ? { blocked: true, blockReason: state.blockReason } : {}),
+    ...(state.practiceOnly ? { blockReason: state.blockReason } : {}),
     ...(state.result ? { result: state.result } : {}),
     ...(state.assessment ? { assessment: state.assessment } : {}),
     level: levelMetadata(level),
@@ -477,6 +556,36 @@ export async function enrolled(
     );
     await saveProgress(db, id, playerId, row.progress);
   }
+  // Recover legacy exhausted banks without losing any successful criterion.
+  if (row.progress.blocked) {
+    const { level } = currentQuestion(course.definition, row.progress);
+    const index = level.retryQuestions.findIndex(
+      (q) =>
+        q.retryFor && !row.progress.satisfiedQuestionIds.includes(q.retryFor),
+    );
+    if (index >= 0) {
+      row.progress.blocked = false;
+      row.progress.retry = true;
+      row.progress.questionIndex = index;
+      row.progress.deliverySerial = (row.progress.deliverySerial ?? 0) + 1;
+      row.progress.blockReason =
+        "Keep practising without a retry limit. Previously shown solutions are practice; a fresh authored variant is needed for independent credit.";
+      row.progress.practiceOnly = true;
+      row.progress.assisted = true;
+      const previous = row.progress.game;
+      row.progress.game = freshGame(
+        level,
+        previous?.multiplier ?? 1,
+        (previous?.run ?? 0) + 1,
+        previous?.adventure?.assist !== false,
+        row.progress.adventureCheckpoint ?? previous?.adventure,
+      );
+      row.progress.adventureCheckpoint = structuredClone(
+        row.progress.game.adventure,
+      );
+      await saveProgress(db, id, playerId, row.progress);
+    }
+  }
   return { ...row, ...course };
 }
 async function saveProgress(
@@ -504,20 +613,40 @@ async function classify(
   )!;
   const evidence = (
     await db.query<Evidence>(
-      "SELECT delivery_id,question_id,retry,correct,assisted,answer,elapsed_ms FROM course_chunks WHERE course_id=$1 AND player_id=$2 AND level_id=$3 ORDER BY created_at,delivery_id",
-      [id, playerId, level.id],
+      `SELECT DISTINCT ON (question_id, (correct AND NOT assisted)) delivery_id,question_id,retry,correct,assisted,answer,elapsed_ms FROM course_chunks WHERE course_id=$1 AND player_id=$2 AND level_id=$3 AND attempt=$4 ORDER BY question_id,(correct AND NOT assisted),created_at DESC,delivery_id DESC`,
+      [id, playerId, level.id, state.attempt ?? 0],
     )
   ).rows;
   state.assessment = await assessLevel(
     definition,
     level,
     evidence,
-    state.completedLevelIds,
+    state.replayMode === "level"
+      ? definition.levels.map((l) => l.id)
+      : state.replayMode === "course"
+        ? (state.replayCompletedLevelIds ?? [])
+        : state.completedLevelIds,
     provider,
   );
   await db.query(
-    "INSERT INTO course_assessments(course_id,player_id,level_id,result) VALUES($1,$2,$3,$4) ON CONFLICT(course_id,player_id,level_id) DO UPDATE SET result=$4,updated_at=now()",
-    [id, playerId, level.id, JSON.stringify(state.assessment)],
+    "INSERT INTO course_assessments(course_id,player_id,level_id,result) VALUES($1,$2,$3,$4) ON CONFLICT(course_id,player_id,level_id) DO UPDATE SET result=$4,updated_at=now() WHERE NOT ($5 AND course_assessments.result->>'status'='confirmed')",
+    [
+      id,
+      playerId,
+      level.id,
+      JSON.stringify(state.assessment),
+      Boolean(state.replayMode),
+    ],
+  );
+  await db.query(
+    "INSERT INTO course_assessment_runs(course_id,player_id,level_id,attempt,result) VALUES($1,$2,$3,$4,$5) ON CONFLICT(course_id,player_id,level_id,attempt) DO UPDATE SET result=$5,updated_at=now()",
+    [
+      id,
+      playerId,
+      level.id,
+      state.attempt ?? 0,
+      JSON.stringify(state.assessment),
+    ],
   );
   state.result = {
     mocked: state.assessment.mocked,
@@ -528,7 +657,7 @@ async function classify(
           ? "Independent retry checkpoint clear"
           : "Independent checkpoint clear",
     nextLevelId: state.assessment.nextLevelId,
-    awardedPoints: level.points,
+    awardedPoints: state.lastAwardedPoints ?? level.points,
   };
   if (state.assessment.status === "pending") return;
   if (state.assessment.nextLevelId) {
@@ -805,6 +934,210 @@ WHERE e.player_id=$1 ORDER BY e.updated_at DESC,e.course_id LIMIT 100`,
       })),
     };
   });
+  route("POST", "/api/learning/:courseId/journey", async (req) => {
+    const p = await player(req),
+      id = param(req, "courseId"),
+      body = object(req.body);
+    return db.transaction(async (tx) => {
+      const row = await enrolled(tx, id, p.id),
+        state = row.progress;
+      const { level } = currentQuestion(row.definition, state);
+      const journey = state.journey ?? {
+        observed: [],
+        goal: "",
+        reasoning: "",
+        reflection: "",
+      };
+      const add = (...roles: LearningRole[]) =>
+        (journey.observed = [...new Set([...journey.observed, ...roles])]);
+      const responseText = () => {
+        if (
+          typeof body.text !== "string" ||
+          body.text.trim().length < 10 ||
+          body.text.length > 2000
+        )
+          throw new CourseError("Write 10–2000 characters in your own words.");
+        return body.text.trim();
+      };
+      if (body.activity === "map") add("Mapmaker");
+      else if (body.activity === "goal") {
+        journey.goal = responseText();
+        add("Interviewer");
+      } else if (body.activity === "reasoning-prompt") {
+        if (!state.finished) {
+          state.assisted = true;
+          const q = currentQuestion(row.definition, state).question;
+          if (q)
+            state.revealedQuestionIds = [
+              ...new Set([...(state.revealedQuestionIds ?? []), q.id]),
+            ];
+        }
+        journey.reasoningPrompt =
+          currentQuestion(row.definition, state).question?.hint ??
+          level.questions[0].hint;
+      } else if (body.activity === "reasoning") {
+        journey.reasoning = responseText();
+        add("Socratic Questioner", "Listener");
+      } else if (body.activity === "study") {
+        if (!level.resourceIds.includes(String(body.resourceId)))
+          throw new CourseError("Choose a resource at this level.");
+        add("Explainer");
+      } else if (body.activity === "diagnosis") {
+        if (!state.assessment)
+          throw new CourseError(
+            "Clear a checkpoint before reviewing its evidence.",
+          );
+        add("Diagnostician");
+      } else if (body.activity === "rehearsal") {
+        if (!state.finished)
+          throw new CourseError(
+            "Clear the course checkpoints before the final rehearsal.",
+          );
+        const q = level.retryQuestions.find((q) => q.id === body.questionId);
+        if (
+          !q ||
+          !Number.isInteger(body.answer) ||
+          Number(body.answer) < 0 ||
+          Number(body.answer) >= q.options.length
+        )
+          throw new CourseError("Choose an authored rehearsal answer.");
+        if (Number(body.answer) !== q.answer)
+          return {
+            progress: progressResponse(id, row.version, row.definition, state),
+            feedback: q.hint,
+          };
+        add("Sparring Partner");
+      } else if (body.activity === "reflection") {
+        if (!state.finished)
+          throw new CourseError(
+            "Clear the course checkpoints before recording the final takeaway.",
+          );
+        journey.reflection = responseText();
+        add("Clerk");
+      } else throw new CourseError("Choose a learning journey activity.");
+      state.journey = journey;
+      if (state.game?.status === "active") state.game.status = "paused";
+      await saveProgress(tx, id, p.id, state);
+      return {
+        progress: progressResponse(id, row.version, row.definition, state),
+      };
+    });
+  });
+  route("POST", "/api/learning/:courseId/resume-checkpoint", async (req) => {
+    const p = await player(req),
+      id = param(req, "courseId"),
+      body = object(req.body);
+    return db.transaction(async (tx) => {
+      const row = await enrolled(tx, id, p.id),
+        state = row.progress;
+      const token = `${state.attempt ?? 0}:${state.levelId}:${state.questionIndex}:${state.deliverySerial ?? 0}`;
+      if (!state.resumeCheckpoint || body.checkpoint !== token)
+        throw new CourseError(
+          "Reload your saved replay before returning.",
+          409,
+        );
+      const restored = state.resumeCheckpoint;
+      restored.points = state.points;
+      restored.completedLevelIds = [
+        ...new Set([...restored.completedLevelIds, ...state.completedLevelIds]),
+      ];
+      restored.attemptCounter = Math.max(
+        state.attempt ?? 0,
+        state.attemptCounter ?? 0,
+      );
+      restored.journey = state.journey;
+      restored.revealedQuestionIds = [
+        ...new Set([
+          ...(restored.revealedQuestionIds ?? []),
+          ...(state.revealedQuestionIds ?? []),
+        ]),
+      ];
+      const current = currentQuestion(row.definition, restored).question;
+      restored.assisted =
+        restored.assisted ||
+        Boolean(current && restored.revealedQuestionIds.includes(current.id));
+      if (restored.game?.status === "active") restored.game.status = "paused";
+      await saveProgress(tx, id, p.id, restored);
+      return progressResponse(id, row.version, row.definition, restored);
+    });
+  });
+  route("POST", "/api/learning/:courseId/replay", async (req) => {
+    const p = await player(req),
+      id = param(req, "courseId");
+    const body = object(req.body);
+    if (body.scope !== "course" && body.scope !== "level")
+      throw new CourseError("Choose course or level replay.");
+    return db.transaction(async (tx) => {
+      const row = await enrolled(tx, id, p.id),
+        state = row.progress;
+      if (state.assessment?.status === "pending")
+        throw new CourseError(
+          "Finish the pending assessment before replaying.",
+          409,
+        );
+      // The current delivery makes a double click or stale tab harmless.
+      const token = `${state.attempt ?? 0}:${state.levelId}:${state.questionIndex}:${state.deliverySerial ?? 0}`;
+      if (body.checkpoint !== token)
+        throw new CourseError(
+          "Reload your saved checkpoint before replaying.",
+          409,
+        );
+      const level =
+        body.scope === "course"
+          ? eligibleLevel(row.definition, [])
+          : row.definition.levels.find((l) => l.id === body.levelId);
+      if (
+        !level ||
+        (body.scope !== "course" &&
+          level.id !== state.levelId &&
+          !state.completedLevelIds.includes(level.id))
+      )
+        throw new CourseError(
+          "Replay your current or previously cleared level.",
+          409,
+        );
+      const revealed = [
+        ...new Set([
+          ...(state.revealedQuestionIds ?? []),
+          ...(
+            await tx.query<{ question_id: string }>(
+              "SELECT DISTINCT question_id FROM course_chunks WHERE course_id=$1 AND player_id=$2 AND (NOT correct OR assisted)",
+              [id, p.id],
+            )
+          ).rows.map((r) => r.question_id),
+        ]),
+      ];
+      const resumeCheckpoint = state.resumeCheckpoint ?? structuredClone(state);
+      Object.assign(state, {
+        resumeCheckpoint,
+        revealedQuestionIds: revealed,
+        attempt: Math.max(state.attemptCounter ?? 0, state.attempt ?? 0) + 1,
+        deliverySerial: 0,
+        replayMode: body.scope === "course" ? "course" : "level",
+        replayCompletedLevelIds: [],
+        levelId: level.id,
+        questionIndex: 0,
+        retry: false,
+        satisfiedQuestionIds: [],
+        usedRetryQuestionIds: [],
+        assisted: false,
+        practiceOnly: false,
+        finished: false,
+        blocked: false,
+        blockReason: undefined,
+        feedback: undefined,
+        activity: undefined,
+        assessment: undefined,
+        result: undefined,
+        assessmentLevelId: undefined,
+        game: freshGame(level),
+        adventureCheckpoint: undefined,
+      });
+      state.assisted = revealed.includes(level.questions[0].id);
+      await saveProgress(tx, id, p.id, state);
+      return progressResponse(id, row.version, row.definition, state);
+    });
+  });
   route("GET", "/api/learning/:courseId", async (req) => {
     const p = await player(req);
     const id = param(req, "courseId");
@@ -953,6 +1286,9 @@ WHERE e.player_id=$1 ORDER BY e.updated_at DESC,e.course_id LIMIT 100`,
         if (state.game.status === "active") state.game.status = "paused";
       }
       state.assisted = true;
+      state.revealedQuestionIds = [
+        ...new Set([...(state.revealedQuestionIds ?? []), question.id]),
+      ];
       await saveProgress(tx, id, p.id, state);
       return { hint: question.hint, explanation: question.explanation };
     });
@@ -990,6 +1326,20 @@ WHERE e.player_id=$1 ORDER BY e.updated_at DESC,e.course_id LIMIT 100`,
         await saveProgress(tx, id, p.id, state);
         return progressResponse(id, row.version, row.definition, state);
       }
+      state.journey ??= {
+        observed: [],
+        goal: "",
+        reasoning: "",
+        reflection: "",
+      };
+      state.journey.observed = [
+        ...new Set([
+          ...state.journey.observed,
+          "Examiner",
+          "Checker",
+          "Listener",
+        ] as LearningRole[]),
+      ];
       const activityElapsedMs = state.game.elapsedMs;
       const correct = answer === question.answer;
       state.activity = {
@@ -1004,7 +1354,7 @@ WHERE e.player_id=$1 ORDER BY e.updated_at DESC,e.course_id LIMIT 100`,
       state.feedback =
         correct && !state.assisted ? undefined : question.explanation;
       await tx.query(
-        "INSERT INTO course_chunks(course_id,player_id,delivery_id,level_id,question_id,retry,answer,correct,assisted,elapsed_ms) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)",
+        "INSERT INTO course_chunks(course_id,player_id,delivery_id,level_id,question_id,retry,answer,correct,assisted,elapsed_ms,attempt) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)",
         [
           id,
           p.id,
@@ -1016,10 +1366,16 @@ WHERE e.player_id=$1 ORDER BY e.updated_at DESC,e.course_id LIMIT 100`,
           correct,
           state.assisted,
           activityElapsedMs,
+          state.attempt ?? 0,
         ],
       );
       state.satisfiedQuestionIds ??= [];
-      if (state.retry) state.usedRetryQuestionIds.push(question.id);
+      if (state.retry && !state.usedRetryQuestionIds.includes(question.id))
+        state.usedRetryQuestionIds.push(question.id);
+      if (!correct || state.assisted)
+        state.revealedQuestionIds = [
+          ...new Set([...(state.revealedQuestionIds ?? []), question.id]),
+        ];
       const criterionId = state.retry ? question.retryFor : question.id;
       if (
         correct &&
@@ -1038,29 +1394,42 @@ WHERE e.player_id=$1 ORDER BY e.updated_at DESC,e.course_id LIMIT 100`,
           state.questionIndex++;
         } else {
           state.retry = true;
-          const nextIndex = level.retryQuestions.findIndex(
+          let nextIndex = level.retryQuestions.findIndex(
             (q) =>
               typeof q.retryFor === "string" &&
               !state.satisfiedQuestionIds.includes(q.retryFor) &&
               !state.usedRetryQuestionIds.includes(q.id),
           );
           if (nextIndex === -1) {
-            state.blocked = true;
+            // Continue as often as desired. A previously revealed variant is
+            // practice, not new independent evidence. Failed chunks remain audited.
+            nextIndex = level.retryQuestions.findIndex(
+              (q) =>
+                q.retryFor && !state.satisfiedQuestionIds.includes(q.retryFor),
+            );
+            state.deliverySerial = (state.deliverySerial ?? 0) + 1;
+            state.practiceOnly = true;
             state.blockReason =
-              "Retry bank exhausted. Ask the tutor for another task.";
+              "Keep practising without a retry limit. These solutions have been shown; ask your tutor for a fresh variant to earn the remaining independent credit.";
+            state.questionIndex = nextIndex;
           } else {
             state.questionIndex = nextIndex;
           }
         }
       }
-      state.assisted = false;
+      state.assisted = Boolean(state.practiceOnly);
       if (cleared) {
         // Classification is invoked only after independent level clearance.
         // The mock chooses the first authored level whose prerequisites are met.
-        state.completedLevelIds.push(level.id);
-        state.points += level.points;
-        await tx.query(
-          "INSERT INTO reward_ledger(player_id,event_id,amount,reason) VALUES($1,$2,$3,$4)",
+        if (!state.completedLevelIds.includes(level.id))
+          state.completedLevelIds.push(level.id);
+        if (state.replayMode === "course")
+          state.replayCompletedLevelIds = [
+            ...(state.replayCompletedLevelIds ?? []),
+            level.id,
+          ];
+        const award = await tx.query<{ amount: number }>(
+          "INSERT INTO reward_ledger(player_id,event_id,amount,reason) VALUES($1,$2,$3,$4) ON CONFLICT(player_id,event_id) DO NOTHING RETURNING amount",
           [
             p.id,
             `course:${id}:v${row.version}:${level.id}`,
@@ -1068,10 +1437,14 @@ WHERE e.player_id=$1 ORDER BY e.updated_at DESC,e.course_id LIMIT 100`,
             "Independent activity clearance",
           ],
         );
-        await tx.query("UPDATE players SET points=points+$2 WHERE id=$1", [
-          p.id,
-          level.points,
-        ]);
+        state.lastAwardedPoints = award.rows[0]?.amount ?? 0;
+        if (award.rows.length) {
+          state.points += level.points;
+          await tx.query("UPDATE players SET points=points+$2 WHERE id=$1", [
+            p.id,
+            level.points,
+          ]);
+        }
         state.assessmentLevelId = level.id;
         await classify(tx, id, p.id, row.definition, state, provider);
       }
@@ -1083,6 +1456,11 @@ WHERE e.player_id=$1 ORDER BY e.updated_at DESC,e.course_id LIMIT 100`,
         state.levelId === level.id ? taskAdventure : undefined,
       );
       state.adventureCheckpoint = structuredClone(state.game.adventure);
+      const nextQuestion = currentQuestion(row.definition, state).question;
+      state.assisted = Boolean(
+        state.practiceOnly ||
+        (nextQuestion && state.revealedQuestionIds?.includes(nextQuestion.id)),
+      );
       await saveProgress(tx, id, p.id, state);
       return progressResponse(id, row.version, row.definition, state);
     });

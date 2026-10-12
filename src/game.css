@@ -1289,3 +1289,122 @@ footer {
     padding: 0 5px;
   }
 }
+
+.city-menu,
+.city-skills,
+.city-map,
+.city-graphics {
+  position: absolute;
+  pointer-events: auto;
+  z-index: 8;
+}
+.city-menu {
+  right: var(--safe);
+  bottom: var(--safe);
+}
+.city-skills {
+  right: var(--safe);
+  top: 75px;
+}
+.city-map {
+  right: var(--safe);
+  top: 130px;
+}
+.city-graphics {
+  right: var(--safe);
+  bottom: 75px;
+}
+.city-menu > summary,
+.city-skills > summary,
+.city-map > summary,
+.city-graphics > summary {
+  display: grid;
+  place-items: center;
+  list-style: none;
+  cursor: pointer;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: var(--hud);
+  color: var(--gold);
+  font-size: 22px;
+}
+.topbar .city-menu nav {
+  position: absolute;
+  right: 0;
+  bottom: 52px;
+  height: auto;
+  width: 230px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  padding: 10px;
+  background: var(--hud);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+.topbar .city-menu nav button {
+  height: auto;
+  min-height: 44px;
+  font-size: 13px;
+  text-align: left;
+}
+.city-skills .skills-hud {
+  position: absolute;
+  top: 0;
+  left: auto;
+  right: 52px;
+  display: flex;
+  padding: 10px;
+  background: var(--hud);
+  border-radius: 12px;
+}
+.city-map .district-map {
+  position: absolute;
+  top: 0;
+  right: 52px;
+  width: 130px;
+  height: 130px;
+  background: var(--hud);
+  border-radius: 50%;
+}
+.city-graphics .quality-control {
+  position: absolute;
+  inset: auto 52px 0 auto;
+  white-space: nowrap;
+  font-size: 12px;
+}
+.city-graphics .quality-control select {
+  font-size: 12px;
+}
+.city-audio {
+  right: var(--safe);
+  top: 185px;
+}
+@media (max-width: 600px) {
+  .city-skills {
+    top: 92px;
+  }
+  .city-map {
+    top: 147px;
+  }
+  .city-audio {
+    top: 202px;
+  }
+  .city-graphics {
+    bottom: 75px;
+  }
+  .points-chip {
+    right: var(--safe);
+  }
+  .city-skills .skills-hud {
+    gap: 8px;
+  }
+  .city-skills .skill-category {
+    width: 45px;
+  }
+  .city-map .district-map small {
+    display: block;
+  }
+}

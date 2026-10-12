@@ -1,3 +1,4 @@
+import { openCityMenu, openAdventurePanels } from "./game-ui-helpers";
 import { test, expect } from "@playwright/test";
 import { createAccount } from "./auth-helpers";
 import type { CourseDraft } from "../shared/course";
@@ -51,6 +52,7 @@ test("isolated practice runs, stops runaway code, records drawings and keeps gam
     ).ok(),
   ).toBe(true);
   await page.goto("/");
+  await openCityMenu(page);
   await page
     .getByRole("button", { name: "Course houses", exact: true })
     .click();
@@ -61,6 +63,7 @@ test("isolated practice runs, stops runaway code, records drawings and keeps gam
     })
     .click();
   await page.getByRole("button", { name: "Enroll & enter adventure" }).click();
+  await openAdventurePanels(page);
   await page.locator("summary").filter({ hasText: "JS practice" }).click();
   const js = page.getByRole("region", { name: "Practice: JS practice" });
   await js.getByRole("button", { name: "Open practice" }).click();

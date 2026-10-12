@@ -14,6 +14,7 @@ test("Learning Police NPC and protected breaks work without changing progress", 
     name: "Learning Police",
     exact: true,
   });
+  await page.getByLabel("Learning Police controls", { exact: true }).click();
   await controls.getByRole("button", { name: "Take a break" }).click();
   await expect(
     controls.getByText("Break protected. Your progress is retained."),
@@ -69,6 +70,19 @@ test("detention controls expose a free course release and an auditable appeal", 
     name: "Learning Police",
     exact: true,
   });
+  await expect(
+    page.locator("canvas[data-arrest-phase='detained']"),
+  ).toBeVisible({ timeout: 45000 });
+  const actors = JSON.parse(
+    (await page
+      .locator("canvas[data-arrest-phase='detained']")
+      .getAttribute("data-arrest-actors")) || "{}",
+  );
+  expect(actors.cuffs).toBe(true);
+  expect(actors.learner[2]).toBe(-8);
+  expect(Math.abs(actors.learner[0] - actors.officer[0])).toBeLessThan(1);
+  await page.screenshot({ path: "test-results/immersive-police-escort.png" });
+  await page.getByLabel("Learning Police controls", { exact: true }).click();
   await expect(
     police.getByRole("heading", { name: /temporary city eviction/ }),
   ).toBeVisible();

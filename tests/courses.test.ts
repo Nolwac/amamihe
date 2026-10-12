@@ -1,3 +1,7 @@
+import {
+  initializePracticeSchema,
+  registerPractice,
+} from "../server/practice.js";
 import { registerRewards } from "../server/rewards.js";
 import {
   mockProvider,
@@ -123,6 +127,7 @@ async function fixture(provider?: ClassificationProvider, now?: () => number) {
   const db = await openDatabase({ dataDir: directory });
   await initializeSchema(db);
   await initializeCourseSchema(db);
+  await initializePracticeSchema(db);
   const messages: string[] = [];
   const auth = new Authentication(
     db,
@@ -152,6 +157,7 @@ async function fixture(provider?: ClassificationProvider, now?: () => number) {
   await app.register(cookie);
   registerCourses(app, db, auth, provider, now);
   registerRewards(app, db, auth);
+  registerPractice(app, db, auth);
   await app.ready();
   const request = (
     method: "GET" | "POST" | "PUT",
@@ -472,7 +478,7 @@ test("immutable publication is idempotent and existing enrollments remain pinned
   }
 });
 
-test("authored runner preserves chunk order, tracks help and blocks exhausted fresh retries without mastery", async () => {
+test("authored runner preserves chunk order and assistance while exhausted banks remain practice without mastery", async () => {
   const f = await fixture();
   try {
     const draft = await f.create();
@@ -530,9 +536,10 @@ test("authored runner preserves chunk order, tracks help and blocks exhausted fr
       f.learner.cookie,
     );
     progress = accepted(await f.answer(draft.id, progress));
-    assert.equal(progress.blocked, true);
-    assert.match(progress.blockReason!, /Retry bank exhausted/);
-    assert.equal(progress.question, undefined);
+    assert.equal(progress.blocked, undefined);
+    assert.equal(progress.practiceOnly, true);
+    assert.match(progress.blockReason!, /without a retry limit/);
+    assert.ok(progress.question);
     assert.equal(progress.finished, false);
     assert.equal(progress.points, 0);
     assert.deepEqual(progress.completedLevelIds, []);
@@ -548,9 +555,9 @@ test("authored runner preserves chunk order, tracks help and blocks exhausted fr
       409,
     );
     assert.equal(
-      (await f.enroll(draft.id)).blocked,
+      (await f.enroll(draft.id)).practiceOnly,
       true,
-      "Re-entry cannot reuse revealed prompts",
+      "Re-entry retains practice-only semantics for revealed prompts",
     );
     const chunks = (
       await f.db.query<{ assisted: boolean; retry: boolean }>(
@@ -577,7 +584,7 @@ test("authored runner preserves chunk order, tracks help and blocks exhausted fr
           undefined,
           f.learner.cookie,
         )
-      ).json<LearningProgress>().blocked,
+      ).json<LearningProgress>().practiceOnly,
       true,
     );
   } finally {
@@ -651,7 +658,8 @@ test("a wrong retry consumes its prompt and one remaining answer cannot satisfy 
     progress = accepted(await f.answer(draft.id, progress));
     assert.equal(progress.levelId, "prepare");
     assert.equal(progress.points, 0);
-    assert.equal(progress.blocked, true);
+    assert.equal(progress.blocked, undefined);
+    assert.equal(progress.practiceOnly, true);
     assert.equal(progress.result, undefined);
     const learnerRows = (
       await f.db.query<{ progress: { usedRetryQuestionIds: string[] } }>(
@@ -702,7 +710,8 @@ test("a complete independent retry bank clears once while help on its first item
     progress = accepted(await f.answer(second.id, progress));
     progress = accepted(await f.answer(second.id, progress));
     assert.equal(progress.points, 0);
-    assert.equal(progress.blocked, true);
+    assert.equal(progress.blocked, undefined);
+    assert.equal(progress.practiceOnly, true);
     assert.deepEqual(progress.completedLevelIds, []);
     assert.equal(progress.result, undefined);
     assert.equal(
@@ -784,7 +793,8 @@ test("retry coverage targets the missing primary criterion and skips already sat
       "One criterion cannot count twice toward independent clearance",
     );
     progress = accepted(await f.answer(secondDraft.id, progress, 1));
-    assert.equal(progress.blocked, true);
+    assert.equal(progress.blocked, undefined);
+    assert.equal(progress.practiceOnly, true);
     assert.equal(progress.points, 0);
     const saved = (
       await f.db.query<{ progress: { satisfiedQuestionIds: string[] } }>(
@@ -997,6 +1007,489 @@ test("game deadlines retry only the failed step and reward/shop transactions rem
       )
     ).rows[0];
     assert.equal(Number(total.total), 60);
+  } finally {
+    await f.close();
+  }
+});
+
+test("unlimited attempts preserve independent criteria and audit every repeated answer", async () => {
+  const f = await fixture();
+  try {
+    const draft = await f.create();
+    await f.publish(draft);
+    let p = await f.enroll(draft.id);
+    p = accepted(await f.answer(draft.id, p, 1));
+    p = accepted(await f.answer(draft.id, p, 1));
+    p = accepted(await f.answer(draft.id, p));
+    for (let i = 0; i < 55; i++) {
+      const before = p.question!.id;
+      p = accepted(await f.answer(draft.id, p));
+      assert.notEqual(p.question!.id, before);
+      assert.equal(p.practiceOnly, true);
+      assert.equal(p.finished, false);
+      assert.equal(p.points, 0);
+      assert.equal(p.levelProgress?.cleared, 1);
+    }
+    assert.equal(
+      (
+        await f.db.query("SELECT * FROM course_chunks WHERE course_id=$1", [
+          draft.id,
+        ])
+      ).rows.length,
+      58,
+    );
+    assert.equal((await f.enroll(draft.id)).question!.id, p.question!.id);
+  } finally {
+    await f.close();
+  }
+});
+
+test("course and level replays preserve the original checkpoint and award a cleared level only once", async () => {
+  const f = await fixture();
+  try {
+    const draft = await f.create();
+    await f.publish(draft);
+    let p = await f.enroll(draft.id);
+    p = accepted(await f.answer(draft.id, p));
+    const checkpoint = p;
+    p = accepted(
+      await f.request(
+        "POST",
+        `/api/learning/${draft.id}/replay`,
+        { scope: "level", levelId: p.levelId, checkpoint: p.checkpoint },
+        f.learner.cookie,
+      ),
+    );
+    assert.notEqual(p.question!.id, checkpoint.question!.id);
+    assert.equal(p.levelProgress?.cleared, 0);
+    assert.equal(
+      (
+        await f.request(
+          "POST",
+          `/api/learning/${draft.id}/replay`,
+          { scope: "level", levelId: "evaluate", checkpoint: p.checkpoint },
+          f.learner.cookie,
+        )
+      ).statusCode,
+      409,
+    );
+    p = accepted(
+      await f.request(
+        "POST",
+        `/api/learning/${draft.id}/resume-checkpoint`,
+        { checkpoint: p.checkpoint },
+        f.learner.cookie,
+      ),
+    );
+    assert.equal(p.question!.id, checkpoint.question!.id);
+    assert.equal(p.levelProgress?.cleared, 1);
+    p = accepted(await f.answer(draft.id, p));
+    p = accepted(await f.answer(draft.id, p));
+    assert.equal(p.points, 100);
+    for (let pass = 0; pass < 3; pass++) {
+      p = accepted(
+        await f.request(
+          "POST",
+          `/api/learning/${draft.id}/replay`,
+          { scope: "course", checkpoint: p.checkpoint },
+          f.learner.cookie,
+        ),
+      );
+      assert.equal(
+        (
+          await f.request(
+            "POST",
+            `/api/learning/${draft.id}/answer`,
+            { questionId: checkpoint.question!.id, answer: 0, elapsedMs: 0 },
+            f.learner.cookie,
+          )
+        ).statusCode,
+        409,
+      );
+      for (let i = 0; i < 3; i++) p = accepted(await f.answer(draft.id, p));
+      assert.equal(p.finished, true);
+      assert.equal(p.points, 100);
+    }
+    assert.equal(
+      (
+        await f.db.query<{ points: number }>(
+          "SELECT points FROM players WHERE id=$1",
+          [f.learner.playerId],
+        )
+      ).rows[0].points,
+      100,
+    );
+    assert.equal(
+      (
+        await f.db.query("SELECT * FROM reward_ledger WHERE player_id=$1", [
+          f.learner.playerId,
+        ])
+      ).rows.length,
+      2,
+    );
+  } finally {
+    await f.close();
+  }
+});
+
+test("all ten teaching roles require real recorded activities before the learning journey completes", async () => {
+  const f = await fixture();
+  try {
+    const draft = await f.create();
+    await f.publish(draft);
+    let p = await f.enroll(draft.id);
+    assert.equal(p.journey?.reasoningPrompt, "");
+    const journey = async (activity: string, data = {}) =>
+      f.request(
+        "POST",
+        `/api/learning/${draft.id}/journey`,
+        { activity, ...data },
+        f.learner.cookie,
+      );
+    assert.equal(
+      (
+        await journey("reflection", {
+          text: "I learned to reserve held-out data.",
+        })
+      ).statusCode,
+      400,
+    );
+    assert.equal(
+      (await journey("rehearsal", { questionId: "prepare-r1", answer: 0 }))
+        .statusCode,
+      400,
+    );
+    await journey("map");
+    await journey("goal", {
+      text: "I want to evaluate a story model honestly.",
+    });
+    p = accepted(await f.answer(draft.id, p));
+    p = accepted(await f.answer(draft.id, p));
+    p = accepted(await f.answer(draft.id, p));
+    assert.equal(p.journey?.completed, false);
+    await journey("reasoning-prompt");
+    await journey("reasoning", {
+      text: "Held-out data measures generalisation to unseen stories.",
+    });
+    await journey("study", { resourceId: "reading" });
+    await journey("diagnosis");
+    assert.match(
+      (
+        await journey("rehearsal", { questionId: "evaluate-r1", answer: 1 })
+      ).json().feedback,
+      /Think/,
+    );
+    await journey("rehearsal", { questionId: "evaluate-r1", answer: 0 });
+    p = (
+      await journey("reflection", {
+        text: "I will keep evaluation stories outside optimizer batches.",
+      })
+    ).json().progress;
+    assert.equal(p.journey!.observed.length, 10);
+    assert.equal(p.journey!.completed, true);
+    assert.equal(p.points, 100);
+    const saved = (
+      await f.request(
+        "GET",
+        `/api/learning/${draft.id}`,
+        undefined,
+        f.learner.cookie,
+      )
+    ).json<LearningProgress>();
+    assert.equal(saved.journey!.reflection, p.journey!.reflection);
+  } finally {
+    await f.close();
+  }
+});
+
+test("practice opens during unlimited retries and after checkpoint completion while rejecting foreign deliveries", async () => {
+  const f = await fixture();
+  try {
+    const definition = authoredCourse();
+    definition.resources.push({
+      id: "practice",
+      title: "Arithmetic practice",
+      kind: "javascript",
+      content: "return 2+2;",
+      url: "",
+      source: "https://developer.mozilla.org/en-US/docs/Web/JavaScript",
+    });
+    definition.levels.forEach((l) => l.resourceIds.push("practice"));
+    const draft = await f.create(definition);
+    await f.publish(draft);
+    let p = await f.enroll(draft.id);
+    p = accepted(await f.answer(draft.id, p, 1));
+    p = accepted(await f.answer(draft.id, p, 1));
+    p = accepted(await f.answer(draft.id, p));
+    assert.equal(p.practiceOnly, true);
+    const start = () =>
+      f.request(
+        "POST",
+        `/api/practice/${draft.id}/start`,
+        { resourceId: "practice", deliveryId: p.practiceDeliveryId },
+        f.learner.cookie,
+      );
+    assert.equal((await start()).statusCode, 200);
+    assert.equal(
+      (
+        await f.request(
+          "POST",
+          `/api/practice/${draft.id}/start`,
+          { resourceId: "practice", deliveryId: "forged" },
+          f.learner.cookie,
+        )
+      ).statusCode,
+      409,
+    );
+    const second = await f.create(definition);
+    await f.publish(second);
+    p = await f.enroll(second.id);
+    for (let i = 0; i < 3; i++) p = accepted(await f.answer(second.id, p));
+    assert.equal(p.finished, true);
+    assert.equal(
+      (
+        await f.request(
+          "POST",
+          `/api/practice/${second.id}/start`,
+          { resourceId: "practice", deliveryId: p.practiceDeliveryId },
+          f.learner.cookie,
+        )
+      ).statusCode,
+      200,
+    );
+  } finally {
+    await f.close();
+  }
+});
+
+test("reasoning prompts are delivered only after assistance is recorded", async () => {
+  const f = await fixture();
+  try {
+    const draft = await f.create();
+    await f.publish(draft);
+    let p = await f.enroll(draft.id);
+    assert.equal(p.journey?.reasoningPrompt, "");
+    const response = await f.request(
+      "POST",
+      `/api/learning/${draft.id}/journey`,
+      { activity: "reasoning-prompt" },
+      f.learner.cookie,
+    );
+    p = response.json().progress;
+    assert.equal(p.assisted, true);
+    assert.equal(
+      p.journey?.reasoningPrompt,
+      draft.definition.levels[0].questions[0].hint,
+    );
+    p = accepted(await f.answer(draft.id, p));
+    assert.equal(p.retry, true);
+    assert.equal(p.levelProgress?.cleared, 0);
+    assert.equal(p.points, 0);
+  } finally {
+    await f.close();
+  }
+});
+
+test("pending replay grading cannot overwrite earned assessment or prevent returning to the original checkpoint", async () => {
+  let fail = false;
+  const f = await fixture({
+    ...mockProvider,
+    route: async (input) => {
+      if (fail) throw new Error("Provider unavailable");
+      return mockProvider.route(input);
+    },
+  });
+  try {
+    const draft = await f.create();
+    await f.publish(draft);
+    let p = await f.enroll(draft.id);
+    for (let i = 0; i < 3; i++) p = accepted(await f.answer(draft.id, p));
+    const before = (
+      await f.db.query(
+        "SELECT level_id,result FROM course_assessments WHERE course_id=$1 ORDER BY level_id",
+        [draft.id],
+      )
+    ).rows;
+    p = accepted(
+      await f.request(
+        "POST",
+        `/api/learning/${draft.id}/replay`,
+        { scope: "course", checkpoint: p.checkpoint },
+        f.learner.cookie,
+      ),
+    );
+    fail = true;
+    p = accepted(await f.answer(draft.id, p));
+    p = accepted(await f.answer(draft.id, p));
+    assert.equal(p.assessment?.status, "pending");
+    assert.equal(p.points, 100);
+    assert.deepEqual(
+      (
+        await f.db.query(
+          "SELECT level_id,result FROM course_assessments WHERE course_id=$1 ORDER BY level_id",
+          [draft.id],
+        )
+      ).rows,
+      before,
+    );
+    const runs = (
+      await f.db.query<{ attempt: number; result: { status: string } }>(
+        "SELECT attempt,result FROM course_assessment_runs WHERE course_id=$1 ORDER BY attempt",
+        [draft.id],
+      )
+    ).rows;
+    assert.equal(runs.length, 3);
+    assert.equal(runs.at(-1)!.result.status, "pending");
+    p = accepted(
+      await f.request(
+        "POST",
+        `/api/learning/${draft.id}/resume-checkpoint`,
+        { checkpoint: p.checkpoint },
+        f.learner.cookie,
+      ),
+    );
+    assert.equal(p.finished, true);
+    assert.equal(p.assessment?.status, "confirmed");
+    assert.equal(p.points, 100);
+  } finally {
+    await f.close();
+  }
+});
+
+test("returning or replaying after help retains exposure even when no answer was submitted", async () => {
+  const f = await fixture();
+  try {
+    const draft = await f.create();
+    await f.publish(draft);
+    let p = await f.enroll(draft.id);
+    p = accepted(
+      await f.request(
+        "POST",
+        `/api/learning/${draft.id}/replay`,
+        { scope: "level", levelId: p.levelId, checkpoint: p.checkpoint },
+        f.learner.cookie,
+      ),
+    );
+    await f.request(
+      "POST",
+      `/api/learning/${draft.id}/help`,
+      { questionId: p.question!.id },
+      f.learner.cookie,
+    );
+    p = accepted(
+      await f.request(
+        "POST",
+        `/api/learning/${draft.id}/resume-checkpoint`,
+        { checkpoint: p.checkpoint },
+        f.learner.cookie,
+      ),
+    );
+    assert.equal(p.assisted, true);
+    p = accepted(
+      await f.request(
+        "POST",
+        `/api/learning/${draft.id}/replay`,
+        { scope: "level", levelId: p.levelId, checkpoint: p.checkpoint },
+        f.learner.cookie,
+      ),
+    );
+    assert.equal(p.assisted, true);
+    p = accepted(await f.answer(draft.id, p));
+    assert.equal(p.retry, true);
+    assert.equal(p.levelProgress?.cleared, 0);
+    assert.equal(p.points, 0);
+  } finally {
+    await f.close();
+  }
+});
+
+test("legacy exhausted-bank recovery retains the current adventure position and earlier criteria", async () => {
+  const f = await fixture();
+  try {
+    const draft = await f.create();
+    await f.publish(draft);
+    let p = await f.enroll(draft.id);
+    p = accepted(await f.answer(draft.id, p));
+    const row = (
+      await f.db.query<{ progress: any }>(
+        "SELECT progress FROM course_enrollments WHERE course_id=$1 AND player_id=$2",
+        [draft.id, f.learner.playerId],
+      )
+    ).rows[0];
+    row.progress.blocked = true;
+    row.progress.usedRetryQuestionIds =
+      draft.definition.levels[0].retryQuestions.map((q) => q.id);
+    row.progress.game.adventure.distance = 22;
+    row.progress.adventureCheckpoint = structuredClone(
+      row.progress.game.adventure,
+    );
+    await f.db.query(
+      "UPDATE course_enrollments SET progress=$3 WHERE course_id=$1 AND player_id=$2",
+      [draft.id, f.learner.playerId, JSON.stringify(row.progress)],
+    );
+    p = (
+      await f.request(
+        "GET",
+        `/api/learning/${draft.id}`,
+        undefined,
+        f.learner.cookie,
+      )
+    ).json();
+    assert.equal(p.blocked, undefined);
+    assert.equal(p.practiceOnly, true);
+    assert.equal(p.levelProgress?.cleared, 1);
+    assert.equal(p.game?.adventure?.distance, 22);
+    assert.ok(p.question);
+  } finally {
+    await f.close();
+  }
+});
+
+test("historical checkpoint evidence completes its teaching roles without requiring the learner to replay earned progress", async () => {
+  const f = await fixture();
+  try {
+    const draft = await f.create();
+    await f.publish(draft);
+    let p = await f.enroll(draft.id);
+    for (let i = 0; i < 3; i++) p = accepted(await f.answer(draft.id, p));
+    await f.db.query(
+      "UPDATE course_enrollments SET progress=progress-'journey' WHERE course_id=$1 AND player_id=$2",
+      [draft.id, f.learner.playerId],
+    );
+    p = (
+      await f.request(
+        "GET",
+        `/api/learning/${draft.id}`,
+        undefined,
+        f.learner.cookie,
+      )
+    ).json();
+    assert.deepEqual(p.journey!.observed, ["Examiner", "Checker", "Listener"]);
+    assert.equal(p.finished, true);
+    assert.equal(p.points, 100);
+    const complete = async (activity: string, data = {}) =>
+      f.request(
+        "POST",
+        `/api/learning/${draft.id}/journey`,
+        { activity, ...data },
+        f.learner.cookie,
+      );
+    await complete("map");
+    await complete("goal", { text: "Evaluate a storytelling model honestly." });
+    await complete("reasoning", {
+      text: "Hold out unseen stories to measure generalisation.",
+    });
+    await complete("study", { resourceId: "reading" });
+    await complete("diagnosis");
+    await complete("rehearsal", { questionId: "evaluate-r1", answer: 0 });
+    p = (
+      await complete("reflection", {
+        text: "Keep evaluation examples outside training batches.",
+      })
+    ).json().progress;
+    assert.equal(p.journey!.completed, true);
+    assert.equal(p.journey!.observed.length, 10);
+    assert.equal(p.points, 100);
   } finally {
     await f.close();
   }

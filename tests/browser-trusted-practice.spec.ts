@@ -1,3 +1,4 @@
+import { openCityMenu, openAdventurePanels } from "./game-ui-helpers";
 import { test, expect } from "@playwright/test";
 import { createAccount } from "./auth-helpers";
 import type { CourseDraft } from "../shared/course";
@@ -37,6 +38,7 @@ test("authored server practice check ignores client output and freezes its recei
     ).ok(),
   ).toBe(true);
   await page.goto("/");
+  await openCityMenu(page);
   await page
     .getByRole("button", { name: "Course houses", exact: true })
     .click();
@@ -47,6 +49,7 @@ test("authored server practice check ignores client output and freezes its recei
     })
     .click();
   await page.getByRole("button", { name: "Enroll & enter adventure" }).click();
+  await openAdventurePanels(page);
   await page
     .locator("summary")
     .filter({ hasText: "Embedding arithmetic" })

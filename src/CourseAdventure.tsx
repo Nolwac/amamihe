@@ -1,3 +1,5 @@
+import LearningJourney from "./LearningJourney";
+import FieldJournal from "./FieldJournal";
 import { useBillboards } from "./billboardPresence";
 import BillboardLinks from "./BillboardLinks";
 import type { Presence } from "../shared/social";
@@ -27,12 +29,14 @@ async function request<T>(path: string, body?: unknown): Promise<T> {
 }
 export default function CourseAdventure({
   courseId,
+  playerId,
   onClose,
   onPoints,
   outfit,
   peers = [],
 }: {
   courseId: string;
+  playerId: string;
   onClose: () => void;
   onPoints: () => void;
   outfit: string;
@@ -90,7 +94,9 @@ export default function CourseAdventure({
   >();
   const activitySerial = useRef(0);
   const [manualControls, setManualControls] = useState(false);
-  const [taskOpen, setTaskOpen] = useState(true);
+  const [taskOpen, setTaskOpen] = useState(false);
+  const [selectedResource, setSelectedResource] = useState<string>();
+  const [journeyOpen, setJourneyOpen] = useState(false);
   const taskPanel = useRef<HTMLDivElement>(null);
   const [controlNotice, setControlNotice] = useState("");
   const [renderHeight, setRenderHeight] = useState(0);
@@ -307,6 +313,23 @@ export default function CourseAdventure({
     let alive = true;
     request<LearningProgress>("/learning/" + courseId)
       .then(async (p) => {
+        if (p.game?.status === "active" && p.question)
+          p = await request<LearningProgress>(
+            "/learning/" + courseId + "/pause",
+            { questionId: p.question.id },
+          );
+        try {
+          const draft = JSON.parse(localStorage.getItem(draftKey) || "null");
+          if (
+            draft?.questionId === p.question?.id &&
+            Number.isInteger(draft.answer) &&
+            draft.answer >= 0 &&
+            draft.answer < p.question!.options.length
+          )
+            setAnswer(draft.answer);
+        } catch {
+          /* No local draft. */
+        }
         if (
           alive &&
           reducedMotion &&
@@ -385,14 +408,62 @@ export default function CourseAdventure({
   useEffect(() => {
     taskPanel.current?.scrollTo({ top: 0 });
   }, [question?.id]);
+  const playbackLabel = !sceneReady
+    ? "Loading adventure…"
+    : progress?.game?.status === "active"
+      ? "Pause section"
+      : progress?.game?.status === "paused"
+        ? "Resume section"
+        : "Start section";
+  const draftKey = `amamihe-draft:${playerId}:${courseId}`;
   useEffect(() => {
-    if (
-      progress?.game?.status === "game-over" ||
-      celebration ||
-      progress?.finished
-    )
-      setTaskOpen(true);
-  }, [progress?.game?.status, celebration, progress?.finished]);
+    if (!progress?.question) return;
+    try {
+      localStorage.setItem(
+        draftKey,
+        JSON.stringify({ questionId: progress.question.id, answer }),
+      );
+    } catch {
+      /* Storage is optional. */
+    }
+  }, [answer, progress?.question?.id]);
+  async function pauseForStudy() {
+    if (latest.current?.game?.status === "active") await gameCommand("pause");
+  }
+  async function journeyActivity(
+    activity: string,
+    data: Record<string, unknown> = {},
+  ) {
+    const result = await request<{
+      progress: LearningProgress;
+      feedback?: string;
+    }>("/learning/" + courseId + "/journey", { activity, ...data });
+    latest.current = result.progress;
+    setProgress(result.progress);
+    return result.feedback;
+  }
+  function openResource(id: string) {
+    void run(async () => {
+      await pauseForStudy();
+      setSelectedResource(id);
+    });
+  }
+  async function replay(scope: "course" | "level", levelId?: string) {
+    const next = await request<LearningProgress>(
+      "/learning/" + courseId + "/replay",
+      { scope, levelId, checkpoint: latest.current?.checkpoint },
+    );
+    ++gameCommandSerial.current;
+    latest.current = next;
+    setProgress(next);
+    setAnswer(null);
+    setHelp("");
+    setCelebration(false);
+    setClearedScene(null);
+    setSceneActivity(undefined);
+    setSelectedResource(undefined);
+    setStarted(Date.now());
+  }
   return (
     <section
       className="course-adventure course-overlay"
@@ -408,12 +479,109 @@ export default function CourseAdventure({
         <div className="adventure-header-actions">
           <AudioControls />
           <button
+            className="course-secondary"
+            aria-label="Open learning journey"
+            aria-expanded={journeyOpen}
+            onClick={() =>
+              void run(async () => {
+                await pauseForStudy();
+                setSelectedResource(undefined);
+                setJourneyOpen((v) => !v);
+              })
+            }
+          >
+            ◇
+          </button>
+          {question &&
+            !holdingScene &&
+            progress?.game?.status !== "game-over" && (
+              <button
+                className="course-secondary"
+                disabled={busy || !sceneReady}
+                aria-label={playbackLabel}
+                title={playbackLabel}
+                onClick={() =>
+                  run(() =>
+                    gameCommand(
+                      progress?.game?.status === "active" ? "pause" : "play",
+                    ),
+                  )
+                }
+              >
+                <span aria-hidden="true">
+                  {progress?.game?.status === "active" ? "Ⅱ" : "▶"}
+                </span>
+              </button>
+            )}
+          <details className="adventure-replay">
+            <summary aria-label="Replay adventure">↻</summary>
+            <div className="compact-popover">
+              <p>
+                Replay without a limit. Earned progress and points stay saved.
+              </p>
+              {progress?.canResumeCheckpoint && (
+                <button
+                  disabled={busy}
+                  onClick={() =>
+                    void run(async () => {
+                      const next = await request<LearningProgress>(
+                        "/learning/" + courseId + "/resume-checkpoint",
+                        { checkpoint: progress.checkpoint },
+                      );
+                      ++gameCommandSerial.current;
+                      latest.current = next;
+                      setProgress(next);
+                      setAnswer(null);
+                      setCelebration(false);
+                      setClearedScene(null);
+                      setHelp("");
+                    })
+                  }
+                >
+                  Resume original checkpoint
+                </button>
+              )}
+              {progress?.replayableLevels?.map((level) => (
+                <button
+                  key={level.id}
+                  disabled={busy}
+                  onClick={() => void run(() => replay("level", level.id))}
+                >
+                  Replay level: {level.title}
+                </button>
+              ))}
+              <button
+                disabled={busy}
+                onClick={() => void run(() => replay("course"))}
+              >
+                Replay entire course
+              </button>
+            </div>
+          </details>
+          <details className="resource-menu">
+            <summary aria-label="World resources">▤</summary>
+            <div className="compact-popover">
+              {progress?.resources?.map((resource) => (
+                <button
+                  key={resource.id}
+                  onClick={() => openResource(resource.id)}
+                >
+                  {resource.kind === "reading" ? "Read" : "Practise"}:{" "}
+                  {resource.title}
+                </button>
+              ))}
+            </div>
+          </details>
+          <button
             className="course-secondary adventure-task-toggle"
             aria-expanded={taskOpen}
             aria-controls="adventure-task-panel"
             onClick={() => setTaskOpen((value) => !value)}
           >
-            {taskOpen ? "Hide task" : "Show task"}
+            <span aria-hidden="true">{taskOpen ? "×" : "?"}</span>
+            <span className="sr-only">
+              {taskOpen ? "Hide task" : "Show task"}
+            </span>
           </button>
           <button
             onClick={() =>
@@ -425,7 +593,8 @@ export default function CourseAdventure({
             }
             className="course-secondary"
           >
-            Return to city
+            <span aria-hidden="true">⌂</span>
+            <span className="sr-only">Return to city</span>
           </button>
         </div>
       </header>
@@ -436,6 +605,9 @@ export default function CourseAdventure({
         <div className="adventure-world">
           <Suspense fallback={<p>Loading 3D scenery…</p>}>
             <CourseScene
+              resources={display?.resources}
+              selectedResource={selectedResource}
+              onResource={openResource}
               billboards={ads}
               theme={theme}
               outfit={outfit}
@@ -485,18 +657,89 @@ export default function CourseAdventure({
               }}
             />
           </Suspense>
-          <div className="adventure-scene-label">
-            <span>{theme.replaceAll("-", " ")} adventure</span>
-            <small>
-              {theme === "temple-chase"
-                ? "Complete tasks to escape the guardian."
-                : theme === "racing"
-                  ? "Independent answers boost your pace."
-                  : theme === "wrestling"
-                    ? "Independent answers power your strikes."
-                    : "Build skills at each workshop checkpoint."}
-            </small>
-          </div>
+          <details className="adventure-status-menu">
+            <summary aria-label="Adventure status">◎</summary>
+            <div className="compact-popover">
+              <div className="adventure-scene-label">
+                <span>{theme.replaceAll("-", " ")} adventure</span>
+                <small>
+                  {theme === "temple-chase"
+                    ? "Complete tasks to escape the guardian."
+                    : theme === "racing"
+                      ? "Independent answers boost your pace."
+                      : theme === "wrestling"
+                        ? "Independent answers power your strikes."
+                        : "Build skills at each workshop checkpoint."}
+                </small>
+              </div>
+              <div
+                className="adventure-task-meter"
+                aria-label="Level task progress"
+              >
+                {display?.levelProgress?.cleared || 0} /{" "}
+                {display?.levelProgress?.total || 0} criteria
+                <progress
+                  value={display?.levelProgress?.cleared || 0}
+                  max={display?.levelProgress?.total || 1}
+                />
+              </div>
+              <div className="adventure-milestones">
+                <strong>
+                  {progress?.completedLevelIds.length || 0} levels cleared
+                </strong>
+                <span>✦ {progress?.points || 0} course points</span>
+                <span>
+                  {decision.mode === "mock"
+                    ? "MOCK CLASSIFIER"
+                    : decision.ready
+                      ? "TYPED CLASSIFIER"
+                      : "CLASSIFIER UNAVAILABLE"}
+                </span>
+              </div>
+              <div
+                className="adventure-run-status"
+                aria-label="Adventure run status"
+              >
+                <span>
+                  {adventure
+                    ? `${Math.floor(adventure.distance)}m travelled`
+                    : "Ready at the start"}
+                </span>
+                {theme === "temple-chase" && adventure && (
+                  <span>
+                    Guardian gap {Math.max(0, adventure.guardianGap).toFixed(1)}
+                    m
+                  </span>
+                )}
+                {theme === "racing" && adventure && (
+                  <span>
+                    {adventure.boostUntilMs > adventure.elapsedMs
+                      ? "Learning boost active"
+                      : "Racing to the checkpoint"}
+                  </span>
+                )}
+                {theme === "wrestling" && adventure && (
+                  <span>
+                    Opponent strength {adventure.opponentHealth} ·{" "}
+                    {adventure.strikes} strikes
+                  </span>
+                )}
+                <span>
+                  {theme === "workshop"
+                    ? "Complete tasks to operate your workstation"
+                    : theme === "wrestling"
+                      ? "Independent answers power your attacks"
+                      : adventure?.assist !== false
+                        ? "Guided obstacle navigation"
+                        : "Manual obstacle controls"}
+                </span>
+                {!sceneReady && <span>Loading your character and world…</span>}
+                {progress?.game?.status === "paused" && (
+                  <span>Paused · progress saved</span>
+                )}
+              </div>
+            </div>
+          </details>
           <div
             className="adventure-timer"
             role="status"
@@ -511,71 +754,6 @@ export default function CourseAdventure({
                 : display?.game?.status?.replaceAll("-", " ") || "ready"}
             </small>
           </div>
-          <div
-            className="adventure-task-meter"
-            aria-label="Level task progress"
-          >
-            {display?.levelProgress?.cleared || 0} /{" "}
-            {display?.levelProgress?.total || 0} criteria
-            <progress
-              value={display?.levelProgress?.cleared || 0}
-              max={display?.levelProgress?.total || 1}
-            />
-          </div>
-          <div className="adventure-milestones">
-            <strong>
-              {progress?.completedLevelIds.length || 0} levels cleared
-            </strong>
-            <span>✦ {progress?.points || 0} course points</span>
-            <span>
-              {decision.mode === "mock"
-                ? "MOCK CLASSIFIER"
-                : decision.ready
-                  ? "TYPED CLASSIFIER"
-                  : "CLASSIFIER UNAVAILABLE"}
-            </span>
-          </div>
-          <div
-            className="adventure-run-status"
-            aria-label="Adventure run status"
-          >
-            <span>
-              {adventure
-                ? `${Math.floor(adventure.distance)}m travelled`
-                : "Ready at the start"}
-            </span>
-            {theme === "temple-chase" && adventure && (
-              <span>
-                Guardian gap {Math.max(0, adventure.guardianGap).toFixed(1)}m
-              </span>
-            )}
-            {theme === "racing" && adventure && (
-              <span>
-                {adventure.boostUntilMs > adventure.elapsedMs
-                  ? "Learning boost active"
-                  : "Racing to the checkpoint"}
-              </span>
-            )}
-            {theme === "wrestling" && adventure && (
-              <span>
-                Opponent strength {adventure.opponentHealth} ·{" "}
-                {adventure.strikes} strikes
-              </span>
-            )}
-            <span>
-              {theme === "workshop"
-                ? "Complete tasks to operate your workstation"
-                : theme === "wrestling"
-                  ? "Independent answers power your attacks"
-                  : adventure?.assist !== false
-                    ? "Guided obstacle navigation"
-                    : "Manual obstacle controls"}
-            </span>
-            {!sceneReady && <span>Loading your character and world…</span>}
-            {progress?.game?.status === "paused" && (
-              <span>Paused · progress saved</span>
-            )}
-          </div>
           {theme !== "workshop" && (
             <div
               className="adventure-pad"
@@ -583,39 +761,42 @@ export default function CourseAdventure({
               aria-label="Adventure movement controls"
               tabIndex={0}
             >
-              <div className="adventure-pad-buttons">
-                {(
-                  [
-                    ["left", "←", "Move left"],
-                    ["right", "→", "Move right"],
-                    ["jump", "↑", "Jump"],
-                    ["slide", "↓", "Slide"],
-                    ["strike", "✦", "Strike"],
-                  ] as const
-                )
-                  .filter(([action]) =>
-                    theme === "wrestling"
-                      ? action === "strike"
-                      : action !== "strike",
+              <details className="movement-menu">
+                <summary aria-label="Movement controls">✥</summary>
+                <div className="adventure-pad-buttons">
+                  {(
+                    [
+                      ["left", "←", "Move left"],
+                      ["right", "→", "Move right"],
+                      ["jump", "↑", "Jump"],
+                      ["slide", "↓", "Slide"],
+                      ["strike", "✦", "Strike"],
+                    ] as const
                   )
-                  .map(([action, icon, label]) => (
-                    <button
-                      key={action}
-                      type="button"
-                      aria-label={label}
-                      disabled={!actionEnabled}
-                      onClick={() => sendAction(action)}
-                    >
-                      <span aria-hidden="true">{icon}</span>
-                      <small>{label}</small>
-                    </button>
-                  ))}
-              </div>
-              <small className="adventure-key-help">
-                {theme === "wrestling"
-                  ? "Focus the world: F to practice a strike. Complete tasks to deal damage."
-                  : "Focus the world: A/D or ←/→ · Space jump · S slide"}
-              </small>
+                    .filter(([action]) =>
+                      theme === "wrestling"
+                        ? action === "strike"
+                        : action !== "strike",
+                    )
+                    .map(([action, icon, label]) => (
+                      <button
+                        key={action}
+                        type="button"
+                        aria-label={label}
+                        disabled={!actionEnabled}
+                        onClick={() => sendAction(action)}
+                      >
+                        <span aria-hidden="true">{icon}</span>
+                        <small>{label}</small>
+                      </button>
+                    ))}
+                </div>
+                <small className="adventure-key-help">
+                  {theme === "wrestling"
+                    ? "Focus the world: F to practice a strike. Complete tasks to deal damage."
+                    : "Focus the world: A/D or ←/→ · Space jump · S slide"}
+                </small>
+              </details>
               {controlNotice && <small role="status">{controlNotice}</small>}
             </div>
           )}
@@ -627,6 +808,9 @@ export default function CourseAdventure({
           hidden={!taskOpen}
         >
           <BillboardLinks ads={ads} />
+          {progress?.practiceOnly && (
+            <p role="status">{progress.blockReason}</p>
+          )}
           {!online && (
             <p role="status">
               Offline: cached artwork may remain visible. Answers, grading, and
@@ -723,7 +907,9 @@ export default function CourseAdventure({
               <span className="celebration-mark">✦</span>
               <h2>
                 {progress?.finished
-                  ? "Course checkpoints complete"
+                  ? progress.replayMode === "level"
+                    ? "Level replay complete"
+                    : "Course checkpoints complete"
                   : "Level cleared"}
               </h2>
               <p>
@@ -755,6 +941,21 @@ export default function CourseAdventure({
                   unlock gear.
                 </p>
               )}
+              {progress?.finished && !progress.journey?.completed && (
+                <>
+                  <p>
+                    Finish your learning camp: goals, reasoning, resources,
+                    rehearsal, evidence review and takeaways. Earned checkpoints
+                    are saved.
+                  </p>
+                  <button
+                    className="course-secondary"
+                    onClick={() => setJourneyOpen(true)}
+                  >
+                    Finish learning journey
+                  </button>
+                </>
+              )}
               <button
                 className="primary"
                 onClick={
@@ -770,7 +971,9 @@ export default function CourseAdventure({
                 }
               >
                 {progress?.finished
-                  ? "Back to Venture City"
+                  ? progress.journey?.completed
+                    ? "Course complete · back to Venture City"
+                    : "Save & return to Venture City"
                   : "Continue adventure"}
               </button>
             </section>
@@ -870,25 +1073,6 @@ export default function CourseAdventure({
                   />{" "}
                   Reduced motion
                 </label>
-                <button
-                  className="course-secondary"
-                  disabled={busy || !sceneReady}
-                  onClick={() =>
-                    run(() =>
-                      gameCommand(
-                        progress?.game?.status === "active" ? "pause" : "play",
-                      ),
-                    )
-                  }
-                >
-                  {!sceneReady
-                    ? "Loading adventure…"
-                    : progress?.game?.status === "active"
-                      ? "Pause section"
-                      : progress?.game?.status === "paused"
-                        ? "Resume section"
-                        : "Start section"}
-                </button>
                 {"speechSynthesis" in window && (
                   <button
                     className="course-secondary"
@@ -949,8 +1133,8 @@ export default function CourseAdventure({
               )}
               {progress?.retry && (
                 <p className="retry-note">
-                  Practice another tutor-authored question independently to
-                  clear this checkpoint.
+                  Practise another tutor-authored question to clear this
+                  checkpoint.
                 </p>
               )}
               <div className="course-task-actions">
@@ -985,6 +1169,7 @@ export default function CourseAdventure({
                         });
                       }
                       const cleared =
+                        next.levelId !== progress!.levelId ||
                         next.completedLevelIds.length >
                           progress!.completedLevelIds.length ||
                         next.finished ||
@@ -1091,9 +1276,12 @@ export default function CourseAdventure({
                   </summary>
                   <pre>{resource.content}</pre>
                   <PracticeTool
+                    playerId={playerId}
                     resource={resource}
                     courseId={courseId}
-                    deliveryId={progress.question?.id}
+                    key={resource.id + progress.practiceDeliveryId}
+                    deliveryId={progress.practiceDeliveryId}
+                    onOpen={pauseForStudy}
                   />
                   {resource.url && (
                     <a
@@ -1123,6 +1311,41 @@ export default function CourseAdventure({
           )}
         </div>
       </div>
+      {journeyOpen && progress?.journey && (
+        <LearningJourney
+          progress={progress}
+          onActivity={journeyActivity}
+          onResource={openResource}
+          onClose={() => setJourneyOpen(false)}
+        />
+      )}
+      {selectedResource &&
+        progress?.resources?.find((r) => r.id === selectedResource) && (
+          <FieldJournal
+            key={selectedResource}
+            playerId={playerId}
+            resource={progress.resources.find(
+              (r) => r.id === selectedResource,
+            )!}
+            courseId={courseId}
+            deliveryId={progress.practiceDeliveryId}
+            onChallenge={() => {
+              setSelectedResource(undefined);
+              setTaskOpen(true);
+              window.speechSynthesis?.cancel();
+            }}
+            onStudy={() =>
+              journeyActivity("study", { resourceId: selectedResource }).then(
+                () => {},
+              )
+            }
+            onPractice={pauseForStudy}
+            onClose={() => {
+              setSelectedResource(undefined);
+              window.speechSynthesis?.cancel();
+            }}
+          />
+        )}
     </section>
   );
 }

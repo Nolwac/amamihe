@@ -1,3 +1,5 @@
+import { createResourceStations } from "./resourceStations";
+import { configureCameraControls } from "./cameraControls";
 import { useEffect, useRef } from "react";
 import { createBillboards } from "./billboards";
 import type { Billboard } from "./billboardPresence";
@@ -6,7 +8,7 @@ import { publishPosition } from "./socialPresence";
 import { gameAudio } from "./gameAudio";
 import type { Presence } from "../shared/social";
 import { nextRenderHeight } from "../shared/rendering";
-import type { Theme } from "../shared/course";
+import type { CourseResource, Theme } from "../shared/course";
 import {
   advanceAdventureRuntime,
   adventureFrame,
@@ -58,7 +60,13 @@ export default function CourseScene({
   peers = [],
   billboards = [],
   presenceSpace,
+  resources = [],
+  selectedResource,
+  onResource,
 }: {
+  resources?: CourseResource[];
+  selectedResource?: string;
+  onResource?: (id: string) => void;
   theme: Theme;
   outfit?: string;
   game?: SceneGame;
@@ -78,6 +86,9 @@ export default function CourseScene({
     peers,
     billboards,
     presenceSpace,
+    resources,
+    selectedResource,
+    onResource,
   });
   live.current = {
     game,
@@ -87,6 +98,9 @@ export default function CourseScene({
     peers,
     billboards,
     presenceSpace,
+    resources,
+    selectedResource,
+    onResource,
   };
   const resizeLive = useRef<() => void>(() => {});
   useEffect(() => resizeLive.current(), [renderHeight]);
@@ -119,8 +133,9 @@ export default function CourseScene({
       camera.lowerRadiusLimit = 7;
       if (temple) camera.fov = 0.9;
       camera.upperRadiusLimit = 15;
-      camera.lowerBetaLimit = 0.75;
+      camera.lowerBetaLimit = 0.55;
       camera.upperBetaLimit = 1.45;
+      configureCameraControls(camera);
       camera.attachControl(element, true);
       camera.inputs.removeByType("ArcRotateCameraKeyboardMoveInput");
       const light = new HemisphericLight(
@@ -131,6 +146,7 @@ export default function CourseScene({
       light.intensity = temple ? 1.25 : 1.1;
       light.groundColor = Color3.FromHexString("#6b6860");
       const environment = createCourseEnvironment(scene, theme);
+      const stations = createResourceStations(scene);
       const guardian = createGuardian(scene);
       guardian.root.setEnabled(temple);
       const guardianMeshes = new Set(guardian.root.getChildMeshes());
@@ -183,15 +199,22 @@ export default function CourseScene({
         )
           return;
         down = undefined;
-        if (live.current.game?.status !== "active") return;
         const bounds = element.getBoundingClientRect();
         const picked = scene.pick(
           event.clientX - bounds.left,
           event.clientY - bounds.top,
-          (mesh) => Number.isInteger(mesh.metadata?.answerIndex),
+          (mesh) =>
+            Number.isInteger(mesh.metadata?.answerIndex) ||
+            Boolean(mesh.metadata?.resourceId),
           false,
           camera,
         );
+        const resourceId = picked?.pickedMesh?.metadata?.resourceId;
+        if (resourceId) {
+          live.current.onResource?.(resourceId);
+          return;
+        }
+        if (live.current.game?.status !== "active") return;
         const index = picked?.pickedMesh?.metadata?.answerIndex;
         element.dataset.lastGatePick = picked?.pickedMesh?.name || "none";
         element.dataset.gateChoiceIndex = String(index);
@@ -687,6 +710,24 @@ export default function CourseScene({
           Math.max(g?.progress ?? 0, frame.taskProgress),
           pose.strike,
         );
+        stations(
+          live.current.resources,
+          worldZ,
+          live.current.selectedResource,
+          element.clientWidth < 600,
+        );
+        element.dataset.resourceScreens = JSON.stringify(
+          live.current.resources.slice(0, 4).map((r) => {
+            const m = scene.getMeshByName("station-page-" + r.id);
+            return {
+              id: r.id,
+              screen: m ? projectPoint(m.getAbsolutePosition()) : null,
+            };
+          }),
+        );
+        element.dataset.resourceStations = JSON.stringify(
+          live.current.resources.slice(0, 4).map((r) => r.id),
+        );
         camera.target.set(
           boxing
             ? 0
@@ -710,7 +751,7 @@ export default function CourseScene({
                 1.35 -
                   Math.min(0.3, closingGap * 0.052) -
                   Math.min(0.08, closingGap * 0.015) -
-                  Math.max(0, frame.avatar.x) * 0.16,
+                  Math.max(0, frame.avatar.x) * 0.22,
               )
             : 1.35;
           // A wide closing-gap orbit puts the phone camera behind the gold

@@ -17,22 +17,78 @@ async function call(path: string, body: unknown) {
 }
 export default function PracticeTool({
   resource,
+  playerId,
   courseId,
   deliveryId,
+  onOpen,
 }: {
   resource: CourseResource;
+  playerId: string;
   courseId: string;
   deliveryId?: string;
+  onOpen?: () => Promise<void>;
 }) {
+  const draftKey = `amamihe-practice-draft:${playerId}:${courseId}:${resource.id}`;
+  const initial = useRef<{
+    code: string;
+    points: number[][];
+    notebookEvidence: string;
+  } | null>(null);
+  if (!initial.current) {
+    let saved: any;
+    try {
+      saved = JSON.parse(localStorage.getItem(draftKey) || "null");
+    } catch {
+      /* Device storage optional. */
+    }
+    initial.current = {
+      code:
+        typeof saved?.code === "string"
+          ? saved.code.slice(0, 4000)
+          : resource.kind === "javascript"
+            ? resource.content
+            : "",
+      points: Array.isArray(saved?.points)
+        ? saved.points
+            .slice(0, 500)
+            .filter(
+              (p: unknown) =>
+                Array.isArray(p) &&
+                p.length === 2 &&
+                p.every(
+                  (v) =>
+                    typeof v === "number" &&
+                    Number.isFinite(v) &&
+                    v >= 0 &&
+                    v <= 1,
+                ),
+            )
+        : [],
+      notebookEvidence:
+        typeof saved?.notebookEvidence === "string"
+          ? saved.notebookEvidence.slice(0, 8000)
+          : "",
+    };
+  }
   const [attempt, setAttempt] = useState<PracticeAttempt | null>(null),
     [message, setMessage] = useState(""),
-    [code, setCode] = useState(
-      resource.kind === "javascript" ? resource.content : "",
-    ),
+    [code, setCode] = useState(initial.current.code),
     [output, setOutput] = useState(""),
     [busy, setBusy] = useState(false),
-    [points, setPoints] = useState<number[][]>([]),
-    [notebookEvidence, setNotebookEvidence] = useState("");
+    [points, setPoints] = useState<number[][]>(initial.current.points),
+    [notebookEvidence, setNotebookEvidence] = useState(
+      initial.current.notebookEvidence,
+    );
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        draftKey,
+        JSON.stringify({ code, points, notebookEvidence }),
+      );
+    } catch {
+      /* Device storage optional. */
+    }
+  }, [draftKey, code, points, notebookEvidence]);
   const frame = useRef<HTMLIFrameElement>(null);
   const nonce = useRef(crypto.randomUUID());
   const timer = useRef<number | undefined>(undefined);
@@ -59,7 +115,9 @@ export default function PracticeTool({
   }, []);
   async function start() {
     setMessage("");
+    setBusy(true);
     try {
+      await onOpen?.();
       setAttempt(
         await call(courseId + "/start", {
           resourceId: resource.id,
@@ -68,6 +126,8 @@ export default function PracticeTool({
       );
     } catch (e) {
       setMessage(String(e));
+    } finally {
+      setBusy(false);
     }
   }
   async function submit() {
@@ -143,11 +203,21 @@ export default function PracticeTool({
       className="practice-tool"
     >
       {!attempt ? (
-        <button disabled={!deliveryId} onClick={() => void start()}>
+        <button disabled={!deliveryId || busy} onClick={() => void start()}>
           Open practice
         </button>
       ) : (
         <>
+          <button
+            disabled={busy}
+            onClick={() => {
+              setAttempt(null);
+              setOutput("");
+              setMessage("");
+            }}
+          >
+            New practice attempt
+          </button>
           <p>
             Practice checkpoint saved. This tool does not automatically grant
             mastery.
