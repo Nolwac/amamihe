@@ -5,6 +5,8 @@ export type GameState = {
   budgetMs: number;
   multiplier: number;
   run: number;
+  adventure?: import("./adventure-runtime.js").AdventureState;
+  actionSequence?: number;
 };
 export const GEAR = [
   { id: "azure", name: "Azure explorer jacket", price: 40, color: "#478ccc" },

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import type { GEAR } from "../shared/gameplay";
+import { gameAudio } from "./gameAudio";
 type Rewards = {
   points: number;
   outfit: string;
@@ -20,6 +21,7 @@ export default function WardrobeShop({ onChanged }: { onChanged: () => void }) {
     void load().catch((e) => setError(e.message));
   }, []);
   async function act(action: string, gearId: string) {
+    void gameAudio.activate();
     setBusy(true);
     setError("");
     try {
@@ -30,6 +32,7 @@ export default function WardrobeShop({ onChanged }: { onChanged: () => void }) {
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error);
+      if (action === "buy") gameAudio.effect("purchase");
       await load();
       onChanged();
     } catch (e) {

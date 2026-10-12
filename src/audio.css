@@ -1,0 +1,59 @@
+.audio-controls {
+  position: relative;
+  pointer-events: auto;
+  z-index: 6;
+  color: #e5eadb;
+  font-size: 0.8rem;
+}
+.audio-controls summary {
+  cursor: pointer;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid #ffffff30;
+  border-radius: 0.65rem;
+  background: #182a22;
+  white-space: nowrap;
+}
+.audio-options {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 0.35rem);
+  z-index: 50;
+  width: min(16rem, 80vw);
+  padding: 0.9rem;
+  background: #13291ff5;
+  border: 1px solid #b8d59d66;
+  border-radius: 0.75rem;
+  box-shadow: 0 8px 30px #0008;
+}
+.audio-options label {
+  display: grid;
+  gap: 0.3rem;
+  margin-top: 0.75rem;
+}
+.audio-options input {
+  width: 100%;
+  accent-color: #b8d59d;
+}
+.audio-options small {
+  display: block;
+  margin-top: 0.65rem;
+  line-height: 1.4;
+}
+.city-audio {
+  position: absolute;
+  right: var(--safe, 24px);
+  top: 190px;
+}
+.creation-audio {
+  position: absolute;
+  right: var(--safe, 24px);
+  top: 20px;
+}
+@media (max-width: 600px) {
+  .city-audio {
+    top: 100px;
+  }
+  .creation-audio {
+    top: 90px;
+  }
+}

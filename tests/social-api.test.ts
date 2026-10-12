@@ -11,6 +11,23 @@ import { initializeCourseSchema } from "../server/courses.js";
 import { initializeSocialSchema, registerSocial } from "../server/social.js";
 import { storytellingCourse } from "../server/course-template.js";
 import type { Authentication } from "../server/auth.js";
+import { validPosition } from "../shared/social.js";
+test("course traversal bounds preserve finite city and heading limits", () => {
+  assert.equal(validPosition({ x: 0, z: 45, heading: 0 }), false);
+  assert.equal(validPosition({ x: 0, z: -11, heading: 0 }), true);
+  assert.equal(validPosition({ x: 0, z: 10, heading: 0 }), true);
+  assert.equal(validPosition({ x: 0, z: 45, heading: 0 }, "course"), true);
+  assert.equal(validPosition({ x: 5, z: 100000, heading: 0 }, "course"), true);
+  for (const position of [
+    { x: 5.01, z: 45, heading: 0 },
+    { x: 0, z: -0.01, heading: 0 },
+    { x: 0, z: 100001, heading: 0 },
+    { x: 0, z: Infinity, heading: 0 },
+    { x: 0, z: 45, heading: NaN },
+    { x: 0, z: 45, heading: Math.PI * 2 + 0.1 },
+  ])
+    assert.equal(validPosition(position, "course"), false);
+});
 test("eight-player rooms, private four-player teams, consent, validated battles, moderation and rewards survive replay/disconnection", async () => {
   const dir = await mkdtemp(path.join(tmpdir(), "amamihe-social-test-")),
     db = await openDatabase({ dataDir: dir }),
@@ -64,6 +81,42 @@ test("eight-player rooms, private four-player teams, consent, validated battles,
       call(p, "POST", "/api/social" + url, body);
     const get = (p: string) => call(p, "GET", "/api/social");
     assert.equal((await get("")).statusCode, 401);
+    const coursePosition = { x: 1.65, z: 45, heading: 0 };
+    for (const body of [
+      { position: coursePosition },
+      { space: "city", levelId: def.levels[0].id, position: coursePosition },
+      {
+        space: "missing-course",
+        levelId: def.levels[0].id,
+        position: coursePosition,
+      },
+      { space: "course", levelId: "unearned-level", position: coursePosition },
+      { space: { course: "course" }, position: coursePosition },
+    ])
+      assert.equal((await post("p0", "/presence", body)).statusCode, 409);
+    assert.equal(
+      (
+        await post("p8", "/presence", {
+          space: "course",
+          levelId: def.levels[0].id,
+          position: coursePosition,
+        })
+      ).statusCode,
+      409,
+    );
+    const joined = await post("p0", "/presence", {
+      space: "course",
+      levelId: def.levels[0].id,
+      position: coursePosition,
+    });
+    assert.equal(joined.statusCode, 200);
+    assert.equal(joined.json().room, `course:course:v1:${def.levels[0].id}:0`);
+    const savedPosition = (
+      await db.query<{ x: number; z: number }>(
+        "SELECT x,z FROM social_presence WHERE player_id='p0'",
+      )
+    ).rows[0];
+    assert.deepEqual(savedPosition, { x: 1.65, z: 45 });
     for (let i = 0; i < 9; i++)
       assert.equal(
         (

@@ -42,6 +42,8 @@ Step 1's technical foundation is delivered with verified-email accounts, persist
 
 ## Phase 4: Playable 3D Story and Individual Rewards
 
+Implementation and corrective gameplay validation: [adventure runtime](docs/status/ADVENTURE_RUNTIME.md). The physical adventure/audio correction passes final local validation and is ready for review; CI and production promotion remain pending. Static scene decoration does not satisfy this milestone: verify skeletal action, world traversal, visible encounters, task-driven boosts or strikes, physical collision, and current-step recovery in the browser.
+
 - Build Venture City streets with course houses, explicit door enrollment, avatar/starter-outfit onboarding, and the Model Makers Workshop course adventure. Include spatial challenges and in-world resources.
 - Bind studio-authored courses to the selected theme and provide clear transitions and milestone celebrations.
 - Add badges, points, an avatar inventory, and a small cosmetic gear shop with an idempotent reward ledger.

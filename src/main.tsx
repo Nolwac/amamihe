@@ -1,4 +1,5 @@
 import BillboardLinks from "./BillboardLinks";
+import AudioControls from "./AudioControls";
 import { useBillboards, type Billboard } from "./billboardPresence";
 import WorldPolicy, { useWorldPolicy } from "./WorldPolicy";
 import { useSocialPresence } from "./socialPresence";
@@ -474,6 +475,11 @@ function App() {
           <b>{player?.points || 0}</b>
           <span>points</span>
         </div>
+        {player && !courseId && (
+          <div className="city-audio">
+            <AudioControls />
+          </div>
+        )}
         <div className="player-chip">
           <img
             className="mini-avatar"
@@ -572,6 +578,8 @@ function App() {
                   (house ||
                     directory ||
                     portals ||
+                    courseId ||
+                    studio ||
                     tab === "learn" ||
                     breakMode ||
                     policy.state?.status === "arrested"),
@@ -1052,6 +1060,9 @@ function App() {
       )}
       {(loading || !player) && (
         <div className="modal-backdrop character-creation">
+          <div className="creation-audio">
+            <AudioControls />
+          </div>
           <div className="creation-heading">
             <Icon name="hanger" size={42} />
             <div>

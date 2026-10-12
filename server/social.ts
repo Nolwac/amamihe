@@ -246,7 +246,10 @@ export function registerSocial(
         signal?: string;
       };
       if (
-        !validPosition(b?.position) ||
+        !b ||
+        typeof b !== "object" ||
+        (b.space !== undefined && typeof b.space !== "string") ||
+        (b.levelId !== undefined && typeof b.levelId !== "string") ||
         (b.signal !== undefined &&
           !(SIGNALS as readonly string[]).includes(b.signal))
       )
@@ -261,6 +264,7 @@ export function registerSocial(
         )
       ).rows[0];
       let base = "city";
+      let positionScope: "city" | "course" = "city";
       if (b.space && b.space !== "city") {
         const e = (
           await tx.query<{ version: number; progress: { levelId: string } }>(
@@ -271,7 +275,10 @@ export function registerSocial(
         if (!e || e.progress.levelId !== b.levelId)
           throw new Error("Join your current enrolled checkpoint.");
         base = "course:" + b.space + ":v" + e.version + ":" + b.levelId;
+        positionScope = "course";
       }
+      if (!validPosition(b.position, positionScope))
+        throw new Error("Choose a bounded position and preset signal.");
       let room = "";
       for (let shard = 0; shard < 100; shard++) {
         const candidate =

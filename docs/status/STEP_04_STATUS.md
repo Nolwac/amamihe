@@ -1,5 +1,7 @@
 # Step 4: Playable 3D Story and Individual Rewards
 
+This report describes the initial timer and reward implementation. The corrected physical game loop, avatar clips, checkpoint continuity and audio are documented in [Physical Adventure Runtime](ADVENTURE_RUNTIME.md). Its final local validation passes, with 26 browser journeys and 95 Node checks passing; one optional external PostgreSQL fixture is skipped. Review, CI and production promotion remain pending as recorded in the [implementation handoff](ADVENTURE_HANDOFF.md).
+
 ## Playable Adventure
 
 Published tutor-authored levels use Workshop, Temple Chase, Racing, or Wrestling.
@@ -55,8 +57,7 @@ The 2 GB physical-device and global city performance acceptance gates remain ope
 New scene captures are runtime screenshots, not concept images; final artwork
 acceptance is not assumed.
 
-
-## Verification
+## Initial Implementation Verification
 
 Build and formatting checks pass. The Node suite passes 47 checks with one
 optional external PostgreSQL fixture skipped. All ten browser journeys passed;
