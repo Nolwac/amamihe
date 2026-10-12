@@ -42,7 +42,7 @@ Step 1's technical foundation is delivered with verified-email accounts, persist
 
 ## Phase 4: Playable 3D Story and Individual Rewards
 
-Implementation and corrective gameplay validation: [adventure runtime](docs/status/ADVENTURE_RUNTIME.md). The physical adventure/audio correction passes final local validation and is ready for review; CI and production promotion remain pending. Static scene decoration does not satisfy this milestone: verify skeletal action, world traversal, visible encounters, task-driven boosts or strikes, physical collision, and current-step recovery in the browser.
+Implementation and corrective gameplay validation: [adventure runtime](docs/status/ADVENTURE_RUNTIME.md). The physical adventure/audio correction passed local, CI and public validation at `d7485ea`. The subsequent [immersive recovery correction](docs/status/IMMERSIVE_LEARNING_HANDOFF.md) implements unlimited practice/replay, compact controls, in-world study, visible police enforcement and the ten-role learning camp; its release status is recorded separately. Static scene decoration does not satisfy this milestone: verify skeletal action, world traversal, visible encounters, task-driven boosts or strikes, physical collision, and current-step recovery in the browser.
 
 - Build Venture City streets with course houses, explicit door enrollment, avatar/starter-outfit onboarding, and the Model Makers Workshop course adventure. Include spatial challenges and in-world resources.
 - Bind studio-authored courses to the selected theme and provide clear transitions and milestone celebrations.

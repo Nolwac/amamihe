@@ -32,12 +32,8 @@ The earlier 25-journey regression was stopped to preserve the handoff: **one pas
 
 The playable-theme journey was interrupted. These historical results do not establish a common root cause. The original machine-readable result remains in `evidence/reports/physical-adventure-browser-failures.json`; the completed final run above supersedes its acceptance status.
 
-## Next Actions
+## Subsequent release and feedback
 
-1. Review the locally validated correction and final evidence. CI validation, merging to `main`, production deployment and exact-release public HTTPS/browser checks remain pending.
-2. For any further code changes, rerun affected checks and the full browser suite against one unchanged build, using `EMAIL_PROVIDER=test`, an explicit test outbox and disposable data directory.
-3. Evaluate actual 2 GB devices, listening quality, final artwork and educational outcomes separately. Live classification accuracy remains unverified; classification is explicitly mocked and no paid inference was used.
+PR #2 was merged and deployed as `d7485ea45769cf47a519cdb227327eae69c85193`. [The release workflow](https://github.com/Nolwac/amamihe/actions/runs/38307296229) passed verification, packaging, promotion and exact-release public browser acceptance.
 
-## Release Status
-
-This correction is **locally validated and ready for review; not merged or deployed**. A read-only production health check still identifies revision `bd7c7b8297982fd31367db8ac0be173e07eca4c4`. CI and exact-release public acceptance remain pending. Preserve existing VPS services and private configuration.
+Continue with [Immersive learning and recovery](IMMERSIVE_LEARNING_HANDOFF.md), which records the learner-feedback correction, current checks and its separate release boundary. The earlier evidence remains a historical validation snapshot.
