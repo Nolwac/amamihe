@@ -7,15 +7,22 @@
 - Traversing Temple Chase with hurdles, arches, barriers and an articulated guardian; Racing with a moving rival and task-driven boosts; Wrestling with task-powered hits and recoil; Workshop with walking and building actions.
 - Responsive game viewport and task drawer, keyboard/touch controls, visible mobile chase camera, and isolated canvas generations to prevent deleted WebGL shaders from blackening avatars and scenery.
 - Original locally synthesized theme music and action/button effects, user-gesture activation, separate volume controls, persistent mute and hidden-tab suspension.
-- Final visual Slide correction removes duplicate root lowering while preserving authoritative crouch collision rules. Its new native-foot-position assertion has not yet passed on the final build.
+- Final visual Slide correction removes duplicate root lowering while preserving authoritative crouch collision rules. The final browser run verifies native foot height and Hips-relative limb motion.
+- Manual controls capture the current command generation, discarding actions queued before pause and ignoring late results after a newer command. A regression verifies that those actions cannot enter the resumed run.
+- The phone chase camera keeps the avatar visible around temple columns and a closing guardian in both center and right lanes. Scene readiness reports loading errors, and cleanup remains bounded if readiness never completes.
+- Browser journeys synchronize current-task and rendered collision checks, move shared avatars through physical controls, and inspect restored answer-gate picking diagnostics.
 
-## Verification and Unresolved Errors
+## Final Local Verification
 
-Build/type checking and formatting pass. The Node suite reports **95 passes, zero failures and one optional external PostgreSQL skip** (96 total).
+Source revision `9237bf28da92b5afe75ea8ce1c6a026e0ee6c1ad` passes build/type checking and formatting. The Node suite reports **95 passes, zero failures and one optional external PostgreSQL skip** (96 total). The full browser suite reports **26 passes, zero failures, skips or retries**, using isolated test storage and email delivery.
+
+The final run covers all four themes, actual skeletal motion and Slide foot height, phone center/right-lane visibility, obstacle clearance and collision/retry, pause ordering and stale queued actions, audio signal/mute, account flows, billboards, device evaluation and shared-avatar movement. The machine-readable result is in `evidence/reports/physical-adventure-browser-final.json`; final captures use `physical-adventure-*-final.png` names in `evidence/screenshots/`. The verification summary records capture provenance in `evidence/reports/physical-adventure-verification.json`.
+
+## Historical Failures
 
 Earlier focused browser runs passed all four themes and, separately, mobile camera readability, real jumping/obstacle clearance, collision/retry, delayed-response pause and audio signal/mute. Stored captures are explicitly labeled as earlier builds; they do not establish final-build acceptance.
 
-The latest 25-journey regression was stopped to preserve the current work: **one passed, five failed, one interrupted and eighteen unrun**. Unresolved failures:
+The earlier 25-journey regression was stopped to preserve the handoff: **one passed, five failed, one interrupted and eighteen unrun**. Its failures were:
 
 1. All-theme adventure timed out waiting for actual avatar/bone readiness within 30 seconds.
 2. Phone adventure expected a paused state but received Game Over.
@@ -23,16 +30,14 @@ The latest 25-journey regression was stopped to preserve the current work: **one
 4. Billboard journey could not find its expected rendered billboard canvas.
 5. Desktop evaluation could not find the device-evaluation heading.
 
-The playable-theme journey was interrupted. These results do not establish a common root cause; investigate rendering readiness, main-thread/input delays and pause ordering using actual browser traces rather than assuming infrastructure alone is responsible. The complete machine-readable result is in `evidence/reports/physical-adventure-browser-failures.json`; the summary and earlier-capture provenance are in `evidence/reports/physical-adventure-verification.json`.
+The playable-theme journey was interrupted. These historical results do not establish a common root cause. The original machine-readable result remains in `evidence/reports/physical-adventure-browser-failures.json`; the completed final run above supersedes its acceptance status.
 
 ## Next Actions
 
-1. Start an isolated test API with `EMAIL_PROVIDER=test`, an explicit test outbox and disposable data directory; build once and keep that build unchanged during each browser run.
-2. Reproduce the five failures with Playwright tracing and console/network evidence. Verify the Slide foot-height assertion and Hips-relative limb motion on the final build.
-3. Fix the causes without disabling assertions or inventing animation/audio measurements. Rerun affected journeys, then all 25 browser journeys; repeat backend checks if backend code changes.
-4. Update evidence with final-build captures and honest results. Merge to `main` only after required validation, then let the existing verified-source pipeline deploy and pass exact-release public HTTPS/browser checks.
-5. Evaluate actual 2 GB devices, listening quality and final artwork separately. Classification remains explicitly mocked; no paid inference was used.
+1. Review the locally validated correction and final evidence. CI validation, merging to `main`, production deployment and exact-release public HTTPS/browser checks remain pending.
+2. For any further code changes, rerun affected checks and the full browser suite against one unchanged build, using `EMAIL_PROVIDER=test`, an explicit test outbox and disposable data directory.
+3. Evaluate actual 2 GB devices, listening quality, final artwork and educational outcomes separately. Live classification accuracy remains unverified; classification is explicitly mocked and no paid inference was used.
 
 ## Release Status
 
-This correction is committed for handoff and review, **not accepted as complete or deployed**. The last confirmed production revision remains `bd7c7b8297982fd31367db8ac0be173e07eca4c4`. Preserve existing VPS services and private configuration.
+This correction is **locally validated and ready for review; not merged or deployed**. A read-only production health check still identifies revision `bd7c7b8297982fd31367db8ac0be173e07eca4c4`. CI and exact-release public acceptance remain pending. Preserve existing VPS services and private configuration.

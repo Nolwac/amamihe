@@ -1,7 +1,7 @@
 {
-  "recordedAt": "2026-10-12T16:11:37.849147+00:00",
+  "recordedAt": "2026-10-12T17:42:15.230636+00:00",
   "purpose": "Verify physical course adventures, skeletal action and original game audio",
-  "localBuild": "passed",
+  "localBuild": "passed (includes type checking)",
   "localNode": {
     "total": 96,
     "passed": 95,
@@ -9,20 +9,18 @@
     "skip": "Optional external PostgreSQL fixture"
   },
   "localBrowser": {
-    "status": "failed; stopped before completion",
-    "selected": 25,
-    "passed": 1,
-    "failed": 5,
-    "interrupted": 1,
-    "notRun": 18,
-    "failures": [
-      "All-theme adventure: actual avatar/bone readiness did not complete within the 30-second wait.",
-      "Phone adventure: pause expected paused but observed game-over.",
-      "Authentication: Sign in click exceeded the 120-second journey timeout.",
-      "Billboards: expected rendered billboard canvas was not found.",
-      "Desktop evaluation: expected device-evaluation heading was not visible."
-    ],
-    "note": "Stopped after the request to commit the current work. These failures remain unresolved; no complete browser acceptance or deployment is claimed."
+    "status": "passed",
+    "selected": 26,
+    "passed": 26,
+    "failed": 0,
+    "skipped": 0,
+    "interrupted": 0,
+    "notRun": 0,
+    "retries": 0,
+    "durationMs": 274974.56000000006,
+    "report": "evidence/reports/physical-adventure-browser-final.json",
+    "environment": "Chromium 154.0.8037.57; software WebGL; one worker; isolated PGlite API on port 3002; EMAIL_PROVIDER=test and explicit disposable outbox/data directories.",
+    "note": "Final build remained unchanged throughout the complete traced run. No assertions were disabled."
   },
   "actionAsset": {
     "bytes": 873508,
@@ -42,6 +40,99 @@
     ]
   },
   "screenshots": [
+    {
+      "path": "evidence/screenshots/physical-adventure-temple-chase-final.png",
+      "build": "Final locally verified corrective build.",
+      "sha256": "4a8e7f0b6648e1e7c284e7e1d550cf5d6b1e55ab10fee3af3bb8f66c05e70885"
+    },
+    {
+      "path": "evidence/screenshots/physical-adventure-racing-final.png",
+      "build": "Final locally verified corrective build.",
+      "sha256": "9d8e893d36608be296513897011f7b70849c40692904cf083ceada8a6ca6eede"
+    },
+    {
+      "path": "evidence/screenshots/physical-adventure-wrestling-final.png",
+      "build": "Final locally verified corrective build.",
+      "sha256": "708f558291ba6274e568e84d1b4a4a3ced0c591544ccc476cbbd10fb5ec66547"
+    },
+    {
+      "path": "evidence/screenshots/physical-adventure-workshop-final.png",
+      "build": "Final locally verified corrective build.",
+      "sha256": "2caefa1f8e0a4bdd8826f1688a5c68fc1a68ff1a1f34b5ac478d9d0903281be0"
+    },
+    {
+      "path": "evidence/screenshots/physical-adventure-phone-avatar-readable-final.png",
+      "build": "Final locally verified corrective build.",
+      "sha256": "ca20e94413c89cbf9aaab381aeb531103d7bb13176ba190ee9a98c4701a1cf8c"
+    },
+    {
+      "path": "evidence/screenshots/physical-adventure-phone-slide-final.png",
+      "build": "Final locally verified corrective build.",
+      "sha256": "113dd4d497d0862f1afd06fc75ce8e1f8f3d6015fabad4fad04c0bec86ad6fe0"
+    },
+    {
+      "path": "evidence/screenshots/physical-adventure-phone-hurdle-approach-final.png",
+      "build": "Final locally verified corrective build.",
+      "sha256": "46b4fda6a4ae9621408112dbb8d45c66dbc7dbd961d6394b9e068dfe0dcefab0"
+    },
+    {
+      "path": "evidence/screenshots/physical-adventure-phone-hurdle-cleared-final.png",
+      "build": "Final locally verified corrective build.",
+      "sha256": "2758ad7fcd47a352ab6a2dd24b7b0c866608da486511fe2a04d6b696be0dc0af"
+    },
+    {
+      "path": "evidence/screenshots/physical-adventure-phone-hurdle-readable-final.png",
+      "build": "Final locally verified corrective build.",
+      "sha256": "a188338b315ec64c9509c49adb39a9a43ae31345f71ee77e20f1c4abe637012d"
+    },
+    {
+      "path": "evidence/screenshots/physical-adventure-phone-collision-final.png",
+      "build": "Final locally verified corrective build.",
+      "sha256": "2164a3cde1086e487c5858f8f20302305143207be2e29f5a8058cf8e70df4cf0"
+    },
+    {
+      "path": "evidence/screenshots/physical-adventure-phone-right-lane-final.png",
+      "build": "Final locally verified corrective build.",
+      "sha256": "b0278504dde6dce2ce8b3c358287058329c37fb9415c33755102cdff4532c622"
+    }
+  ],
+  "boundaries": [
+    "Browser verification uses Chromium with software WebGL and isolated synthetic accounts.",
+    "Web Audio waveform checks establish generated signal and mute behavior, not listening quality.",
+    "Physical 2 GB hardware, final art and educational outcomes remain evaluation gates.",
+    "The classification service remains explicitly mocked; no paid inference was used.",
+    "Public deployment verification is recorded by the release workflow and performs no learner writes."
+  ],
+  "earlierFocusedChecks": {
+    "allFourThemes": "Passed before the final camera/slide corrections; historical evidence only.",
+    "phone": "Passed on the elevated-camera build before the final duplicate Slide-lowering correction.",
+    "anonymousAudio": "Desktop and phone gesture, generated waveform and mute passed before the final build."
+  },
+  "deployment": {
+    "status": "pending; locally validated and ready for review, not merged or deployed",
+    "baselineRelease": "bd7c7b8297982fd31367db8ac0be173e07eca4c4",
+    "baselineHealth": "Read-only public HTTPS /api/health confirmed this release during verification.",
+    "next": "Review and pass CI before approved main merge; existing verified-source pipeline must promote and verify the exact public release."
+  },
+  "sourceCommit": "9237bf28da92b5afe75ea8ce1c6a026e0ee6c1ad",
+  "localFormatting": "passed",
+  "previousBrowserRun": {
+    "status": "failed; stopped before completion",
+    "selected": 25,
+    "passed": 1,
+    "failed": 5,
+    "interrupted": 1,
+    "notRun": 18,
+    "failures": [
+      "All-theme adventure: actual avatar/bone readiness did not complete within the 30-second wait.",
+      "Phone adventure: pause expected paused but observed game-over.",
+      "Authentication: Sign in click exceeded the 120-second journey timeout.",
+      "Billboards: expected rendered billboard canvas was not found.",
+      "Desktop evaluation: expected device-evaluation heading was not visible."
+    ],
+    "note": "Stopped after the request to commit the current work. These failures remain unresolved; no complete browser acceptance or deployment is claimed."
+  },
+  "historicalScreenshots": [
     {
       "path": "evidence/screenshots/physical-adventure-temple-chase-earlier-focused.png",
       "build": "Earlier focused all-theme pass; not final-build acceptance."
@@ -79,20 +170,64 @@
       "build": "Elevated-camera phone pass before final Slide correction."
     }
   ],
-  "boundaries": [
-    "Browser verification uses Chromium with software WebGL and isolated synthetic accounts.",
-    "Web Audio waveform checks establish generated signal and mute behavior, not listening quality.",
-    "Physical 2 GB hardware, final art and educational outcomes remain evaluation gates.",
-    "The classification service remains explicitly mocked; no paid inference was used.",
-    "Public deployment verification is recorded by the release workflow and performs no learner writes."
+  "corrections": [
+    "Discard pre-pause queued inputs and responses after a play/pause generation change.",
+    "Keep the phone camera clear of temple columns and the guardian across center and right lanes.",
+    "Dispose unfinished scene generations after shader readiness or a bounded readiness timeout; expose loading/readiness errors.",
+    "Wait for the submitted task event and collision frame before measuring actual scene behavior.",
+    "Exercise physical shared-room controls instead of treating answer choice as movement.",
+    "Restore diagnostics from actual gate picking while retaining rendered answer-selection assertions."
   ],
-  "earlierFocusedChecks": {
-    "allFourThemes": "Passed before the final camera/slide corrections; historical evidence only.",
-    "phone": "Passed on the elevated-camera build before the final duplicate Slide-lowering correction.",
-    "anonymousAudio": "Desktop and phone gesture, generated waveform and mute passed before the final build."
+  "reproduction": {
+    "initialFocused": {
+      "selected": 6,
+      "passed": 5,
+      "failed": 1,
+      "failure": "Phone feet hidden by temple architecture; other historical failures did not recur in this isolated traced run."
+    },
+    "queuedInputBeforeFix": "New regression failed: expected action sequence 2, received 3.",
+    "rightLaneBeforeFix": "Extended phone journey failed because RightFoot was hidden by guardian-shoulder.",
+    "firstCompleteRun": {
+      "selected": 26,
+      "passed": 23,
+      "failed": 3,
+      "failures": [
+        "Game Over DOM notice preceded its capped 3D collision frame.",
+        "Gate-picking diagnostic attributes had been omitted by the scene rewrite.",
+        "The old social test expected answer selection to move the physical avatar."
+      ]
+    },
+    "affectedAfterFix": {
+      "selected": 5,
+      "passed": 5,
+      "failed": 0
+    }
   },
-  "deployment": {
-    "status": "pending; current corrective source is not production-verified",
-    "baselineRelease": "bd7c7b8297982fd31367db8ac0be173e07eca4c4"
+  "testedFileSha256": {
+    "dist/index.html": "5c0cbcf870000645429c16447fdc751fe075796bba931ab4f17bb221eb83887e",
+    "public/assets/explorer-adventure-low.glb": "125ff85cb42510795cf398d205b7bb56f544c82f4ff85e86764bcc60fe6a0e87",
+    "src/CourseAdventure.tsx": "bb2d34f72450b5f87e543fedf5b10525dbc5906cdc324a151aa5b6a2a40da878",
+    "src/CourseScene.tsx": "f4e95d1b2feee916693673eec9e0ec0d1fc2f9078f10a93d2b48bdacff84e42b",
+    "tests/browser-adventure-motion.spec.ts": "c99bdc1c03edfd12e96aa61defc145a3994a26c23313ce01083fe99b95d43abc",
+    "tests/browser-social.spec.ts": "761683f03e77049ebe7860603904db314a1f30e6424d9078932f2b4a2f29c0ac"
+  },
+  "finalSlide": {
+    "status": "paused",
+    "action": "slide",
+    "hipsY": 1.0303164720535278,
+    "leftFootY": 0.16479264199733734,
+    "assertions": "Native pelvis lowering and foot >= -0.1 m both passed on the final build."
+  },
+  "finalPhoneColors": {
+    "adventure-phone-hurdle-readable.json": {
+      "teal": 0.38461538461538464,
+      "neutralFootPixels": 150,
+      "opponentBlue": null
+    },
+    "adventure-phone-right-lane.json": {
+      "teal": 0.36425339366515835,
+      "neutralFootPixels": 383,
+      "opponentBlue": null
+    }
   }
 }
