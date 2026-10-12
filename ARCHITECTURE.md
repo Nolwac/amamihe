@@ -4,7 +4,7 @@
 
 Amamihe is an indie-style human-simulation learning game set in a persistent 3D venture world. Players grow through demonstrated skills, discover courses as houses along shared streets, and enter tutor-designed adventures. Avatars, outfits, course cities, search portals, other learners, and world institutions make learning a lived game experience. The 3D world is a core requirement at every graphics quality setting.
 
-Implementation status: the browser game is deployed over HTTPS at [amamihe.online](https://amamihe.online). Versioned course authoring, post-clearance mock assessment, individual rewards, isolated practice tools, recall, bounded shared rooms and team battles, search portals, moderated billboards, and Learning Police are implemented. The six-level storytelling pilot is published at the default learner entrance. The corrective adventure implementation adds articulated action rigs, traversable scenes, server-authoritative collisions and checkpoint recovery. Its final local browser validation passes; review, CI and production promotion remain pending. See [handoff and verification](docs/status/ADVENTURE_HANDOFF.md) and [adventure runtime](docs/status/ADVENTURE_RUNTIME.md). Physical 2 GB-device validation, soundtrack listening, final artwork acceptance, learning outcomes, and live classification accuracy remain evaluation gates. Teaching material remains tutor-authored.
+Implementation status: the browser game is deployed over HTTPS at [amamihe.online](https://amamihe.online). Versioned course authoring, post-clearance mock assessment, individual rewards, isolated practice tools, recall, bounded shared rooms and team battles, search portals, moderated billboards, and Learning Police are implemented. The six-level storytelling pilot is published at the default learner entrance. The corrective adventure implementation adds articulated action rigs, traversable scenes, server-authoritative collisions and checkpoint recovery. Its validation and public promotion passed for release `d7485ea`. [Immersive learning and recovery](docs/status/IMMERSIVE_LEARNING_HANDOFF.md) records the follow-up implementation and its validation/release boundary. See [handoff and verification](docs/status/ADVENTURE_HANDOFF.md) and [adventure runtime](docs/status/ADVENTURE_RUNTIME.md). Physical 2 GB-device validation, soundtrack listening, final artwork acceptance, learning outcomes, and live classification accuracy remain evaluation gates. Teaching material remains tutor-authored.
 
 ## Venture World and Player Journey
 
@@ -104,7 +104,7 @@ Tutors provide assessment rubrics, answer keys, and executable test cases where 
 
 ## Pedagogical Responsibilities
 
-The ten teaching roles remain functions of the learning system rather than ten content-generating agents.
+The ten teaching roles remain functions of the learning system rather than ten content-generating agents. The learning camp exposes their recorded activities before presenting a completed course journey: goals, reasoning, study, authored rehearsal, evidence review and reflection, alongside response examination/checking. Checkpoint clearance and teaching-role participation remain distinct from practical mastery.
 
 | Role                | Implementation in the authored-content approach                                        |
 | ------------------- | -------------------------------------------------------------------------------------- |

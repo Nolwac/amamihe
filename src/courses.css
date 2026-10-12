@@ -609,7 +609,7 @@
   margin: 6px;
 }
 
-/* Keep the adventure visible while tasks remain readable and keyboard accessible. */
+/* Compact, opt-in panels leave the world usable at phone sizes. */
 .course-adventure.course-overlay {
   display: flex;
   flex-direction: column;
@@ -618,282 +618,445 @@
 }
 .course-adventure .course-bar {
   flex: 0 0 auto;
-  gap: 12px;
-  padding: 10px 18px;
+  gap: 8px;
+  padding: 8px 12px;
 }
 .course-adventure .course-bar h1 {
-  font-size: 20px;
+  font-size: 16px;
   line-height: 1.2;
-  letter-spacing: -0.015em;
+  max-width: 360px;
 }
 .adventure-header-actions {
   display: flex;
+  align-items: center;
+  gap: 6px;
   flex-wrap: wrap;
   justify-content: flex-end;
-  gap: 7px;
 }
 .course-adventure .adventure-grid {
-  flex: 1 1 auto;
+  flex: 1;
   min-height: 0;
   padding: 0;
   overflow: hidden;
 }
 .course-adventure .adventure-world {
-  inset: 0;
   position: absolute;
+  inset: 0;
   height: 100%;
   min-height: 0;
 }
 .course-adventure .course-scene {
   height: 100%;
-  min-height: 0;
-  width: calc(100% - min(390px, 38%));
-}
-.course-adventure .adventure-grid[data-task-panel="closed"] .course-scene {
   width: 100%;
+  min-height: 0;
+}
+.course-adventure .adventure-grid[data-task-panel="open"] .course-scene {
+  width: calc(100% - min(370px, 36%));
 }
 .course-adventure .adventure-content {
   position: absolute;
   inset: 0 0 0 auto;
-  width: min(390px, 38%);
+  width: min(370px, 36%);
+  padding: 16px;
   min-height: 0;
-  padding: 18px;
   overflow-y: auto;
   overscroll-behavior: contain;
-  scrollbar-width: thin;
+  background: #12292ef5;
   border-left: 1px solid #c8d4bc55;
-  background: #12292eee;
 }
 .course-adventure .adventure-content[hidden] {
   display: none;
 }
 .course-adventure .adventure-content h2 {
-  font-size: 19px;
+  font-size: 18px;
   line-height: 1.35;
-  margin: 10px 0;
 }
 .course-adventure .adventure-content .answers button {
-  padding: 11px;
+  padding: 10px;
   font-size: 13px;
 }
-.course-adventure .adventure-content .gate-help {
-  font-size: 12px;
-  line-height: 1.4;
-}
-.course-adventure .adventure-scene-label {
-  left: 16px;
-  top: 14px;
-  max-width: min(290px, 38%);
-  padding: 10px 12px;
-  pointer-events: none;
-}
 .course-adventure .adventure-timer {
-  left: 16px;
-  top: 108px;
-  font-size: 24px;
-  padding: 9px 14px;
+  left: 12px;
+  top: 12px;
+  padding: 6px 10px;
+  font-size: 18px;
   pointer-events: none;
 }
-.course-adventure .adventure-task-meter {
-  left: 16px;
-  top: 185px;
-  font-size: 12px;
-  padding: 9px 12px;
-  pointer-events: none;
-}
-.adventure-run-status {
+.adventure-status-menu {
   position: absolute;
-  left: 16px;
-  top: 259px;
+  left: 12px;
+  top: 80px;
+  z-index: 5;
+}
+.adventure-status-menu summary,
+.resource-menu summary,
+.adventure-replay summary,
+.movement-menu summary {
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  list-style: none;
+  width: 44px;
+  height: 44px;
+  border: 1px solid #eac57866;
+  border-radius: 12px;
+  background: #14292deb;
+  color: #ffe2a5;
+  font-size: 24px;
+}
+.compact-popover {
+  position: absolute;
+  z-index: 8;
+  background: #14292df5;
+  border: 1px solid #eac57866;
+  border-radius: 12px;
+  padding: 14px;
+  width: min(290px, 80vw);
+  max-height: 60dvh;
+  overflow: auto;
+  color: #fff0d4;
+  box-shadow: 0 8px 28px #0006;
+}
+.resource-menu,
+.adventure-replay {
+  position: relative;
+}
+.resource-menu .compact-popover,
+.adventure-replay .compact-popover {
+  right: 0;
+}
+.compact-popover button {
+  display: block;
+  margin: 6px 0;
+  width: 100%;
+  padding: 10px;
+}
+.course-adventure .compact-popover .adventure-scene-label,
+.course-adventure .compact-popover .adventure-task-meter,
+.course-adventure .compact-popover .adventure-milestones,
+.adventure-run-status {
+  position: static;
+  max-width: none;
+  pointer-events: auto;
+  transform: none;
+  font-size: 12px;
+  padding: 7px 0;
+  background: transparent;
   display: flex;
   flex-direction: column;
-  gap: 5px;
-  max-width: min(270px, 38%);
-  padding: 10px 12px;
-  border: 1px solid #c8d4bc44;
-  border-radius: 9px;
-  background: #14292de8;
-  color: #fff0d4;
-  font-size: 12px;
-  pointer-events: none;
-}
-.course-adventure .adventure-milestones {
-  bottom: 12px;
-  left: 16px;
-  right: calc(min(390px, 38%) + 16px);
-  padding: 9px 12px;
-  gap: 8px;
-  pointer-events: none;
+  gap: 6px;
 }
 .adventure-pad {
   position: absolute;
-  z-index: 1;
-  left: 16px;
-  bottom: 77px;
-  width: min(340px, 52%);
-  padding: 9px;
-  border-radius: 12px;
-  border: 1px solid #c8d4bc66;
-  background: #14292ded;
+  z-index: 4;
+  left: 12px;
+  bottom: 16px;
   color: #fff0d4;
+}
+.movement-menu[open] {
+  padding: 8px;
+  background: #14292ded;
+  border: 1px solid #eac57866;
+  border-radius: 12px;
 }
 .adventure-pad-buttons {
   display: flex;
   gap: 6px;
+  margin-top: 7px;
 }
 .adventure-pad button {
-  flex: 1;
-  min-width: 0;
+  min-width: 52px;
   min-height: 48px;
   display: flex;
   flex-direction: column;
-  align-items: center;
   justify-content: center;
-  gap: 3px;
-  padding: 5px 3px;
-  border: 1px solid #eac57888;
-  border-radius: 8px;
+  align-items: center;
+  padding: 5px;
   background: #36594e;
   color: #fff4da;
-  cursor: pointer;
+  border: 1px solid #eac57888;
+  border-radius: 8px;
   touch-action: manipulation;
 }
 .adventure-pad button span {
   font-size: 22px;
-  line-height: 1;
 }
 .adventure-pad button small {
   font-size: 10px;
-  line-height: 1.1;
-}
-.adventure-pad button:active:not(:disabled) {
-  transform: translateY(2px);
-  background: #527962;
 }
 .adventure-pad button:disabled {
-  opacity: 0.58;
-  cursor: default;
-}
-.adventure-pad:focus-visible,
-.adventure-pad button:focus-visible,
-.course-adventure .course-scene:focus-visible {
-  outline: 3px solid #ffe2a5;
-  outline-offset: -3px;
+  opacity: 0.5;
 }
 .adventure-key-help {
   display: block;
   font-size: 10px;
-  line-height: 1.35;
-  margin-top: 7px;
+  max-width: 260px;
+  margin-top: 6px;
 }
-.course-adventure
-  .adventure-grid[data-task-panel="closed"]
-  .adventure-milestones {
+.field-journal {
+  position: absolute;
+  z-index: 10;
   right: 16px;
+  top: 90px;
+  width: min(380px, calc(100vw - 32px));
+  max-height: 70dvh;
+  overflow: auto;
+  padding: 22px;
+  background: linear-gradient(140deg, #f5e4bb, #d7c398);
+  color: #183b3b;
+  border: 3px solid #997845;
+  border-radius: 5px 16px 16px 5px;
+  box-shadow: 0 8px 24px #0006;
+}
+.field-journal h2 {
+  font-size: 20px;
+  margin: 12px 0;
+}
+.field-journal .journal-close {
+  float: right;
+  padding: 4px 10px;
+}
+.journal-page {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font:
+    16px/1.65 "DM Sans",
+    sans-serif;
+  margin: 16px 0;
+}
+.journal-mission {
+  font-size: 12px;
+  line-height: 1.5;
+}
+.field-journal nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.field-journal a,
+.field-journal small {
+  display: block;
+  margin-top: 10px;
+}
+.field-journal button {
+  padding: 8px;
+  min-height: 44px;
+  margin-top: 6px;
+}
+.field-journal textarea {
+  width: 100%;
+  min-height: 120px;
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 @media (max-width: 720px) {
   .course-adventure .course-bar {
-    padding: 8px 10px;
-    gap: 7px;
+    padding: 6px 8px;
+    align-items: center;
   }
   .course-adventure .course-bar h1 {
-    font-size: 15px;
-    max-width: 200px;
+    font-size: 12px;
+    max-width: 130px;
   }
   .course-adventure .course-bar .eyebrow {
-    font-size: 8px;
+    display: none;
   }
   .adventure-header-actions {
+    max-width: 230px;
     gap: 4px;
-    max-width: 140px;
   }
   .course-adventure .course-bar button {
     font-size: 10px;
-    padding: 6px 8px;
+    padding: 6px;
+  }
+  .course-adventure .course-bar summary {
+    width: 38px;
+    height: 38px;
+    font-size: 20px;
+  }
+  .course-adventure .course-bar .audio-controls summary {
+    width: auto;
+    font-size: 10px;
+    padding: 6px;
+  }
+  .course-adventure .adventure-grid[data-task-panel="open"] .course-scene {
+    height: calc(100% - 40dvh);
+    width: 100%;
   }
   .course-adventure .adventure-content {
     inset: auto 0 0;
     width: 100%;
-    max-height: 44dvh;
-    padding: 13px;
+    max-height: 40dvh;
     border-left: 0;
     border-top: 1px solid #c8d4bc77;
     border-radius: 14px 14px 0 0;
-    background: #12292ef5;
+    padding: 12px;
   }
   .course-adventure .adventure-content h2 {
     font-size: 16px;
   }
-  .course-adventure .course-scene {
-    height: calc(100% - 44dvh);
-    width: 100%;
+  .course-adventure .adventure-grid[data-task-panel="open"] .adventure-pad {
+    bottom: calc(40dvh + 12px);
   }
-  .course-adventure .adventure-grid[data-task-panel="closed"] .course-scene {
-    height: 100%;
-  }
-  .course-adventure .adventure-scene-label {
-    left: 10px;
-    top: 10px;
-    max-width: 55%;
-    font-size: 12px;
-    padding: 8px 10px;
-  }
-  .course-adventure .adventure-scene-label small {
-    display: none;
-  }
-  .course-adventure .adventure-timer {
-    left: auto;
-    right: 10px;
-    top: 10px;
-    font-size: 21px;
-    padding: 8px 12px;
-  }
-  .course-adventure .adventure-task-meter {
-    left: 10px;
-    top: 58px;
-    padding: 6px 9px;
-    font-size: 10px;
-  }
-  .course-adventure .adventure-task-meter progress {
-    width: 100px;
-    margin-top: 4px;
-  }
-  .adventure-run-status {
-    left: auto;
-    right: 10px;
-    top: 88px;
-    max-width: 53%;
-    padding: 6px 8px;
-    gap: 3px;
-    font-size: 9px;
-  }
-  .adventure-pad {
-    left: 10px;
-    right: 10px;
-    width: auto;
-    bottom: calc(44dvh + 43px);
-    padding: 6px;
-  }
-  .adventure-pad button {
-    min-height: 45px;
-  }
-  .adventure-key-help {
-    display: none;
-  }
-  .course-adventure .adventure-milestones {
-    left: 10px;
-    right: 10px;
-    bottom: calc(44dvh + 8px);
-    font-size: 9px;
-    padding: 7px 8px;
-  }
-  .course-adventure .adventure-grid[data-task-panel="closed"] .adventure-pad {
-    bottom: 55px;
-  }
-  .course-adventure
-    .adventure-grid[data-task-panel="closed"]
-    .adventure-milestones {
+  .field-journal {
+    top: auto;
     bottom: 10px;
     right: 10px;
+    width: calc(100vw - 20px);
+    max-height: 45dvh;
+    padding: 14px;
   }
+}
+
+.police-controls,
+.police-detention.course-directory {
+  position: fixed;
+  inset: auto 12px 80px auto;
+  width: auto;
+  height: auto;
+  z-index: 20;
+  padding: 0;
+  background: none;
+  border: 0;
+  box-shadow: none;
+  overflow: visible;
+}
+.police-menu > summary {
+  cursor: pointer;
+  list-style: none;
+  background: #183b4f;
+  color: #fff2d1;
+  border: 1px solid #c8d4bc77;
+  border-radius: 12px;
+  min-height: 44px;
+  padding: 10px 14px;
+}
+.police-options {
+  position: absolute;
+  bottom: 50px;
+  right: 0;
+  width: min(340px, calc(100vw - 24px));
+  max-height: 50dvh;
+  overflow: auto;
+  background: #183b4ff5;
+  border: 1px solid #c8d4bc77;
+  border-radius: 12px;
+  padding: 16px;
+  color: #fff2d1;
+}
+.police-options h2 {
+  font-size: 16px;
+}
+.police-options p {
+  font-size: 13px;
+  line-height: 1.5;
+}
+.police-options label,
+.police-options button {
+  display: block;
+  margin-top: 8px;
+}
+.police-options textarea,
+.police-options select {
+  width: 100%;
+}
+
+.course-adventure .course-bar h1 {
+  letter-spacing: 0;
+  margin: 0;
+  line-height: 1.3;
+}
+.learning-journey details {
+  margin-top: 14px;
+  border-top: 1px solid #99784566;
+  padding-top: 10px;
+}
+.learning-journey summary {
+  cursor: pointer;
+  font-weight: 700;
+  min-height: 44px;
+}
+.learning-journey > ol {
+  columns: 2;
+  font-size: 12px;
+  padding-left: 16px;
+  line-height: 1.7;
+}
+
+.course-adventure .adventure-timer {
+  right: auto;
+  max-width: 76px;
+}
+@media (max-width: 720px) {
+  .course-adventure .course-bar {
+    flex-wrap: nowrap;
+    gap: 6px;
+  }
+  .course-adventure .course-bar h1 {
+    max-width: 80px;
+    font-size: 11px;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+  }
+  .course-adventure .adventure-header-actions {
+    max-width: none;
+    flex-wrap: nowrap;
+    gap: 4px;
+  }
+  .course-adventure .course-bar button,
+  .course-adventure .course-bar summary,
+  .course-adventure .course-bar .audio-controls summary {
+    width: 34px;
+    min-width: 34px;
+    height: 38px;
+    font-size: 20px;
+    padding: 3px;
+    display: grid;
+    place-items: center;
+  }
+}
+
+@media (max-width: 720px) {
+  .course-adventure .audio-options,
+  .course-adventure .course-bar .compact-popover {
+    position: fixed;
+    top: 56px;
+    right: 10px;
+    left: auto;
+    width: min(310px, calc(100vw - 20px));
+    max-height: 65dvh;
+    overflow: auto;
+  }
+}
+
+@media (max-width: 720px) {
+  .course-adventure .course-bar .compact-popover button,
+  .course-adventure .audio-options button {
+    width: 100%;
+    height: auto;
+    min-height: 44px;
+    font-size: 14px;
+    display: block;
+    padding: 8px;
+  }
+}
+
+.compact-popover button,
+.audio-options button {
+  background: #36594e;
+  color: #fff0d4;
+  border: 1px solid #eac57888;
+  border-radius: 8px;
 }

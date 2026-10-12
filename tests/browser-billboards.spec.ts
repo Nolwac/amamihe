@@ -1,3 +1,4 @@
+import { openCityMenu, openAdventurePanels } from "./game-ui-helpers";
 import { test, expect } from "@playwright/test";
 import { createAccount } from "./auth-helpers";
 test("billboard submission stays pending and the world renders a bounded approved-list fixture", async ({
@@ -6,6 +7,7 @@ test("billboard submission stays pending and the world renders a bounded approve
 }) => {
   await createAccount(context.request, "Billboard Creator");
   await page.goto("/");
+  await openCityMenu(page);
   await page
     .getByRole("button", { name: "Course houses", exact: true })
     .click();
@@ -42,6 +44,7 @@ test("billboard submission stays pending and the world renders a bounded approve
     "data-billboard-count",
     "1",
   );
+  await openCityMenu(page);
   await page
     .getByRole("button", { name: "Course houses", exact: true })
     .click();

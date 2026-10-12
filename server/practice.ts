@@ -52,23 +52,29 @@ export function registerPractice(
         (r) => r.id === b?.resourceId && level.resourceIds.includes(r.id),
       );
       if (
-        !question ||
-        row.progress.finished ||
-        row.progress.blocked ||
-        row.progress.assessment?.status === "pending" ||
-        b?.deliveryId !== deliveryId(row.progress, question) ||
+        b?.deliveryId !==
+          (question && !row.progress.finished
+            ? deliveryId(row.progress, question)
+            : `practice:${level.id}:${row.progress.attempt ?? 0}`) ||
         !resource ||
         !["javascript", "drawing", "notebook"].includes(resource.kind)
       )
         throw new Error(
           "Open practice for the currently delivered course resource.",
         );
+      if (row.progress.game?.status === "active") {
+        row.progress.game.status = "paused";
+        await tx.query(
+          "UPDATE course_enrollments SET progress=$3,updated_at=now() WHERE course_id=$1 AND player_id=$2",
+          [courseId, p, JSON.stringify(row.progress)],
+        );
+      }
       const attempt: PracticeAttempt = {
         id: randomUUID(),
         courseId,
         version: row.version,
         levelId: level.id,
-        deliveryId: b.deliveryId,
+        deliveryId: b.deliveryId!,
         resourceId: resource.id,
         kind: resource.kind as PracticeKind,
         expiresAt: now() + 1800000,

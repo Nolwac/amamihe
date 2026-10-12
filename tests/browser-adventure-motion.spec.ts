@@ -1,3 +1,4 @@
+import { openCityMenu, openAdventurePanels } from "./game-ui-helpers";
 import {
   test,
   expect,
@@ -463,6 +464,7 @@ async function publishThemes(request: APIRequestContext, themes: Theme[]) {
 
 async function enter(page: Page, draft: CourseDraft) {
   await page.goto("/");
+  await openCityMenu(page);
   await page
     .getByRole("button", { name: "Course houses", exact: true })
     .click();
@@ -475,6 +477,7 @@ async function enter(page: Page, draft: CourseDraft) {
   await page
     .getByRole("button", { name: "Enroll & enter adventure", exact: true })
     .click();
+  await openAdventurePanels(page);
   await expect
     .poll(async () => Boolean((await snapshot(page))?.actor?.bones), {
       timeout: 30000,
@@ -743,6 +746,7 @@ test("all adventure themes animate real limb poses and task-driven scene encount
       await page
         .getByRole("button", { name: "Continue adventure", exact: true })
         .click();
+      await openAdventurePanels(page);
     }
   }
   await expect(
@@ -881,6 +885,7 @@ test("phone manual controls cause actual jump, obstacle Game Over and a checkpoi
   await page
     .getByRole("button", { name: "Continue adventure", exact: true })
     .click();
+  await openAdventurePanels(page);
   await expect(page.locator("canvas[data-course-theme]")).toHaveAttribute(
     "data-course-theme",
     "temple-chase",

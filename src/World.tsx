@@ -1,3 +1,4 @@
+import { configureCameraControls } from "./cameraControls";
 import { createBillboards } from "./billboards";
 import { gameAudio } from "./gameAudio";
 import { useBillboards, type Billboard } from "./billboardPresence";
@@ -37,6 +38,8 @@ type Props = {
   peers?: Presence[];
   mode?: "world" | "avatar";
   paused?: boolean;
+  enforcementStatus?: string;
+  detentionId?: string;
   outfit: string;
   quality: string;
   courses?: { id: string; title: string }[];
@@ -57,6 +60,8 @@ type Props = {
 export default function World({
   mode = "world",
   paused = false,
+  enforcementStatus,
+  detentionId,
   outfit,
   quality,
   courses = [],
@@ -70,6 +75,8 @@ export default function World({
     adCb = useRef(onAdvertisement),
     statsCb = useRef(onReady),
     pausedRef = useRef(paused);
+  const enforcement = useRef({ status: enforcementStatus, id: detentionId });
+  enforcement.current = { status: enforcementStatus, id: detentionId };
   const ads = useBillboards();
   const adRef = useRef(ads);
   adRef.current = ads;
@@ -221,6 +228,7 @@ export default function World({
         new Vector3(0, 2, -2),
         scene,
       );
+      configureCameraControls(camera);
       camera.attachControl(canvas.current!, true);
       camera.lowerRadiusLimit = 6.5;
       camera.upperRadiusLimit = 18;
@@ -1530,6 +1538,37 @@ export default function World({
         }
         m.freeze();
       }
+      let arrestKey: string | undefined,
+        arrestTime = 0;
+      let arrestOrigin: Vector3 | undefined;
+      const cuffs = [-1, 1].map((side) => {
+        const cuff = MeshBuilder.CreateTorus(
+          "learner-restraint-" + side,
+          { diameter: 0.16, thickness: 0.03, tessellation: 12 },
+          scene,
+        );
+        cuff.parent = player.root;
+        cuff.position.set(side * 0.26, 1.12, 0.33);
+        cuff.rotation.x = Math.PI / 2;
+        cuff.material = mat("restraint-metal-" + side, "#a8c0cf");
+        cuff.setEnabled(false);
+        return cuff;
+      });
+      const releaseArea = new TransformNode(
+        "learning-police-release-area",
+        scene,
+      );
+      for (let i = 0; i < 6; i++) {
+        const bar = MeshBuilder.CreateCylinder(
+          "release-area-bar-" + i,
+          { diameter: 0.06, height: 2.7, tessellation: 8 },
+          scene,
+        );
+        bar.position.set(-4.3 + i * 0.45, 1.35, -6.8);
+        bar.parent = releaseArea;
+        bar.material = mat("release-bar-metal-" + i, "#48697c");
+      }
+      releaseArea.setEnabled(false);
       const keys = new Set<string>();
       const updateWalking = () => {
         const horizontal =
@@ -1585,7 +1624,9 @@ export default function World({
         lastResolutionChange = performance.now();
       engine.runRenderLoop(() => {
         const now = performance.now();
-        if (pausedRef.current || document.hidden) {
+        const arrested =
+          mode === "world" && enforcement.current.status === "arrested";
+        if ((pausedRef.current && !arrested) || document.hidden) {
           audioSceneActive = false;
           if (mode === "world")
             gameAudio.setMovement({ active: false, speed: 0, theme: "city" });
@@ -1605,18 +1646,91 @@ export default function World({
         if (quality === "low" && now - last < 100) return;
         const dt = Math.min((now - last) / 1000, 0.1);
         last = now;
+        if (arrested && avatarReady && residents[0]) {
+          const officer = residents[0];
+          if (arrestKey !== enforcement.current.id) {
+            arrestKey = enforcement.current.id;
+            arrestTime = 0;
+            arrestOrigin = player.root.position.clone();
+            keys.clear();
+          }
+          arrestTime += dt;
+          const origin = arrestOrigin!,
+            destination = new Vector3(-3.2, 0, -8);
+          if (arrestTime < 2.5) {
+            const target = origin.add(new Vector3(-0.85, 0, 0));
+            officer.root.position = Vector3.Lerp(
+              officer.root.position,
+              target,
+              Math.min(1, dt * 2),
+            );
+            officer.root.rotation.y = Math.atan2(
+              origin.x - officer.root.position.x,
+              origin.z - officer.root.position.z,
+            );
+            animate(officer.animations, true);
+          } else if (arrestTime < 4) {
+            animate(officer.animations, false);
+            animate(player.animations, false);
+          } else {
+            const t = Math.min(1, (arrestTime - 4) / 4);
+            const smooth = t * t * (3 - 2 * t);
+            player.root.position = Vector3.Lerp(origin, destination, smooth);
+            officer.root.position = player.root.position.add(
+              new Vector3(-0.85, 0, 0),
+            );
+            const heading = Math.atan2(
+              destination.x - origin.x,
+              destination.z - origin.z,
+            );
+            player.root.rotation.y = heading;
+            officer.root.rotation.y = heading;
+            animate(player.animations, t < 1);
+            animate(officer.animations, t < 1);
+          }
+          cuffs.forEach((c) => c.setEnabled(arrestTime >= 2.5));
+          releaseArea.setEnabled(arrestTime >= 4);
+          canvas.current!.dataset.arrestPhase =
+            arrestTime < 2.5
+              ? "approach"
+              : arrestTime < 4
+                ? "restrained"
+                : arrestTime < 8
+                  ? "escort"
+                  : "detained";
+          canvas.current!.dataset.arrestActors = JSON.stringify({
+            learner: player.root.position.asArray(),
+            officer: officer.root.position.asArray(),
+            cuffs: arrestTime >= 2.5,
+          });
+        } else if (arrestKey) {
+          cuffs.forEach((c) => c.setEnabled(false));
+          releaseArea.setEnabled(false);
+          animate(player.animations, false);
+          animate(residents[0].animations, false);
+          if (arrestOrigin) player.root.position.copyFrom(arrestOrigin);
+          residents[0].root.position.set(-3.4, 0, -2.1);
+          arrestKey = undefined;
+          canvas.current!.dataset.arrestPhase = "released";
+        }
         let dx = 0,
           dz = 0;
         if (keys.has("w") || keys.has("arrowup")) dz += 1;
         if (keys.has("s") || keys.has("arrowdown")) dz -= 1;
         if (keys.has("a") || keys.has("arrowleft")) dx -= 1;
         if (keys.has("d") || keys.has("arrowright")) dx += 1;
+        if (arrested) {
+          dx = 0;
+          dz = 0;
+        }
         if (dx || dz) {
           if (mode === "world") player.root.position.x += dx * dt * 3;
           if (mode === "world") player.root.position.z += dz * dt * 3;
           if (mode === "world") player.root.rotation.y = Math.atan2(dx, dz);
         }
-        const shouldMove = mode === "world" && Boolean(dx || dz);
+        const shouldMove =
+          mode === "world" &&
+          (arrested ? arrestTime >= 4 && arrestTime < 8 : Boolean(dx || dz));
         if (mode === "world")
           gameAudio.setMovement({
             active: shouldMove,

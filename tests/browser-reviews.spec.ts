@@ -1,3 +1,4 @@
+import { openCityMenu, openAdventurePanels } from "./game-ui-helpers";
 import { test, expect } from "@playwright/test";
 import { createAccount } from "./auth-helpers";
 import type { CourseDraft } from "../shared/course";
@@ -51,6 +52,7 @@ test("authored recall encounters resume, mark help, and keep early practice sepa
     ).ok(),
   ).toBe(true);
   await page.goto("/");
+  await openCityMenu(page);
   await page
     .getByRole("button", { name: "Course houses", exact: true })
     .click();
@@ -71,6 +73,7 @@ test("authored recall encounters resume, mark help, and keep early practice sepa
   expect(initial.ok()).toBe(true);
   const id = (await initial.json()).id;
   await page.reload();
+  await openCityMenu(page);
   await page
     .getByRole("button", { name: "Course houses", exact: true })
     .click();

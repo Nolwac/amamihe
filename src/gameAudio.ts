@@ -18,6 +18,7 @@ type Sound =
 type Settings = {
   enabled: boolean;
   muted: boolean;
+  volume: number;
   music: number;
   effects: number;
 };
@@ -26,8 +27,9 @@ const STORAGE_KEY = "amamihe-audio-v1";
 const defaults: Settings = {
   enabled: false,
   muted: false,
-  music: 0.35,
-  effects: 0.65,
+  volume: 0.85,
+  music: 0.6,
+  effects: 0.85,
 };
 const themes: Record<
   AudioTheme,
@@ -100,6 +102,10 @@ class GameAudio {
         this.settings = {
           enabled: saved.enabled,
           muted: saved.muted,
+          volume:
+            typeof saved.volume === "number"
+              ? bounded(saved.volume)
+              : defaults.volume,
           music: bounded(saved.music),
           effects: bounded(saved.effects),
         };
@@ -129,7 +135,7 @@ class GameAudio {
     const now = this.context.currentTime;
     this.master.gain.setValueAtTime(
       this.settings.enabled && !this.settings.muted && !document.hidden
-        ? 0.65
+        ? this.settings.volume * 3.5
         : 0,
       now,
     );
@@ -183,7 +189,14 @@ class GameAudio {
         this.analyser.fftSize = 512;
         this.music.connect(this.master);
         this.effects.connect(this.master);
-        this.master.connect(this.analyser);
+        const limiter = this.context.createDynamicsCompressor();
+        limiter.threshold.value = -6;
+        limiter.knee.value = 8;
+        limiter.ratio.value = 12;
+        limiter.attack.value = 0.003;
+        limiter.release.value = 0.18;
+        this.master.connect(limiter);
+        limiter.connect(this.analyser);
         this.analyser.connect(this.context.destination);
         this.noise = this.context.createBuffer(
           1,
@@ -222,7 +235,7 @@ class GameAudio {
     this.update({ muted: !this.settings.muted });
     if (!this.settings.muted) void this.activate();
   }
-  setVolume(channel: "music" | "effects", value: number) {
+  setVolume(channel: "volume" | "music" | "effects", value: number) {
     this.update({ [channel]: bounded(value) });
   }
   setTheme(theme: AudioTheme) {

@@ -10,8 +10,15 @@ export default function AudioControls() {
   useEffect(() => gameAudio.install(), []);
   return (
     <details className="audio-controls">
-      <summary>
-        Sound {settings.enabled && !settings.muted ? "on" : "off"}
+      <summary
+        title={settings.enabled && !settings.muted ? "Sound on" : "Sound off"}
+      >
+        <span aria-hidden="true">
+          {settings.enabled && !settings.muted ? "♫" : "♪"}
+        </span>
+        <span className="sr-only">
+          Sound {settings.enabled && !settings.muted ? "on" : "off"}
+        </span>
       </summary>
       <div className="audio-options">
         <button
@@ -26,6 +33,19 @@ export default function AudioControls() {
               ? "Unmute game audio"
               : "Mute game audio"}
         </button>
+        <label>
+          Game volume
+          <input
+            aria-label="Game volume"
+            type="range"
+            min="0"
+            max="100"
+            value={Math.round(settings.volume * 100)}
+            onChange={(event) =>
+              gameAudio.setVolume("volume", Number(event.target.value) / 100)
+            }
+          />
+        </label>
         <label>
           Music volume
           <input

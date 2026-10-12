@@ -1,10 +1,10 @@
 # Physical Adventure Runtime
 
-Implementation status: locally validated and ready for review; not merged or deployed. All 26 final browser journeys pass. See the [handoff note](ADVENTURE_HANDOFF.md) for final results, historical failures and remaining acceptance gates.
+The original physical-adventure implementation passed local, CI and public validation and shipped at `d7485ea`. See the [handoff note](ADVENTURE_HANDOFF.md) for that release and [immersive learning recovery](IMMERSIVE_LEARNING_HANDOFF.md) for the subsequent learner-feedback correction and its separate release boundary.
 
 ## Gameplay
 
-The course world occupies the main viewport, with a scrolling task drawer and a mobile **Hide task** control. Human avatars use baked skeletal Run, Jump, Slide, Guard, Jab, Hit and Build clips. A following camera, bounded scenery sections and pooled colliders support genuine world traversal without allocating an endless world. The phone chase camera preserves visibility around columns and a closing guardian in the center and right lanes.
+The course world occupies the main viewport, with a task drawer opened through **?**, compact default controls, selectable field journals and practice stations. Human avatars use baked skeletal Run, Jump, Slide, Guard, Jab, Hit and Build clips. A following camera, bounded scenery sections and pooled colliders support genuine world traversal without allocating an endless world. The phone chase camera preserves visibility around columns and a closing guardian in the center and right lanes.
 
 - **Temple Chase:** the runner traverses a temple bridge, jumps hurdles, slides under arches and changes lanes around solid barriers. An articulated guardian pursues the player. Section expiry or an actual obstacle contact causes Game Over.
 - **Racing:** the player and a rigged rival advance along the track. Independent correct tasks produce a temporary speed boost that can overtake the rival; speed alone cannot clear a learning criterion.
@@ -23,10 +23,10 @@ Theme, outfit and city-quality changes create a fresh canvas for each engine gen
 
 ## Music and Effects
 
-Open **Sound** and choose **Enable game audio**. Each theme has an original locally synthesized musical score. Footsteps follow movement; jumps, slides, strikes, impacts, task results, start/pause, Game Over and button clicks have associated effects. Music and effects have separate volume sliders; mute and volume preferences persist on the device. Audio requires a player gesture and suspends in hidden tabs. No recordings, paid service, external audio downloads or runtime generation of teaching material are involved.
+Open the **♪** sound icon and choose **Enable game audio**. Each theme has an original locally synthesized musical score. Footsteps follow movement; jumps, slides, strikes, impacts, task results, start/pause, Game Over and button clicks have associated effects. Game volume controls a stronger compressed output stage; music and effects retain separate sliders. Mute and volume preferences persist on the device. Audio requires a player gesture and suspends in hidden tabs. No recordings, paid service, external audio downloads or runtime generation of teaching material are involved.
 
 ## Verification Boundaries
 
-Node checks exercise swept collisions, assist layouts, checkpoint continuity, action authorization and replay handling, task-driven race boosts and sparring damage. Chromium journeys inspect actual Babylon root positions, bone orientation matrices and collider bounds, including pause, stale queued actions, assisted clearance and mobile collision/retry. Web Audio checks sample the actual analyser waveform and master gain; headless output does not establish listening quality. CI and the public deployment check remain pending for this correction; the latter verifies the exact release, HTTPS, client bundle and bounded action asset.
+Node checks exercise swept collisions, assist layouts, checkpoint continuity, action authorization and replay handling, task-driven race boosts and sparring damage. Chromium journeys inspect actual Babylon root positions, bone orientation matrices and collider bounds, including pause, stale queued actions, assisted clearance and mobile collision/retry. Web Audio checks sample the actual analyser waveform and master gain; headless output does not establish listening quality. The original release passed CI and exact-release public verification of HTTPS, client bundle and bounded action asset. The follow-up handoff records the current change’s validation and promotion status.
 
 Actual browser captures belong in `evidence/screenshots/`. Physical 2 GB hardware, soundtrack listening feedback, final artwork and educational outcomes still require evaluation. Concept previews remain visual targets, not screenshots of delivered gameplay.

@@ -1,3 +1,4 @@
+import { openCityMenu, openAdventurePanels } from "./game-ui-helpers";
 import { test, expect } from "@playwright/test";
 import { createAccount } from "./auth-helpers";
 import type { CourseDraft, LearningProgress } from "../shared/course";
@@ -37,6 +38,7 @@ test("playable themes, step Game Over, badge and cosmetic purchase survive reloa
   );
   expect(publication.ok()).toBe(true);
   await page.goto("/");
+  await openCityMenu(page);
   await page
     .getByRole("button", { name: "Course houses", exact: true })
     .click();
@@ -46,6 +48,7 @@ test("playable themes, step Game Over, badge and cosmetic purchase survive reloa
   await page
     .getByRole("button", { name: "Enroll & enter adventure", exact: true })
     .click();
+  await openAdventurePanels(page);
   await expect(page.locator("canvas[data-course-theme]")).toHaveAttribute(
     "data-avatar-ready",
     "true",
@@ -146,13 +149,15 @@ test("playable themes, step Game Over, badge and cosmetic purchase survive reloa
       await page
         .getByRole("button", { name: "Continue adventure", exact: true })
         .click();
+    await openAdventurePanels(page);
   }
   await expect(
     page.getByText(/Checkpoint finisher badge earned/),
   ).toBeVisible();
   await page
-    .getByRole("button", { name: "Back to Venture City", exact: true })
+    .getByRole("button", { name: "Save & return to Venture City", exact: true })
     .click();
+  await openCityMenu(page);
   await page
     .getByRole("button", { name: "Course houses", exact: true })
     .click();

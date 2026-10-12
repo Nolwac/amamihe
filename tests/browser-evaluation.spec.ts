@@ -1,3 +1,4 @@
+import { openCityMenu, openAdventurePanels } from "./game-ui-helpers";
 import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { createAccount } from "./auth-helpers";
@@ -22,6 +23,7 @@ for (const width of [390, 1440])
     await scan();
     await createAccount(context.request, "Evaluation Explorer");
     await page.reload();
+    await openCityMenu(page);
     await page
       .getByRole("button", { name: "Course houses", exact: true })
       .click();
@@ -47,6 +49,7 @@ for (const width of [390, 1440])
     await page
       .getByRole("button", { name: "Return to city", exact: true })
       .click();
+    await openCityMenu(page);
     await page
       .getByRole("button", { name: "Tutor studio", exact: true })
       .click();

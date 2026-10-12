@@ -1,3 +1,4 @@
+import { learningRequestKey } from "./request-limits.js";
 import { registerOperations } from "./operations.js";
 import { publishPilotCourse } from "./pilot-course.js";
 import {
@@ -64,6 +65,7 @@ await app.register(cookie);
 await app.register(rateLimit, {
   max: 300,
   timeWindow: "1 minute",
+  keyGenerator: learningRequestKey(auth),
   allowList: (req) => !req.url.startsWith("/api/"),
 });
 await app.register(compress, { global: true, encodings: ["br", "gzip"] });

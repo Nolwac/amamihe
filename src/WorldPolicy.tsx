@@ -111,103 +111,120 @@ export default function WorldPolicy({
       }
       aria-label="Learning Police"
     >
-      <h2>
-        {detained
-          ? "Learning Police · temporary city eviction"
-          : state.status === "warned"
-            ? "Learning Police warning"
-            : "Learning Police"}
-      </h2>
-      {detained ? (
-        <>
-          <p>
-            {state.arrestMinutes ?? 15} minutes of connected foreground time
-            passed without recorded learning or course authoring. Progress and
-            mastery are retained.
-          </p>
-          <p>
-            Return by answering two new questions independently in a selected
-            course or finishing its remaining questions, publishing a valid
-            course, or spending five cosmetic points. No real payment is
-            required. Breaks, hidden tabs and connection gaps are protected.
-          </p>
-          <label>
-            Release course
-            <select value={course} onChange={(e) => setCourse(e.target.value)}>
-              <option value="">Choose an enrolled adventure</option>
-              {courses
-                .filter((c) => !c.finished)
-                .map((c) => (
-                  <option value={c.courseId} key={c.courseId}>
-                    {c.title}
-                  </option>
-                ))}
-            </select>
-          </label>
-          <button
-            className="course-secondary"
-            disabled={busy || !course}
-            onClick={() =>
-              void perform({ action: "release-course", courseId: course }, () =>
-                onCourse(course),
-              )
-            }
-          >
-            Continue release course
-          </button>
-          <button className="course-secondary" onClick={onSearch}>
-            Find a release course
-          </button>
-          <button className="course-secondary" onClick={onStudio}>
-            Create a course for release
-          </button>
-          <button
-            className="course-secondary"
-            disabled={busy}
-            onClick={() => void perform({ action: "fine" }, onPoints)}
-          >
-            Pay five cosmetic points
-          </button>
-          <label>
-            Appeal this warning
-            <textarea
-              maxLength={500}
-              value={appeal}
-              onChange={(e) => setAppeal(e.target.value)}
-            />
-          </label>
-          <button
-            className="course-secondary"
-            disabled={busy || appeal.trim().length < 5 || Boolean(state.appeal)}
-            onClick={() => void perform({ action: "appeal", message: appeal })}
-          >
-            {state.appeal ? "Appeal submitted" : "Submit appeal"}
-          </button>
-        </>
-      ) : (
-        <>
-          {state.status === "warned" && (
-            <p>
-              Choose a course or work on your course draft. City eviction starts
-              after fifteen idle minutes.
-            </p>
+      <details className="police-menu">
+        <summary aria-label="Learning Police controls">
+          ♜<span className="sr-only">Learning Police controls</span>
+          {state.status === "arrested" && " · detained"}
+        </summary>
+        <div className="police-options">
+          <h2>
+            {detained
+              ? "Learning Police · temporary city eviction"
+              : state.status === "warned"
+                ? "Learning Police warning"
+                : "Learning Police"}
+          </h2>
+          {detained ? (
+            <>
+              <p>
+                {state.arrestMinutes ?? 15} minutes of connected foreground time
+                passed without recorded learning or course authoring. Progress
+                and mastery are retained.
+              </p>
+              <p>
+                Return by answering two new questions independently in a
+                selected course or finishing its remaining questions, publishing
+                a valid course, or spending five cosmetic points. No real
+                payment is required. Breaks, hidden tabs and connection gaps are
+                protected.
+              </p>
+              <label>
+                Release course
+                <select
+                  value={course}
+                  onChange={(e) => setCourse(e.target.value)}
+                >
+                  <option value="">Choose an enrolled adventure</option>
+                  {courses
+                    .filter((c) => !c.finished)
+                    .map((c) => (
+                      <option value={c.courseId} key={c.courseId}>
+                        {c.title}
+                      </option>
+                    ))}
+                </select>
+              </label>
+              <button
+                className="course-secondary"
+                disabled={busy || !course}
+                onClick={() =>
+                  void perform(
+                    { action: "release-course", courseId: course },
+                    () => onCourse(course),
+                  )
+                }
+              >
+                Continue release course
+              </button>
+              <button className="course-secondary" onClick={onSearch}>
+                Find a release course
+              </button>
+              <button className="course-secondary" onClick={onStudio}>
+                Create a course for release
+              </button>
+              <button
+                className="course-secondary"
+                disabled={busy}
+                onClick={() => void perform({ action: "fine" }, onPoints)}
+              >
+                Pay five cosmetic points
+              </button>
+              <label>
+                Appeal this warning
+                <textarea
+                  maxLength={500}
+                  value={appeal}
+                  onChange={(e) => setAppeal(e.target.value)}
+                />
+              </label>
+              <button
+                className="course-secondary"
+                disabled={
+                  busy || appeal.trim().length < 5 || Boolean(state.appeal)
+                }
+                onClick={() =>
+                  void perform({ action: "appeal", message: appeal })
+                }
+              >
+                {state.appeal ? "Appeal submitted" : "Submit appeal"}
+              </button>
+            </>
+          ) : (
+            <>
+              {state.status === "warned" && (
+                <p>
+                  Choose a course or work on your course draft. City eviction
+                  starts after fifteen idle minutes.
+                </p>
+              )}
+              {state.status === "arrested" && (
+                <p>
+                  Complete two independent questions or finish your selected
+                  course for release.
+                </p>
+              )}
+              <button
+                className="course-secondary"
+                onClick={() => onBreak(!breakMode)}
+              >
+                {breakMode ? "Resume learning" : "Take a break"}
+              </button>
+              {breakMode && <p>Break protected. Your progress is retained.</p>}
+            </>
           )}
-          {state.status === "arrested" && (
-            <p>
-              Complete two independent questions or finish your selected course
-              for release.
-            </p>
-          )}
-          <button
-            className="course-secondary"
-            onClick={() => onBreak(!breakMode)}
-          >
-            {breakMode ? "Resume learning" : "Take a break"}
-          </button>
-          {breakMode && <p>Break protected. Your progress is retained.</p>}
-        </>
-      )}
-      {(message || error) && <p role="status">{message || error}</p>}
+          {(message || error) && <p role="status">{message || error}</p>}
+        </div>
+      </details>
     </section>
   );
 }

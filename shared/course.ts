@@ -93,6 +93,13 @@ export type PublishedCourse = {
   definition: PublicCourseDefinition;
 };
 export type LearningProgress = {
+  journey?: import("./learning-journey.js").LearningJourney;
+  practiceDeliveryId?: string;
+  practiceOnly?: boolean;
+  replayMode?: "course" | "level";
+  canResumeCheckpoint?: boolean;
+  checkpoint?: string;
+  replayableLevels?: { id: string; title: string }[];
   courseId: string;
   version: number;
   levelId: string;

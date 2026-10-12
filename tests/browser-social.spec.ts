@@ -1,3 +1,4 @@
+import { openCityMenu, openAdventurePanels } from "./game-ui-helpers";
 import { test, expect } from "@playwright/test";
 import { createAccount } from "./auth-helpers";
 import type { CourseDraft } from "../shared/course";
@@ -51,6 +52,7 @@ test("two browsers share real 3D avatars, course rooms and a consented team batt
     await page.goto("/");
     await beta.goto("/");
     for (const p of [page, beta]) {
+      await openCityMenu(p);
       await p
         .getByRole("button", { name: "Course houses", exact: true })
         .click();
@@ -88,6 +90,7 @@ test("two browsers share real 3D avatars, course rooms and a consented team batt
       "1",
       { timeout: 60000 },
     );
+    await openCityMenu(beta);
     await beta
       .getByRole("button", { name: "Course houses", exact: true })
       .click();
@@ -128,6 +131,7 @@ test("two browsers share real 3D avatars, course rooms and a consented team batt
       .toBeGreaterThan(initial);
     await beta.screenshot({ path: "test-results/step8-shared-city.png" });
     for (const p of [page, beta]) {
+      await openCityMenu(p);
       await p
         .getByRole("button", { name: "Course houses", exact: true })
         .click();
@@ -140,6 +144,7 @@ test("two browsers share real 3D avatars, course rooms and a consented team batt
       await p
         .getByRole("button", { name: "Enroll & enter adventure", exact: true })
         .click();
+      await openAdventurePanels(p);
     }
     await expect
       .poll(
@@ -205,6 +210,7 @@ test("two browsers share real 3D avatars, course rooms and a consented team batt
       await p
         .getByRole("button", { name: "Return to city", exact: true })
         .click();
+      await openCityMenu(p);
       await p
         .getByRole("button", { name: "Course houses", exact: true })
         .click();
@@ -332,6 +338,7 @@ test("two browsers share real 3D avatars, course rooms and a consented team batt
       alphaPanel.locator("article").filter({ hasText: "Social Beta" }),
     ).toBeVisible();
     await page.reload();
+    await openCityMenu(page);
     await page
       .getByRole("button", { name: "Course houses", exact: true })
       .click();
