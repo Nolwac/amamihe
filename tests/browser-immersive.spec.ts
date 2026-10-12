@@ -155,6 +155,7 @@ test("phone adventure restores the paused draft and exposes world study and prac
     new RegExp("^2 /"),
   );
   await page.getByLabel("Close field journal").click();
+  await page.getByLabel("World resources", { exact: true }).click();
   await page
     .getByRole("button", { name: "Practise: Workshop arithmetic", exact: true })
     .click();

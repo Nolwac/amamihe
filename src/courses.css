@@ -1052,3 +1052,11 @@
     padding: 8px;
   }
 }
+
+.compact-popover button,
+.audio-options button {
+  background: #36594e;
+  color: #fff0d4;
+  border: 1px solid #eac57888;
+  border-radius: 8px;
+}

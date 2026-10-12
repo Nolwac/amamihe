@@ -564,7 +564,12 @@ export default function CourseAdventure({
               {progress?.resources?.map((resource) => (
                 <button
                   key={resource.id}
-                  onClick={() => openResource(resource.id)}
+                  onClick={(event) => {
+                    event.currentTarget
+                      .closest("details")
+                      ?.removeAttribute("open");
+                    openResource(resource.id);
+                  }}
                 >
                   {resource.kind === "reading" ? "Read" : "Practise"}:{" "}
                   {resource.title}
