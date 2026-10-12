@@ -1,4 +1,5 @@
 import { createBillboards } from "./billboards";
+import { gameAudio } from "./gameAudio";
 import { useBillboards, type Billboard } from "./billboardPresence";
 import { createPeerRenderer } from "./peerScene";
 import { publishPosition } from "./socialPresence";
@@ -1578,12 +1579,16 @@ export default function World({
           houseCb.current(info.pickInfo.pickedMesh.metadata.course);
       });
       let last = 0,
+        audioSceneActive = false,
         tick = performance.now(),
         frames = 0,
         lastResolutionChange = performance.now();
       engine.runRenderLoop(() => {
         const now = performance.now();
         if (pausedRef.current || document.hidden) {
+          audioSceneActive = false;
+          if (mode === "world")
+            gameAudio.setMovement({ active: false, speed: 0, theme: "city" });
           if (canvas.current?.dataset.renderState !== "paused")
             canvas.current?.setAttribute("data-render-state", "paused");
           last = now;
@@ -1593,6 +1598,10 @@ export default function World({
         }
         if (canvas.current?.dataset.renderState !== "active")
           canvas.current?.setAttribute("data-render-state", "active");
+        if (mode === "world" && !audioSceneActive) {
+          gameAudio.setTheme("city");
+          audioSceneActive = true;
+        }
         if (quality === "low" && now - last < 100) return;
         const dt = Math.min((now - last) / 1000, 0.1);
         last = now;
@@ -1608,6 +1617,12 @@ export default function World({
           if (mode === "world") player.root.rotation.y = Math.atan2(dx, dz);
         }
         const shouldMove = mode === "world" && Boolean(dx || dz);
+        if (mode === "world")
+          gameAudio.setMovement({
+            active: shouldMove,
+            speed: shouldMove ? 3 : 0,
+            theme: "city",
+          });
         if (shouldMove !== moving && avatarReady) {
           moving = shouldMove;
           animate(player.animations, moving);
@@ -1769,6 +1784,8 @@ export default function World({
       };
       window.addEventListener("resize", resize);
       release = () => {
+        if (mode === "world")
+          gameAudio.setMovement({ active: false, speed: 0, theme: "city" });
         window.removeEventListener("keydown", down);
         window.removeEventListener("keyup", up);
         window.removeEventListener("blur", clear);
@@ -1789,6 +1806,7 @@ export default function World({
   }, [outfit, quality, mode]);
   return (
     <canvas
+      key={`${outfit}:${quality}:${mode}`}
       ref={canvas}
       className="world-canvas"
       aria-label="Interactive 3D Venture City. Move with WASD or arrow keys, drag to orbit, click a course house."

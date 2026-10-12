@@ -1,14 +1,28 @@
+import { useEffect, useRef } from "react";
 import { createBillboards } from "./billboards";
 import type { Billboard } from "./billboardPresence";
 import { createPeerRenderer } from "./peerScene";
 import { publishPosition } from "./socialPresence";
+import { gameAudio } from "./gameAudio";
 import type { Presence } from "../shared/social";
-import { resourcePath } from "./rendering";
 import { nextRenderHeight } from "../shared/rendering";
-import { useEffect, useRef } from "react";
+import type { Theme } from "../shared/course";
+import {
+  advanceAdventureRuntime,
+  adventureFrame,
+  applyAdventureTask,
+  createAdventureRuntime,
+  type AdventureState,
+} from "../shared/adventure-runtime";
+import {
+  loadCourseHumans,
+  type CourseHuman,
+  type HumanPose,
+} from "./courseActors";
+import { createCourseEnvironment, createGuardian } from "./courseEnvironment";
 import "@babylonjs/core/Culling/ray";
+import { Ray } from "@babylonjs/core/Culling/ray";
 import { Viewport } from "@babylonjs/core/Maths/math.viewport";
-import { Texture } from "@babylonjs/core/Materials/Textures/texture";
 import { Engine } from "@babylonjs/core/Engines/engine";
 import { Scene } from "@babylonjs/core/scene";
 import { Vector3, Matrix } from "@babylonjs/core/Maths/math.vector";
@@ -17,14 +31,7 @@ import { ArcRotateCamera } from "@babylonjs/core/Cameras/arcRotateCamera";
 import { HemisphericLight } from "@babylonjs/core/Lights/hemisphericLight";
 import { MeshBuilder } from "@babylonjs/core/Meshes/meshBuilder";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
-import { TransformNode } from "@babylonjs/core/Meshes/transformNode";
 import { Mesh } from "@babylonjs/core/Meshes/mesh";
-import { PBRMaterial } from "@babylonjs/core/Materials/PBR/pbrMaterial";
-import { LoadAssetContainerAsync } from "@babylonjs/core/Loading/sceneLoader";
-import "@babylonjs/loaders/glTF/2.0/glTFLoader";
-import "@babylonjs/loaders/glTF/2.0/Extensions/KHR_materials_ior";
-import "@babylonjs/loaders/glTF/2.0/Extensions/KHR_materials_specular";
-import type { Theme } from "../shared/course";
 
 export type SceneGame = {
   status: string;
@@ -34,8 +41,13 @@ export type SceneGame = {
   choice: number | null;
   boost: number;
   reducedMotion: boolean;
+  adventure?: AdventureState;
+  stepKey?: string;
+  run?: number;
+  elapsedMs?: number;
+  activity?: { id: string; correct: boolean; independent: boolean };
 };
-/** Shared tutor preview and genuine 3D task-driven adventure. */
+/** Tutor preview and published adventures share real rigs, geometry and physics. */
 export default function CourseScene({
   theme,
   outfit = "terracotta",
@@ -81,395 +93,687 @@ export default function CourseScene({
   useEffect(() => {
     const element = canvas.current!;
     let disposed = false;
-    const engine = new Engine(element, false, {
-      preserveDrawingBuffer: false,
-      stencil: false,
-      powerPreference: "low-power",
-    });
-    const scene = new Scene(engine);
-    const synchronizeAds = createBillboards(
-      scene,
-      () => live.current.billboards,
-      true,
-    );
-    const synchronizePeers = createPeerRenderer(
-      scene,
-      () => live.current.peers,
-      theme === "wrestling" ? 0.65 : 0.1,
-    );
-    const temple = theme === "temple-chase";
-    scene.clearColor = Color4.FromHexString(temple ? "#162d32ff" : "#aec5c7ff");
-    const camera = new ArcRotateCamera(
-      "preview-camera",
-      game ? -Math.PI / 2 : -Math.PI / 2 - 0.35,
-      game ? 1.38 : 1.13,
-      game ? 9 : 14,
-      new Vector3(0, game ? 1.5 : 1.8, game ? 2 : 3),
-      scene,
-    );
-    camera.lowerRadiusLimit = 7;
-    camera.upperRadiusLimit = 20;
-    camera.attachControl(element, true);
-    camera.inputs.removeByType("ArcRotateCameraKeyboardMoveInput");
-    new HemisphericLight("sky", new Vector3(0.3, 1, -0.4), scene).intensity =
-      1.1;
-    function material(name: string, hex: string) {
-      const m = new StandardMaterial(name, scene);
-      m.diffuseColor = Color3.FromHexString(hex);
-      m.specularColor = Color3.Black();
-      return m;
-    }
-    const stone = material("sandstone", "#b99167");
-    const stoneTile = new Texture(resourcePath("world/limestone.webp"), scene);
-    stoneTile.uScale = 2;
-    stoneTile.vScale = 2;
-    stone.diffuseTexture = stoneTile;
-    const floor = material("floor", temple ? "#52625b" : "#dbc7a6");
-    if (temple) floor.diffuseTexture = stoneTile;
-    const gold = material("gold", "#e9b85e");
-    const teal = material("teal", "#33867b");
-    const dark = material("dark", "#283c46");
-    const clay = material("clay", "#ba7158");
-    function box(
-      name: string,
-      x: number,
-      y: number,
-      z: number,
-      w: number,
-      h: number,
-      d: number,
-      mat = stone,
-    ) {
-      const mesh = MeshBuilder.CreateBox(
-        name,
-        { width: w, height: h, depth: d },
+    let release: (() => void) | undefined;
+    const initialize = () => {
+      if (disposed) return;
+      const engine = new Engine(element, false, {
+        preserveDrawingBuffer: false,
+        stencil: false,
+        powerPreference: "low-power",
+      });
+      const scene = new Scene(engine);
+      if (live.current.game) gameAudio.setTheme(theme);
+      const temple = theme === "temple-chase",
+        boxing = theme === "wrestling";
+      scene.clearColor = Color4.FromHexString(
+        temple ? "#142b2fff" : boxing ? "#26383fff" : "#adc9ceff",
+      );
+      const camera = new ArcRotateCamera(
+        "adventure-follow-camera",
+        temple ? -Math.PI / 2 + 0.3 : boxing ? 0.15 : -Math.PI / 2,
+        temple ? 1.35 : boxing ? 1.25 : 1.24,
+        temple ? 12 : boxing ? 8.5 : 9,
+        new Vector3(0, 1.8, boxing ? 3.3 : 2.3),
         scene,
       );
-      mesh.position.set(x, y, z);
-      mesh.material = mat;
-      return mesh;
-    }
-    const movingScenery: Mesh[] = [];
-    box("ground", 0, temple ? -3 : -0.18, 5, 28, 0.35, 35, floor);
-    if (temple) {
-      const water = material("river", "#3b9eaa");
-      box("temple-bridge", 0, -0.3, 5, 6, 0.6, 30, stone);
-      box("river", 0, -2.65, 5, 28, 0.08, 35, water);
-      for (const x of [-6, 6]) {
-        for (let z = 0; z < 20; z += 5) {
-          box("temple-terrace", x, 0.3, z, 4, 1, 3, stone);
-          box("temple-wall", x, 3, z, 3, 5, 2, stone);
-          box("lintel", x, 5.6, z, 3.7, 0.4, 2.4, gold);
-          for (const side of [-1, 1])
-            box(
-              "carved-border",
-              x + side * 1.3,
-              3,
-              z - 1.1,
-              0.16,
-              4.5,
-              0.1,
-              teal,
-            );
-          box("waterfall", x - 1.5, -1.3, z + 1.6, 0.7, 3, 0.12, water);
-        }
-      }
-      for (const x of [-2.8, 2.8])
-        for (let z = -7; z < 20; z += 3) {
-          box("bridge-post", x, 0.7, z, 0.3, 1.3, 0.3, stone);
-          box("bridge-rail", x, 1, z + 1.5, 0.15, 0.15, 3, gold);
-        }
-    }
-    box("path", 0, 0.03, 5, 5, 0.1, 26, theme === "racing" ? dark : stone);
-    if (theme === "wrestling") {
-      box("ring", 0, 0.35, 4, 8, 0.6, 8, teal);
-      for (const x of [-4, 4])
-        for (const z of [0, 8]) box("post", x, 1.3, z, 0.2, 2.1, 0.2, gold);
-      for (const y of [0.9, 1.5, 2.1]) {
-        for (const x of [-4, 4]) box("rope", x, y, 4, 0.08, 0.08, 8, clay);
-        for (const z of [0, 8]) box("rope", 0, y, z, 8, 0.08, 0.08, clay);
-      }
-    } else if (theme === "racing") {
-      for (let z = -6; z < 19; z += 3)
-        movingScenery.push(
-          box("lane-stripe", 0, 0.095, z, 0.12, 0.02, 1.3, gold),
+      camera.lowerRadiusLimit = 7;
+      if (temple) camera.fov = 0.9;
+      camera.upperRadiusLimit = 15;
+      camera.lowerBetaLimit = 0.75;
+      camera.upperBetaLimit = 1.45;
+      camera.attachControl(element, true);
+      camera.inputs.removeByType("ArcRotateCameraKeyboardMoveInput");
+      const light = new HemisphericLight(
+        "adventure-sky",
+        new Vector3(0.3, 1, -0.4),
+        scene,
+      );
+      light.intensity = temple ? 1.25 : 1.1;
+      light.groundColor = Color3.FromHexString("#6b6860");
+      const environment = createCourseEnvironment(scene, theme);
+      const guardian = createGuardian(scene);
+      guardian.root.setEnabled(temple);
+      const guardianMeshes = new Set(guardian.root.getChildMeshes());
+      const synchronizeAds = createBillboards(
+        scene,
+        () => live.current.billboards,
+        true,
+      );
+      const synchronizePeers = createPeerRenderer(
+        scene,
+        () => live.current.peers,
+        boxing ? 0.5 : 0.02,
+      );
+      const gold = new StandardMaterial("answer-gold", scene);
+      gold.diffuseColor = Color3.FromHexString("#eab759");
+      gold.emissiveColor = Color3.FromHexString("#5b3a16");
+      const teal = new StandardMaterial("answer-teal", scene);
+      teal.diffuseColor = Color3.FromHexString("#408d86");
+      const fill = new StandardMaterial("answer-gate-fill", scene);
+      fill.diffuseColor = Color3.FromHexString("#3b9689");
+      fill.alpha = 0.14;
+      const gates = [-1.7, 0, 1.7].map((x, index) => {
+        const ring = MeshBuilder.CreateTorus(
+          `answer-gate-${index}`,
+          { diameter: 1.3, thickness: 0.07, tessellation: 16 },
+          scene,
         );
-      for (const x of [-3.3, 3.3])
-        for (let z = -3; z < 20; z += 4)
-          box("barrier", x, 0.65, z, 0.3, 0.9, 2.5, z % 8 ? clay : teal);
-      box("finish-banner", 0, 5.2, 15, 7, 0.9, 0.3, teal);
-      for (const x of [-3.5, 3.5])
-        box("finish-post", x, 2.6, 15, 0.2, 5.2, 0.2, gold);
-    } else {
-      for (let z = 1; z <= 17; z += 5) {
-        for (const x of [-3.8, 3.8]) {
-          box("column", x, 2.2, z, 0.8, 4.4, 0.8, temple ? stone : teal);
-          box("capital", x, 4.35, z, 1.2, 0.25, 1.2, gold);
-        }
-        if (temple) box("arch", 0, 4.8, z, 8.8, 0.6, 1, stone);
-      }
-      if (!temple) {
-        for (const x of [-5.8, 5.8])
-          for (const z of [3, 9, 15]) {
-            box("workbench", x, 1, z, 2.6, 0.2, 1.5, stone);
-            box("terminal", x, 1.65, z + 0.1, 1.25, 1, 0.15, dark);
-            box("screen", x, 1.65, z, 1.05, 0.8, 0.03, teal);
-          }
-      }
-    }
-    const goal = MeshBuilder.CreateTorus(
-      "checkpoint",
-      { diameter: 2.5, thickness: 0.13, tessellation: 24 },
-      scene,
-    );
-    goal.position.set(0, 1.8, 12);
-    goal.rotation.x = Math.PI / 2;
-    goal.material = gold;
-    let actor: TransformNode | undefined;
-    let walk:
-      | import("@babylonjs/core/Animations/animationGroup").AnimationGroup
-      | undefined;
-    let idle:
-      | import("@babylonjs/core/Animations/animationGroup").AnimationGroup
-      | undefined;
-    let opponent: TransformNode | undefined;
-    let rightArm: TransformNode | undefined;
-    const guardian = new TransformNode("temple-guardian", scene);
-    guardian.setEnabled(temple && Boolean(game));
-    const guardianStone = material("guardian-stone", "#675b51");
-    const eye = material("guardian-eyes", "#ffc15c");
-    eye.emissiveColor = Color3.FromHexString("#f8a342");
-    function orb(
-      name: string,
-      x: number,
-      y: number,
-      z: number,
-      sx: number,
-      sy: number,
-      sz: number,
-      mat: StandardMaterial,
-    ) {
-      const m = MeshBuilder.CreateSphere(
-        name,
-        { diameter: 1, segments: 8 },
-        scene,
-      );
-      m.position.set(x, y, z);
-      m.scaling.set(sx, sy, sz);
-      m.material = mat;
-      m.parent = guardian;
-      return m;
-    }
-    orb("guardian-torso", 0, 1.6, 0, 1.8, 2, 1, guardianStone);
-    orb("guardian-head", 0, 2.8, -0.15, 1.2, 1, 1, guardianStone);
-    for (const side of [-1, 1]) {
-      orb(
-        "guardian-fist",
-        side * 1.2,
-        1.3,
-        -0.4,
-        0.65,
-        0.8,
-        0.6,
-        guardianStone,
-      );
-      orb("guardian-leg", side * 0.5, 0.5, 0, 0.55, 1.1, 0.65, guardianStone);
-      orb("guardian-eye", side * 0.25, 2.9, -0.58, 0.17, 0.13, 0.1, eye);
-    }
-    guardian.position.set(0, 0, -7);
-    if (temple)
-      for (let z = 5; z < 23; z += 6)
-        movingScenery.push(
-          box(
-            "task-obstacle",
-            z % 2 ? 1.4 : -1.4,
-            0.35,
-            z,
-            1.1,
-            0.7,
-            0.8,
-            dark,
+        ring.rotation.x = Math.PI / 2;
+        ring.position.set(x, 1.1, 7);
+        ring.material = teal;
+        ring.metadata = { answerIndex: index };
+        const surface = MeshBuilder.CreateDisc(
+          `answer-gate-surface-${index}`,
+          { radius: 0.6, tessellation: 16, sideOrientation: Mesh.DOUBLESIDE },
+          scene,
+        );
+        surface.position.copyFrom(ring.position);
+        surface.material = fill;
+        surface.metadata = { answerIndex: index };
+        return { ring, surface };
+      });
+      let down: { x: number; y: number } | undefined;
+      const press = (event: PointerEvent) => {
+        down = { x: event.clientX, y: event.clientY };
+      };
+      const choose = (event: PointerEvent) => {
+        if (
+          !down ||
+          Math.hypot(event.clientX - down.x, event.clientY - down.y) > 8
+        )
+          return;
+        down = undefined;
+        if (live.current.game?.status !== "active") return;
+        const bounds = element.getBoundingClientRect();
+        const picked = scene.pick(
+          event.clientX - bounds.left,
+          event.clientY - bounds.top,
+          (mesh) => Number.isInteger(mesh.metadata?.answerIndex),
+          false,
+          camera,
+        );
+        const index = picked?.pickedMesh?.metadata?.answerIndex;
+        element.dataset.lastGatePick = picked?.pickedMesh?.name || "none";
+        if (Number.isInteger(index)) live.current.onChoose?.(index);
+      };
+      element.addEventListener("pointerdown", press);
+      element.addEventListener("pointerup", choose);
+      let adaptiveHeight = 360;
+      const resize = () => {
+        engine.setHardwareScalingLevel(
+          Math.max(
+            1,
+            element.clientHeight /
+              (live.current.renderHeight || adaptiveHeight),
           ),
         );
-    const runner = box("race-rival", 1.3, 0.45, 8, 0.7, 0.9, 1.2, clay);
-    runner.setEnabled(false);
-    const gateFill = material("answer-gate-fill", "#33867b");
-    gateFill.alpha = 0.12;
-    const stationLights = [-1.7, 0, 1.7].map((x, i) => {
-      const m = MeshBuilder.CreateTorus(
-        "answer-gate-" + i,
-        { diameter: 1.4, thickness: 0.08, tessellation: 16 },
-        scene,
-      );
-      m.position.set(x, 1.1, 7);
-      m.metadata = { answerIndex: i };
-      const surface = MeshBuilder.CreateDisc(
-        "answer-gate-surface-" + i,
-        { radius: 0.66, tessellation: 16, sideOrientation: Mesh.DOUBLESIDE },
-        scene,
-      );
-      surface.position.copyFrom(m.position);
-      surface.material = gateFill;
-      surface.metadata = { answerIndex: i };
-      surface.setEnabled(Boolean(game));
-      m.rotation.x = Math.PI / 2;
-      m.material = teal;
-      m.setEnabled(Boolean(game));
-      return m;
-    });
-    let down: { x: number; y: number } | undefined;
-    const press = (event: PointerEvent) => {
-      down = { x: event.clientX, y: event.clientY };
-    };
-    const choose = (event: PointerEvent) => {
-      if (
-        !down ||
-        Math.hypot(event.clientX - down.x, event.clientY - down.y) > 8
-      )
-        return;
-      down = undefined;
-      if (live.current.game?.status !== "active") return;
-      const rect = element.getBoundingClientRect();
-      const picked = scene.pick(
-        event.clientX - rect.left,
-        event.clientY - rect.top,
-        (mesh) => Number.isInteger(mesh.metadata?.answerIndex),
-        false,
-        camera,
-      );
-      element.dataset.lastGatePick = picked?.pickedMesh?.name || "none";
-      const index = picked?.pickedMesh?.metadata?.answerIndex;
-      element.dataset.gateChoiceIndex = String(index);
-      element.dataset.gateCallback = String(Boolean(live.current.onChoose));
-      if (Number.isInteger(index)) live.current.onChoose?.(index);
-    };
-    element.addEventListener("pointerdown", press);
-    element.addEventListener("pointerup", choose);
-    let adaptiveHeight = 360;
-    let sampleStart = performance.now(),
-      sampleFrames = 0;
-    const resize = () => {
-      engine.setHardwareScalingLevel(
-        Math.max(
-          1,
-          element.clientHeight / (live.current.renderHeight || adaptiveHeight),
-        ),
-      );
-      camera.viewport = new Viewport(
-        0,
-        0,
-        live.current.game && element.clientWidth > 720
-          ? Math.max(0.58, (element.clientWidth - 440) / element.clientWidth)
-          : 1,
-        1,
-      );
-      engine.resize();
-    };
-    resizeLive.current = resize;
-    const observer = new ResizeObserver(resize);
-    observer.observe(element);
-    resize();
-    scene.onAfterAnimationsObservable.add(() => {
-      const g = live.current.game;
-      if (
-        rightArm &&
-        g?.status === "active" &&
-        theme === "wrestling" &&
-        !g.reducedMotion
-      ) {
-        rightArm.rotationQuaternion = null;
-        rightArm.rotation.z =
-          -0.8 -
-          Math.max(0, Math.sin(performance.now() / 200)) *
-            Math.max(0.2, g.boost);
-      }
-    });
-    let last = 0;
-    engine.runRenderLoop(() => {
-      if (disposed || document.hidden || performance.now() - last < 100) return;
-      last = performance.now();
-      const g = live.current.game;
-      const t = performance.now() / 1000;
-      if (g && actor) {
-        const moving = g.status === "active" && !g.reducedMotion;
-        const targetX = g.choice === null ? 0 : ((g.choice % 3) - 1) * 1.5;
-        actor.position.x += (targetX - actor.position.x) * 0.22;
-        actor.position.z = theme === "wrestling" ? 2 : 0;
-        actor.position.y =
-          (theme === "wrestling" ? 0.65 : 0.1) +
-          (moving && temple ? Math.abs(Math.sin(t * 5)) * 0.07 : 0);
-        if (moving && walk && !walk.isPlaying) {
-          idle?.stop();
-          walk.start(true, Math.min(2.5, 1 + g.boost));
-        }
-        if (!moving && idle && !idle.isPlaying) {
-          walk?.stop();
-          idle.start(true);
-        }
-        if (walk) walk.speedRatio = 1 + g.boost;
-        guardian.position.z =
-          g.status === "game-over"
-            ? -0.4
-            : -6 +
-              (g.budget ? (1 - g.remaining / g.budget) * 4 : 0) -
-              Math.min(2, g.progress * 2);
-        guardian.position.x =
-          g.status === "game-over"
-            ? 0
-            : -2.1 + (moving ? Math.sin(t * 2) * 0.15 : 0);
-        for (const m of movingScenery) {
-          if (moving) {
-            m.position.z -= (1 + g.boost) * 0.16;
-            if (m.position.z < -6) m.position.z = 22;
-          }
-          if (temple) m.position.y = g.boost > 0.2 ? 0.15 : 0.35;
-        }
-        runner.position.z = 7 - g.progress * 6 - g.boost * 2;
-        if (opponent) {
-          opponent.position.z =
-            theme === "racing"
-              ? 7 - g.progress * 6 - g.boost * 2
-              : 4.3 + g.progress * 1.2;
-          opponent.rotation.z = g.status === "game-over" ? 0 : -g.boost * 0.12;
-        }
-
-        stationLights.forEach(
-          (m, i) =>
-            (m.material =
-              g.choice !== null && g.choice % 3 === i ? gold : teal),
-        );
-        element.dataset.gameStatus = g.status;
-        element.dataset.gameProgress = String(g.progress);
-        element.dataset.gameBoost = String(g.boost);
-      }
-      synchronizePeers();
-      synchronizeAds();
-      if (actor && live.current.presenceSpace)
-        publishPosition({
-          space: live.current.presenceSpace.courseId,
-          levelId: live.current.presenceSpace.levelId,
-          position: {
-            x: actor.position.x,
-            z: actor.position.z,
-            heading: actor.rotation.y,
-          },
-        });
-      scene.render();
-      sampleFrames++;
-      if (performance.now() - sampleStart > 3000) {
-        const fps = (sampleFrames * 1000) / (performance.now() - sampleStart);
-        if (!live.current.renderHeight) {
-          adaptiveHeight = nextRenderHeight(adaptiveHeight, fps);
-          resize();
-        }
-        element.dataset.fps = String(Math.round(fps));
-        sampleStart = performance.now();
+        camera.viewport = new Viewport(0, 0, 1, 1);
+        engine.resize();
+      };
+      resizeLive.current = resize;
+      const observer = new ResizeObserver(resize);
+      observer.observe(element);
+      resize();
+      let player: CourseHuman | undefined, opponent: CourseHuman | undefined;
+      let state = createAdventureRuntime(theme, { assist: true });
+      let received: AdventureState | undefined,
+        receivedAt = performance.now();
+      let motionTime = 0,
+        trackOrigin = 0;
+      let followYaw = 0.3;
+      let followBeta = 1.35;
+      let previousStep = live.current.game?.stepKey,
+        previousRun = live.current.game?.run;
+      let lastActivity: string | undefined,
+        activityAt = -Infinity,
+        activityCorrect = false;
+      let lastActionSerial = -1,
+        collisionId: string | undefined,
+        previewTask = 0;
+      let pose: HumanPose = {
+        active: false,
+        time: 0,
+        mode: "idle",
+        speed: 0,
+        strike: 0,
+        recoil: 0,
+        reducedMotion: false,
+      };
+      let lastFrame = performance.now(),
+        lastRender = 0,
+        sampleStart = performance.now(),
         sampleFrames = 0;
-      }
-      element.dataset.renderHeight = String(engine.getRenderHeight());
-      if (g) {
+      const events: { type: string; time: number; id?: string }[] = [];
+      const event = (type: string, id?: string) => {
+        events.push({ type, time: motionTime, ...(id ? { id } : {}) });
+        if (events.length > 12) events.shift();
+      };
+      let hiddenAt = 0;
+      const visibility = () => {
+        if (document.hidden) {
+          hiddenAt = performance.now();
+          if (live.current.game)
+            gameAudio.setMovement({ active: false, speed: 0, theme });
+        } else {
+          receivedAt += hiddenAt ? performance.now() - hiddenAt : 0;
+          hiddenAt = 0;
+          lastFrame = performance.now();
+        }
+      };
+      document.addEventListener("visibilitychange", visibility);
+      let audioStatus = live.current.game?.status;
+      let renderedStatus = live.current.game?.status ?? "preview";
+      let clearedAt = -Infinity;
+      type DiagnosticCanvas = HTMLCanvasElement & {
+        getAdventureSnapshot?: () => unknown;
+      };
+      const identity = Matrix.Identity();
+      const projectPoint = (
+        point: Vector3,
+        transform = scene.getTransformMatrix(),
+        viewport = camera.viewport.toGlobal(
+          engine.getRenderWidth(),
+          engine.getRenderHeight(),
+        ),
+      ) => {
+        const projected = Vector3.Project(point, identity, transform, viewport);
+        return [
+          (projected.x / engine.getRenderWidth()) * element.clientWidth,
+          (projected.y / engine.getRenderHeight()) * element.clientHeight,
+          projected.z,
+        ];
+      };
+      const projectActor = (
+        root: import("@babylonjs/core/Meshes/transformNode").TransformNode,
+        deformed = false,
+      ) => {
+        const points: number[][] = [];
+        const min = new Vector3(Infinity, Infinity, Infinity);
+        const max = new Vector3(-Infinity, -Infinity, -Infinity);
+        const worldPoint = new Vector3();
+        const transform = scene.getTransformMatrix();
+        const viewport = camera.viewport.toGlobal(
+          engine.getRenderWidth(),
+          engine.getRenderHeight(),
+        );
+        for (const mesh of root.getChildMeshes()) {
+          if (!mesh.isEnabled() || !mesh.isVisible) continue;
+          mesh.computeWorldMatrix(true);
+          if (deformed && mesh instanceof Mesh) {
+            // Measure the drawn, deformed geometry instead of imported rest-pose
+            // bounds. Projecting its eight world corners avoids repeatedly
+            // allocating projection matrices for every skinned vertex.
+            const positions = mesh.getVerticesData("position");
+            if (positions) {
+              const matrix = mesh.getWorldMatrix();
+              for (let i = 0; i < positions.length; i += 3) {
+                Vector3.TransformCoordinatesFromFloatsToRef(
+                  positions[i],
+                  positions[i + 1],
+                  positions[i + 2],
+                  matrix,
+                  worldPoint,
+                );
+                min.minimizeInPlace(worldPoint);
+                max.maximizeInPlace(worldPoint);
+              }
+              continue;
+            }
+          }
+          for (const corner of mesh.getBoundingInfo().boundingBox.vectorsWorld)
+            points.push(projectPoint(corner, transform, viewport));
+        }
+        if (Number.isFinite(min.x))
+          for (const x of [min.x, max.x])
+            for (const y of [min.y, max.y])
+              for (const z of [min.z, max.z])
+                points.push(
+                  projectPoint(new Vector3(x, y, z), transform, viewport),
+                );
+        if (!points.length) return null;
+        return {
+          min: [
+            Math.min(...points.map((point) => point[0])),
+            Math.min(...points.map((point) => point[1])),
+          ],
+          max: [
+            Math.max(...points.map((point) => point[0])),
+            Math.max(...points.map((point) => point[1])),
+          ],
+          viewport: [element.clientWidth, element.clientHeight],
+        };
+      };
+      const visibilityPoint = (
+        point: Vector3,
+        excludedHazard?: string,
+        includeGuardian = false,
+      ) => {
+        const screen = projectPoint(point);
+        const direction = point.subtract(camera.position);
+        const length = direction.length();
+        const ray = new Ray(
+          camera.position,
+          direction.normalize(),
+          Math.max(0, length - 0.1),
+        );
+        const hit = scene.pickWithRay(
+          ray,
+          (mesh) =>
+            mesh.isEnabled() &&
+            mesh.isVisible &&
+            (mesh.name.startsWith("world-section-") ||
+              (mesh.parent?.name.startsWith("hazard-") === true &&
+                mesh.parent.name !== `hazard-${excludedHazard}`) ||
+              (includeGuardian && guardianMeshes.has(mesh))),
+        );
+        return {
+          screen,
+          inFrame:
+            screen[0] >= 0 &&
+            screen[0] <= element.clientWidth &&
+            screen[1] >= 0 &&
+            screen[1] <= element.clientHeight &&
+            screen[2] >= 0 &&
+            screen[2] <= 1,
+          occluded: Boolean(hit?.hit),
+          occluder: hit?.pickedMesh?.name ?? null,
+        };
+      };
+      (element as DiagnosticCanvas).getAdventureSnapshot = () => {
+        const frame = adventureFrame(state);
+        return {
+          theme,
+          status: renderedStatus,
+          distance: frame.distance,
+          speed: frame.speed,
+          animation: pose.mode,
+          active: pose.active,
+          motionTime,
+          actor: player ? { ...player.snapshot(), action: pose.mode } : null,
+          opponent: opponent
+            ? { ...opponent.snapshot(), health: frame.opponentHealth }
+            : null,
+          projectedActor: player ? projectActor(player.root, true) : null,
+          projectedOpponent: opponent
+            ? projectActor(opponent.root, true)
+            : null,
+          projectedGuardian: temple ? projectActor(guardian.root) : null,
+          actorVisibility: player
+            ? Object.fromEntries(
+                ["Head", "Spine2", "Hips", "LeftFoot", "RightFoot"].map(
+                  (name) => {
+                    const joint = player!.joints.get(name);
+                    return [
+                      name,
+                      joint
+                        ? visibilityPoint(
+                            joint.getAbsolutePosition(),
+                            undefined,
+                            true,
+                          )
+                        : null,
+                    ];
+                  },
+                ),
+              )
+            : null,
+          opponentVisibility: opponent
+            ? Object.fromEntries(
+                ["Head", "Spine2", "Hips"].map((name) => {
+                  const joint = opponent!.joints.get(name);
+                  return [
+                    name,
+                    joint ? visibilityPoint(joint.getAbsolutePosition()) : null,
+                  ];
+                }),
+              )
+            : null,
+          guardianVisibility: temple
+            ? visibilityPoint(
+                guardian.root.position.add(new Vector3(0, 3.2, 0)),
+              )
+            : null,
+          guardian: temple ? guardian.snapshot() : null,
+          environmentMaterials: scene.meshes
+            .filter((mesh) => mesh.name.startsWith("world-section-"))
+            .slice(0, 8)
+            .map((mesh) => {
+              const material = mesh.material as StandardMaterial | null;
+              const normals = mesh.getVerticesData("normal");
+              const lengths: number[] = [];
+              if (normals)
+                for (let i = 0; i < Math.min(300, normals.length); i += 3)
+                  lengths.push(
+                    Math.hypot(normals[i], normals[i + 1], normals[i + 2]),
+                  );
+              return {
+                mesh: mesh.name,
+                material: material?.name,
+                color: material?.diffuseColor?.asArray(),
+                normalLength: lengths.length
+                  ? [Math.min(...lengths), Math.max(...lengths)]
+                  : null,
+                lights: mesh.lightSources.map((light) => light.name),
+                effectError:
+                  mesh.subMeshes?.[0]?.effect?.getCompilationError() ?? null,
+              };
+            }),
+          obstacles: environment.snapshot(),
+          obstacleVisibility: environment.snapshot().map((obstacle) => {
+            const min = new Vector3(
+              Math.min(...obstacle.colliders.map((box) => box.min[0])),
+              Math.min(...obstacle.colliders.map((box) => box.min[1])),
+              Math.min(...obstacle.colliders.map((box) => box.min[2])),
+            );
+            const max = new Vector3(
+              Math.max(...obstacle.colliders.map((box) => box.max[0])),
+              Math.max(...obstacle.colliders.map((box) => box.max[1])),
+              Math.max(...obstacle.colliders.map((box) => box.max[2])),
+            );
+            return {
+              id: obstacle.id,
+              kind: obstacle.kind,
+              position: obstacle.position,
+              cleared: obstacle.cleared,
+              visibility: visibilityPoint(min.add(max).scale(0.5), obstacle.id),
+            };
+          }),
+          gateVisibility: gates.map(({ ring }, index) => ({
+            index,
+            enabled: ring.isEnabled(),
+            position: ring.position.asArray(),
+            visibility: visibilityPoint(ring.position),
+          })),
+          camera: {
+            position: camera.position.asArray(),
+            target: camera.target.asArray(),
+          },
+          runtime: {
+            ...state,
+            collision: state.collision ? { ...state.collision } : null,
+          },
+          frame,
+          collision: state.collision ? { ...state.collision } : null,
+          strikes: state.strikes,
+          obstaclesCleared: state.obstaclesCleared,
+          taskProgress: Math.max(
+            frame.taskProgress,
+            live.current.game?.progress || 0,
+          ),
+          taskPulse: pose.strike,
+          events: events.map((entry) => ({ ...entry })),
+        };
+      };
+      engine.runRenderLoop(() => {
+        const now = performance.now();
+        if (disposed || document.hidden || now - lastRender < 100) return;
+        const dt = Math.min(250, Math.max(0, now - lastFrame));
+        lastFrame = now;
+        lastRender = now;
+        const g = live.current.game;
+        if (g?.status === "cleared" && renderedStatus !== "cleared")
+          clearedAt = now;
+        const active = !g || g.status === "active";
+        if (g?.stepKey && g.stepKey !== previousStep) {
+          previousStep = g.stepKey;
+          previousRun = g.run;
+          collisionId = undefined;
+        } else if (g && previousRun !== g.run) {
+          previousRun = g.run;
+          received = undefined;
+          collisionId = undefined;
+          lastActionSerial = -1;
+          event("retry");
+        }
+        if (g?.adventure !== received && g?.adventure) {
+          received = g.adventure;
+          receivedAt = now;
+          state = received;
+        }
+        if (g?.activity && g.activity.id !== lastActivity) {
+          lastActivity = g.activity.id;
+          activityAt = now;
+          activityCorrect = g.activity.correct && g.activity.independent;
+          event(
+            activityCorrect ? "task-correct" : "task-incorrect",
+            lastActivity,
+          );
+          if (g) gameAudio.effect(activityCorrect ? "correct" : "wrong");
+        }
+        if (received) {
+          if (active)
+            state = advanceAdventureRuntime(
+              received,
+              Math.min(5000, now - receivedAt),
+            );
+        } else if (active) {
+          state = advanceAdventureRuntime(state, dt);
+          if (!g && Math.floor(state.elapsedMs / 6500) > previewTask) {
+            previewTask = Math.floor(state.elapsedMs / 6500);
+            state = applyAdventureTask(state, {
+              correct: true,
+              independent: true,
+            });
+            if (theme === "wrestling" && state.opponentHealth === 0) {
+              state = createAdventureRuntime(theme);
+              previewTask = 0;
+            }
+          }
+        }
+        const frame = adventureFrame(state),
+          activityAge = now - activityAt;
+        const activityPulse =
+          g?.status !== "paused" && activityAge >= 0 && activityAge < 1100
+            ? Math.sin((activityAge / 1100) * Math.PI)
+            : 0;
+        const celebrating = g?.status === "cleared" && now - clearedAt < 3000;
+        const motionActive = active || activityPulse > 0 || celebrating;
+        const correctTask =
+          activityPulse > 0 ? activityCorrect : state.lastTaskCorrect === true;
+        if (motionActive) motionTime += dt / 1000;
+        const worldZ = trackOrigin + frame.distance;
+        const caught = g?.status === "game-over" || Boolean(frame.collision);
+        if (g) {
+          gameAudio.setMovement({
+            active: active && !caught,
+            speed: frame.speed,
+            theme,
+          });
+          if (g.status !== audioStatus) {
+            if (g.status === "active") gameAudio.effect("start");
+            else if (g.status === "paused") gameAudio.effect("pause");
+            else if (g.status === "cleared") gameAudio.effect("clear");
+            else if (g.status === "game-over") gameAudio.effect("game-over");
+            audioStatus = g.status;
+          }
+        }
+        let mode: HumanPose["mode"] =
+          g?.status === "paused"
+            ? pose.mode
+            : !active
+              ? "idle"
+              : frame.animation === "jump"
+                ? "jump"
+                : frame.animation === "slide"
+                  ? "slide"
+                  : boxing
+                    ? "fight"
+                    : "run";
+        if (caught) mode = "caught";
+        else if (activityPulse > 0)
+          mode = activityCorrect
+            ? boxing
+              ? "fight"
+              : theme === "workshop"
+                ? "work"
+                : "jump"
+            : "caught";
+        else if (g?.status === "cleared") mode = "celebrate";
+        if (theme === "workshop" && active && activityPulse <= 0)
+          mode = state.elapsedMs % 5000 > 3100 ? "work" : "run";
+        pose = {
+          active: motionActive,
+          time: motionTime,
+          mode,
+          speed: frame.speed,
+          strike: Math.max(
+            frame.strikePhase,
+            activityCorrect ? activityPulse : 0,
+          ),
+          recoil: correctTask
+            ? Math.max(frame.recoilPhase, activityPulse)
+            : frame.recoilPhase,
+          reducedMotion: g?.reducedMotion ?? false,
+        };
+        if (player) {
+          player.root.position.set(
+            frame.avatar.x,
+            // The native Slide rig already lowers its pelvis and feet.
+            // Crouch remains authoritative for collision clearance only.
+            (boxing ? 0.5 : 0.03) + frame.avatar.y,
+            boxing ? 2.4 + pose.strike * 0.18 : worldZ,
+          );
+          if (
+            activityPulse > 0 &&
+            activityCorrect &&
+            !pose.reducedMotion &&
+            !boxing &&
+            theme !== "workshop"
+          )
+            player.root.position.y += activityPulse * 0.7;
+          if (theme === "workshop") {
+            player.root.position.x =
+              mode === "work" ? -2.2 : Math.sin(worldZ / 5) * 0.7;
+            player.root.rotation.y = mode === "work" ? -Math.PI / 2 : 0;
+          } else player.root.rotation.y = 0;
+          player.root.rotation.x = caught ? 0.2 : 0;
+          player.setPose(pose);
+        }
+        if (opponent) {
+          const recoil = correctTask
+            ? Math.max(frame.recoilPhase, activityPulse)
+            : 0;
+          opponent.root.position.set(
+            boxing ? 0 : 1.65,
+            boxing ? 0.5 : 0.03,
+            boxing ? 3.6 + recoil * 0.6 : trackOrigin + frame.rivalDistance,
+          );
+          opponent.root.rotation.y = boxing ? Math.PI : 0;
+          opponent.root.rotation.x = boxing ? -recoil * 0.18 : 0;
+          opponent.setPose({
+            ...pose,
+            mode: boxing ? "fight" : "run",
+            speed: 6.15,
+            strike: boxing && !correctTask ? frame.recoilPhase : 0,
+            recoil,
+          });
+        }
+        guardian.update(
+          motionTime,
+          frame.guardianGap,
+          worldZ,
+          frame.avatar.x,
+          motionActive,
+          caught,
+          pose.reducedMotion,
+        );
+        environment.update(
+          worldZ,
+          motionTime,
+          motionActive,
+          frame.obstacles,
+          Math.max(g?.progress ?? 0, frame.taskProgress),
+          pose.strike,
+        );
+        camera.target.set(
+          boxing
+            ? 0
+            : temple && element.clientWidth < 600
+              ? frame.avatar.x - Math.max(0, frame.guardianGap - 10) * 0.35
+              : frame.avatar.x * 0.35,
+          1.75,
+          boxing ? 3.3 : temple ? worldZ - frame.guardianGap / 2 : worldZ + 2.3,
+        );
+        if (temple) {
+          // A rear quarter view shows the route ahead and the pursuing guardian.
+          // On a narrow canvas, a gradual zoom keeps the distant player readable
+          // as correct tasks increase the actual separation from the guardian.
+          const phone = element.clientWidth < 600;
+          const closingGap = Math.max(0, 10 - frame.guardianGap);
+          const nextFollowYaw = phone ? 0.3 + closingGap * 0.06 : 0.3;
+          const nextFollowBeta = phone
+            ? 1.35 - Math.min(0.3, closingGap * 0.052)
+            : 1.35;
+          // Apply only the chase offset so dragging to orbit remains available.
+          camera.alpha += nextFollowYaw - followYaw;
+          // The wider closing-gap view rises above the surrounding temple walls.
+          camera.beta += nextFollowBeta - followBeta;
+          followYaw = nextFollowYaw;
+          followBeta = nextFollowBeta;
+          camera.fov = phone
+            ? 0.82 -
+              Math.max(0, frame.guardianGap - 10) * 0.025 -
+              Math.min(0.06, closingGap * 0.01)
+            : 0.9;
+        }
+        for (const [index, gate] of gates.entries()) {
+          const enabled = Boolean(g) && !boxing && theme !== "workshop";
+          gate.ring.setEnabled(enabled);
+          gate.surface.setEnabled(enabled);
+          gate.ring.position.z = worldZ + 7;
+          gate.surface.position.copyFrom(gate.ring.position);
+          gate.ring.material =
+            g?.choice !== null &&
+            g?.choice !== undefined &&
+            g.choice % 3 === index
+              ? gold
+              : teal;
+        }
+        if (state.actionSerial !== lastActionSerial) {
+          if (state.lastAction && state.elapsedMs - state.lastActionMs < 1000) {
+            event(state.lastAction);
+            if (g && ["jump", "slide", "strike"].includes(state.lastAction))
+              gameAudio.effect(state.lastAction as "jump" | "slide" | "strike");
+          }
+          lastActionSerial = state.actionSerial;
+        }
+        if (state.collision && state.collision.id !== collisionId) {
+          collisionId = state.collision.id;
+          event("collision", collisionId);
+          if (g) gameAudio.effect("impact");
+        }
+        synchronizePeers();
+        synchronizeAds();
+        if (player && live.current.presenceSpace)
+          publishPosition({
+            space: live.current.presenceSpace.courseId,
+            levelId: live.current.presenceSpace.levelId,
+            position: {
+              x: player.root.position.x,
+              z: player.root.position.z,
+              heading: player.root.rotation.y,
+            },
+          });
+        scene.render();
+        renderedStatus = g?.status ?? "preview";
+        sampleFrames++;
+        if (now - sampleStart > 3000) {
+          const fps = (sampleFrames * 1000) / (now - sampleStart);
+          if (!live.current.renderHeight) {
+            adaptiveHeight = nextRenderHeight(adaptiveHeight, fps);
+            resize();
+          }
+          element.dataset.fps = String(Math.round(fps));
+          sampleStart = now;
+          sampleFrames = 0;
+        }
+        element.dataset.renderHeight = String(engine.getRenderHeight());
+        element.dataset.gameStatus = g?.status ?? "preview";
+        element.dataset.gameProgress = String(g?.progress || 0);
+        element.dataset.gameBoost = String(g?.boost || 0);
+        element.dataset.avatarAction = pose.mode;
         const point = Vector3.Project(
-          stationLights[0].position,
+          gates[0].ring.position,
           Matrix.Identity(),
           scene.getTransformMatrix(),
           camera.viewport.toGlobal(
@@ -481,109 +785,56 @@ export default function CourseScene({
           x: (point.x / engine.getRenderWidth()) * element.clientWidth,
           y: (point.y / engine.getRenderHeight()) * element.clientHeight,
         });
-      }
-      element.dataset.sceneReady = "true";
-    });
-    const avatarLoad = LoadAssetContainerAsync(
-      "/assets/explorer-low.glb",
-      scene,
-    )
-      .then((asset) => {
-        if (disposed) {
-          asset.dispose();
-          return;
-        }
-        asset.addAllToScene();
-        const root = new TransformNode("course-explorer", scene);
-        asset.rootNodes.forEach((node) => {
-          node.parent = root;
-        });
-        actor = root;
-        root.position.set(0, theme === "wrestling" ? 0.65 : 0.1, 0);
-        root.rotation.y = live.current.game ? 0 : Math.PI;
-        root.scaling.setAll(1.65);
-        const palette: Record<string, string> = {
-          terracotta: "#b76b50",
-          teal: "#348b82",
-          gold: "#ce9f4d",
-          azure: "#478ccc",
-          plum: "#9964ba",
-        };
-        const converted = new Map<PBRMaterial, StandardMaterial>();
-        for (const mesh of root.getChildMeshes()) {
-          if (mesh instanceof Mesh && mesh.skeleton)
-            mesh.computeBonesUsingShaders = false;
-          if (mesh.material instanceof PBRMaterial) {
-            const original = mesh.material;
-            let simple = converted.get(original);
-            if (!simple) {
-              simple = new StandardMaterial(original.name + "-preview", scene);
-              simple.diffuseColor = original.name.includes("Explorer_Jacket")
-                ? Color3.FromHexString(palette[outfit] || palette.terracotta)
-                : original.albedoColor.clone();
-              simple.diffuseTexture = original.albedoTexture;
-              simple.specularColor = Color3.Black();
-              converted.set(original, simple);
-            }
-            mesh.material = simple;
-          }
-        }
-        idle = asset.animationGroups.find((group) => /idle/i.test(group.name));
-        walk = asset.animationGroups.find((group) => /walk/i.test(group.name));
-        idle?.start(true);
-        rightArm = root
-          .getChildTransformNodes()
-          .find((n) => n.name.includes("RightArm"));
-        if (
-          (theme === "wrestling" || theme === "racing") &&
-          live.current.game
-        ) {
-          const clone = asset.instantiateModelsToScene(
-            (n) => "opponent-" + n,
-            true,
-            { doNotInstantiate: true },
-          );
-          opponent = new TransformNode("sparring-opponent", scene);
-          clone.rootNodes.forEach((n) => (n.parent = opponent!));
-          opponent.position.set(
-            theme === "racing" ? 1.3 : 0,
-            theme === "racing" ? 0.1 : 0.65,
-            4.3,
-          );
-          if (theme === "wrestling") opponent.rotation.y = Math.PI;
-          opponent.scaling.setAll(1.65);
-          clone.animationGroups.find((g) => /idle/i.test(g.name))?.start(true);
-        }
-        element.dataset.avatarReady = "true";
-        live.current.onReady?.();
-      })
-      .catch(() => {
-        if (!disposed) element.dataset.assetError = "true";
+        element.dataset.sceneReady = "true";
       });
+      const loaded = loadCourseHumans(
+        scene,
+        outfit,
+        boxing || theme === "racing",
+      )
+        .then((actors) => {
+          if (disposed) return;
+          player = actors.player;
+          opponent = actors.opponent;
+          element.dataset.avatarReady = "true";
+          return scene.whenReadyAsync().then(() => {
+            if (!disposed) live.current.onReady?.();
+          });
+        })
+        .catch(() => {
+          if (!disposed) element.dataset.assetError = "true";
+        });
+      release = () => {
+        if (live.current.game)
+          gameAudio.setMovement({ active: false, speed: 0, theme });
+        delete (element as DiagnosticCanvas).getAdventureSnapshot;
+        element.removeEventListener("pointerdown", press);
+        element.removeEventListener("pointerup", choose);
+        document.removeEventListener("visibilitychange", visibility);
+        observer.disconnect();
+        engine.stopRenderLoop();
+        camera.detachControl();
+        void loaded.finally(() => {
+          scene.dispose();
+          engine.dispose();
+        });
+      };
+    };
+    // StrictMode's discarded setup must not allocate a context which its
+    // delayed loader cleanup could release after the real setup begins.
+    queueMicrotask(initialize);
     return () => {
       disposed = true;
-      element.removeEventListener("pointerdown", press);
-      element.removeEventListener("pointerup", choose);
-      observer.disconnect();
-      engine.stopRenderLoop();
-      camera.detachControl();
-      // Shader preparation can outlive the mounted canvas. Let pending asset and
-      // material work settle before releasing the pipeline it still references.
-      const release = () => {
-        scene.dispose();
-        engine.dispose();
-      };
-      scene.onReadyTimeoutDuration = 15000;
-      scene.onReadyTimeoutObservable.addOnce(release);
-      void avatarLoad.then(() => scene.whenReadyAsync()).then(release, release);
+      release?.();
     };
   }, [theme, outfit]);
   return (
     <canvas
+      key={`${theme}:${outfit}`}
       ref={canvas}
       className="course-scene"
       data-course-theme={theme}
-      aria-label={`3D ${theme.replaceAll("-", " ")} ${game ? "adventure" : "scenery preview"}. Drag to orbit.`}
+      aria-label={`3D ${theme.replaceAll("-", " ")} ${game ? "adventure" : "playable theme preview"}. Drag to orbit; use the movement controls during play.`}
       tabIndex={0}
     />
   );

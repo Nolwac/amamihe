@@ -20,6 +20,14 @@ Source SHA-256: `7a87e15a99ccbc5e5877be66e1e4ecae0a581adcafa0cce1a5569f49909e968
 
 The Low GLB records its source explorer's SHA-256. Tests validate both rigs' normalized weights and joint indices, actual walking motion, Low geometry/download budgets, and derivative freshness after a source change. Rebuild Low whenever the full explorer changes. It inherits the source provenance and usage terms above.
 
+## Course Action Explorer
+
+`explorer-adventure-low.glb` is the course-specific human rig. It preserves the Low explorer's **14,473 triangles**, **25 joints**, skin UVs and eight material groups while adding project-authored skeletal actions: `Idle`, `Walk`, `Run`, `Jump`, `Slide`, `Guard`, `Jab`, `Hit` and `Build`. The **873,508-byte** download is shared by the player and sparring opponent; their skeletons and deforming geometry are independent. The city explorer is unchanged.
+
+`scripts/assets/build-adventure-avatar.py` imports the checked-in Low explorer without downloading another character or animation. It bakes 24 Hz joint transforms with articulated hips, knees, feet, shoulders and elbows. Running uses a wider stride, flexed elbows and heel recovery. Jumping tucks the knees; sliding lowers the pelvis; sparring includes a raised guard, a forward arm strike and recoil; building alternates a raised working arm with its downward stroke. These are stylized animations on the existing human anatomy. Fingers remain rigid to each wrist as in the Low rig.
+
+The scene controls forward travel, lanes, airborne height and collision outcomes; the clips provide articulated body movement rather than translating a rigid mesh. Their sampling frequency is independent of the rendering frame rate. Every clip explicitly keys all retained joints so switching, pausing and seeking cannot accumulate procedural pose offsets. Asset checks verify joint coverage, real action motion, normalized skin weights, source freshness and download/geometry bounds. The derivative inherits the Michelle/Mixamo provenance and usage terms above; the authored action poses are recorded in the build script.
+
 ## Rebuilding
 
 The compiled assets are stored in `public/assets/`; ordinary installation and development do not require Blender. For asset changes, use Blender 4.3:
@@ -27,6 +35,7 @@ The compiled assets are stored in `public/assets/`; ordinary installation and de
 ```sh
 blender -b -t 4 -P scripts/assets/build-avatar.py -- /path/to/Michelle.glb
 blender -b -t 4 -P scripts/assets/build-explorer-low.py
+blender -b -t 4 -P scripts/assets/build-adventure-avatar.py
 blender -b -t 4 -P scripts/assets/render-avatar-previews.py
 blender -b -t 4 -P scripts/assets/build-resident.py -- /path/to/Michelle.glb
 blender -b -t 4 -P scripts/assets/build-explorer-resident.py

@@ -1,0 +1,98 @@
+{
+  "recordedAt": "2026-10-12T16:11:37.849147+00:00",
+  "purpose": "Verify physical course adventures, skeletal action and original game audio",
+  "localBuild": "passed",
+  "localNode": {
+    "total": 96,
+    "passed": 95,
+    "skipped": 1,
+    "skip": "Optional external PostgreSQL fixture"
+  },
+  "localBrowser": {
+    "status": "failed; stopped before completion",
+    "selected": 25,
+    "passed": 1,
+    "failed": 5,
+    "interrupted": 1,
+    "notRun": 18,
+    "failures": [
+      "All-theme adventure: actual avatar/bone readiness did not complete within the 30-second wait.",
+      "Phone adventure: pause expected paused but observed game-over.",
+      "Authentication: Sign in click exceeded the 120-second journey timeout.",
+      "Billboards: expected rendered billboard canvas was not found.",
+      "Desktop evaluation: expected device-evaluation heading was not visible."
+    ],
+    "note": "Stopped after the request to commit the current work. These failures remain unresolved; no complete browser acceptance or deployment is claimed."
+  },
+  "actionAsset": {
+    "bytes": 873508,
+    "sha256": "125ff85cb42510795cf398d205b7bb56f544c82f4ff85e86764bcc60fe6a0e87",
+    "triangles": 14473,
+    "joints": 25,
+    "clips": [
+      "Idle",
+      "Walk",
+      "Run",
+      "Jump",
+      "Slide",
+      "Guard",
+      "Jab",
+      "Hit",
+      "Build"
+    ]
+  },
+  "screenshots": [
+    {
+      "path": "evidence/screenshots/physical-adventure-temple-chase-earlier-focused.png",
+      "build": "Earlier focused all-theme pass; not final-build acceptance."
+    },
+    {
+      "path": "evidence/screenshots/physical-adventure-racing-earlier-focused.png",
+      "build": "Earlier focused all-theme pass; not final-build acceptance."
+    },
+    {
+      "path": "evidence/screenshots/physical-adventure-wrestling-earlier-focused.png",
+      "build": "Earlier focused all-theme pass; not final-build acceptance."
+    },
+    {
+      "path": "evidence/screenshots/physical-adventure-workshop-earlier-focused.png",
+      "build": "Earlier focused all-theme pass; not final-build acceptance."
+    },
+    {
+      "path": "evidence/screenshots/physical-adventure-phone-avatar-readable-before-slide-fix.png",
+      "build": "Elevated-camera phone pass before final Slide correction."
+    },
+    {
+      "path": "evidence/screenshots/physical-adventure-phone-hurdle-approach-before-slide-fix.png",
+      "build": "Elevated-camera phone pass before final Slide correction."
+    },
+    {
+      "path": "evidence/screenshots/physical-adventure-phone-hurdle-cleared-before-slide-fix.png",
+      "build": "Elevated-camera phone pass before final Slide correction."
+    },
+    {
+      "path": "evidence/screenshots/physical-adventure-phone-collision-before-slide-fix.png",
+      "build": "Elevated-camera phone pass before final Slide correction."
+    },
+    {
+      "path": "evidence/screenshots/physical-adventure-phone-jump-before-slide-fix.png",
+      "build": "Elevated-camera phone pass before final Slide correction."
+    }
+  ],
+  "boundaries": [
+    "Browser verification uses Chromium with software WebGL and isolated synthetic accounts.",
+    "Web Audio waveform checks establish generated signal and mute behavior, not listening quality.",
+    "Physical 2 GB hardware, final art and educational outcomes remain evaluation gates.",
+    "The classification service remains explicitly mocked; no paid inference was used.",
+    "Public deployment verification is recorded by the release workflow and performs no learner writes."
+  ],
+  "earlierFocusedChecks": {
+    "allFourThemes": "Passed before the final camera/slide corrections; historical evidence only.",
+    "phone": "Passed on the elevated-camera build before the final duplicate Slide-lowering correction.",
+    "anonymousAudio": "Desktop and phone gesture, generated waveform and mute passed before the final build."
+  },
+  "deployment": {
+    "status": "pending; current corrective source is not production-verified",
+    "baselineRelease": "bd7c7b8297982fd31367db8ac0be173e07eca4c4"
+  }
+}

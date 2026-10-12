@@ -112,6 +112,8 @@ app.get("/api/health", async () => {
       courseVersions: true,
       learningAssessment: true,
       playableThemes: true,
+      physicalAdventure: true,
+      gameAudio: true,
       cosmeticRewards: true,
       adaptiveResources: true,
       practiceEnvironments: true,

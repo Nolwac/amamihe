@@ -10,6 +10,8 @@ Product architecture, implementation milestones, and mandatory rules remain at t
 - [Course studio delivery status](status/STEP_02_STATUS.md)
 - [Learning assessment delivery status](status/STEP_03_STATUS.md)
 - [Playable adventures and rewards](status/STEP_04_STATUS.md)
+- [Physical adventure runtime, controls and audio](status/ADVENTURE_RUNTIME.md)
+- [Adventure implementation handoff and unresolved errors](status/ADVENTURE_HANDOFF.md)
 - [Adaptive rendering and resource delivery](status/STEP_05_STATUS.md)
 - [Isolated practice environments](status/STEP_06_STATUS.md)
 - [Scheduled recall and authored remediation](status/STEP_07_STATUS.md)

@@ -1,5 +1,6 @@
 import { chromium } from "@playwright/test";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
 import assert from "node:assert/strict";
 
 // This is a permanent deployment smoke check, not an account-creation script.
@@ -40,6 +41,8 @@ while (true) {
       candidate.features?.courseStudio &&
       candidate.features?.learningAssessment &&
       candidate.features?.playableThemes &&
+      candidate.features?.physicalAdventure &&
+      candidate.features?.gameAudio &&
       candidate.features?.cosmeticRewards &&
       candidate.features?.adaptiveResources &&
       candidate.features?.practiceEnvironments &&
@@ -109,6 +112,36 @@ try {
   );
   const response = await context.request.get(base + "/api/health");
   assert.equal(response.status(), 200);
+  const actionAsset = await context.request.get(
+    base + "/assets/explorer-adventure-low.glb",
+  );
+  assert.equal(actionAsset.status(), 200);
+  const assetBytes = await actionAsset.body();
+  assert.equal(
+    createHash("sha256").update(assetBytes).digest("hex"),
+    createHash("sha256")
+      .update(await readFile("dist/assets/explorer-adventure-low.glb"))
+      .digest("hex"),
+    "Production must serve the exact approved action avatar.",
+  );
+  assert.ok(
+    assetBytes.length < 1_000_000,
+    "The Low action avatar must remain a bounded download.",
+  );
+  assert.equal(assetBytes.toString("ascii", 0, 4), "glTF");
+  const avatarDocument = JSON.parse(
+    assetBytes.toString("utf8", 20, 20 + assetBytes.readUInt32LE(12)).trim(),
+  );
+  for (const name of ["Run", "Jump", "Slide", "Guard", "Jab", "Hit", "Build"])
+    assert.ok(
+      avatarDocument.animations.some(
+        (clip) => clip.name === name && clip.channels.length > 0,
+      ),
+      `Public course avatar must include baked ${name} motion.`,
+    );
+  evidence.checks.push(
+    "public bounded action avatar with seven skeletal gameplay clips",
+  );
   assert.ok(
     response.headers()["strict-transport-security"],
     "HTTPS must publish HSTS.",
@@ -202,6 +235,25 @@ try {
       await page.locator("canvas").getAttribute("data-asset-error"),
       null,
     );
+    if (viewport.width === 1280) {
+      await page.locator(".audio-controls summary").click();
+      await page
+        .getByRole("button", { name: "Enable game audio", exact: true })
+        .click();
+      await page.waitForFunction(() => {
+        const audio = window.getAmamiheAudioSnapshot?.();
+        return audio?.contextState === "running" && audio.rms > 0.0001;
+      });
+      await page
+        .getByRole("button", { name: "Mute game audio", exact: true })
+        .click();
+      await page.waitForFunction(() => {
+        const audio = window.getAmamiheAudioSnapshot?.();
+        return audio?.masterGain === 0 && audio.rms < 0.0001;
+      });
+      await page.locator(".audio-controls summary").click();
+      evidence.checks.push("public audio gesture, actual waveform and mute");
+    }
     await page.getByRole("button", { name: "Sign in", exact: true }).click();
     await page.getByLabel("Email address").waitFor();
     await page.getByLabel("Password", { exact: true }).waitFor();

@@ -1,5 +1,6 @@
-import { lazy, Suspense, useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import type { CourseSummary } from "../shared/course";
+import { gameAudio } from "./gameAudio";
 const PortalScene = lazy(() => import("./PortalScene"));
 export default function SearchPortals({
   onDoor,
@@ -15,6 +16,12 @@ export default function SearchPortals({
     [total, setTotal] = useState(0),
     [busy, setBusy] = useState(true),
     [error, setError] = useState("");
+  const audibleSearch = useRef<string | null>(null);
+  function openDoor(course: CourseSummary) {
+    void gameAudio.activate();
+    onDoor(course);
+    gameAudio.effect("portal");
+  }
   useEffect(() => {
     const controller = new AbortController();
     setBusy(true);
@@ -30,6 +37,10 @@ export default function SearchPortals({
       .then((data) => {
         setCourses(data.courses);
         setTotal(data.total);
+        if (!controller.signal.aborted && audibleSearch.current === search) {
+          audibleSearch.current = null;
+          gameAudio.effect("portal");
+        }
       })
       .catch((e) => {
         if (!controller.signal.aborted) setError(e.message);
@@ -43,7 +54,14 @@ export default function SearchPortals({
     <section className="course-directory" aria-label="Search portal universe">
       <header className="course-bar">
         <h1>Course portals</h1>
-        <button className="course-secondary" onClick={onClose}>
+        <button
+          className="course-secondary"
+          onClick={() => {
+            void gameAudio.activate();
+            onClose();
+            gameAudio.effect("portal");
+          }}
+        >
           Return to city
         </button>
       </header>
@@ -54,8 +72,12 @@ export default function SearchPortals({
       <form
         onSubmit={(e) => {
           e.preventDefault();
+          void gameAudio.activate();
+          const nextSearch = query.trim();
+          if (nextSearch !== search || offset !== 0)
+            audibleSearch.current = nextSearch;
           setOffset(0);
-          setSearch(query.trim());
+          setSearch(nextSearch);
         }}
       >
         <label>
@@ -76,7 +98,7 @@ export default function SearchPortals({
       ) : (
         <>
           <Suspense fallback={<p>Opening the portal universe…</p>}>
-            <PortalScene courses={courses} onDoor={onDoor} />
+            <PortalScene courses={courses} onDoor={openDoor} />
           </Suspense>
           <div className="course-directory-grid">
             {courses.map((course) => (
@@ -89,7 +111,7 @@ export default function SearchPortals({
                 <small>{course.levelCount} authored levels</small>
                 <button
                   className="course-secondary"
-                  onClick={() => onDoor(course)}
+                  onClick={() => openDoor(course)}
                 >
                   Teleport to {course.title}
                 </button>

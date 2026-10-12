@@ -42,6 +42,7 @@ export type BattleView = {
 };
 export function validPosition(
   value: unknown,
+  scope: "city" | "course" = "city",
 ): value is { x: number; z: number; heading: number } {
   if (!value || typeof value !== "object") return false;
   const v = value as Record<string, unknown>;
@@ -50,8 +51,8 @@ export function validPosition(
       (k) => typeof v[k] === "number" && Number.isFinite(v[k]),
     ) &&
     Math.abs(Number(v.x)) <= 5 &&
-    Number(v.z) >= -11 &&
-    Number(v.z) <= 10 &&
+    Number(v.z) >= (scope === "course" ? 0 : -11) &&
+    Number(v.z) <= (scope === "course" ? 100000 : 10) &&
     Math.abs(Number(v.heading)) <= Math.PI * 2
   );
 }

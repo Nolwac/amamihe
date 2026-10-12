@@ -5,7 +5,17 @@ import {
   type Evidence,
   type ClassificationProvider,
 } from "./assessment.js";
-import { newGame, tickGame } from "./gameplay.js";
+import {
+  newGame,
+  tickGame,
+  applyGameAction,
+  applyGameTask,
+} from "./gameplay.js";
+import {
+  ADVENTURE_ACTIONS,
+  type AdventureAction,
+  type AdventureState,
+} from "../shared/adventure-runtime.js";
 import type { GameState } from "../shared/gameplay.js";
 import { randomUUID } from "node:crypto";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
@@ -93,6 +103,7 @@ type StoredProgress = {
   assisted: boolean;
   feedback?: string;
   game?: GameState;
+  adventureCheckpoint?: AdventureState;
   activity?: LearningProgress["activity"];
   completedLevelIds: string[];
   usedRetryQuestionIds: string[];
@@ -350,6 +361,26 @@ export function currentQuestion(
   ];
   return { level, question };
 }
+function freshGame(
+  level: CourseLevel,
+  multiplier = 1,
+  run = 0,
+  assist = true,
+  carry?: AdventureState,
+) {
+  // Stable authored-level layout; clients cannot supply encounter seeds.
+  const seed = [...level.id].reduce(
+    (hash, char) => (hash * 31 + char.charCodeAt(0)) % 1000000,
+    0,
+  );
+  return newGame(level.timeLimitSeconds, multiplier, run, {
+    theme: level.theme,
+    seed,
+    assist,
+    taskCount: level.questions.length,
+    carry,
+  });
+}
 function progressResponse(
   courseId: string,
   version: number,
@@ -366,7 +397,7 @@ function progressResponse(
     assisted: state.assisted,
     feedback: state.feedback,
     activity: state.activity,
-    game: state.game ?? newGame(level.timeLimitSeconds),
+    game: state.game ?? freshGame(level),
     levelProgress: {
       cleared: state.satisfiedQuestionIds.length,
       total: level.questions.length,
@@ -431,6 +462,21 @@ export async function enrolled(
     ];
     await saveProgress(db, id, playerId, row.progress);
   }
+  if (!row.progress.game?.adventure) {
+    const { level } = currentQuestion(course.definition, row.progress);
+    const old = row.progress.game;
+    row.progress.game = freshGame(level, old?.multiplier ?? 1, old?.run ?? 0);
+    if (old) {
+      row.progress.game.status =
+        old.status === "active" ? "paused" : old.status;
+      row.progress.game.elapsedMs = old.elapsedMs;
+      row.progress.game.adventure!.elapsedMs = old.elapsedMs;
+    }
+    row.progress.adventureCheckpoint = structuredClone(
+      row.progress.game.adventure,
+    );
+    await saveProgress(db, id, playerId, row.progress);
+  }
   return { ...row, ...course };
 }
 async function saveProgress(
@@ -490,6 +536,8 @@ async function classify(
     state.questionIndex = 0;
     state.retry = false;
     state.satisfiedQuestionIds = [];
+    state.game = undefined;
+    state.adventureCheckpoint = undefined;
   } else {
     state.finished = true;
     await db.query(
@@ -770,6 +818,8 @@ WHERE e.player_id=$1 ORDER BY e.updated_at DESC,e.course_id LIMIT 100`,
       const p = await player(req),
         id = param(req, "courseId");
       const body = object(req.body);
+      if (body.assist !== undefined && typeof body.assist !== "boolean")
+        throw new CourseError("Movement assistance must be true or false.");
       return db.transaction(async (tx) => {
         const row = await enrolled(tx, id, p.id),
           state = row.progress;
@@ -782,25 +832,36 @@ WHERE e.player_id=$1 ORDER BY e.updated_at DESC,e.course_id LIMIT 100`,
           body.questionId !== deliveryId(state, question)
         )
           throw new CourseError("This game step is no longer active.", 409);
-        let game = tickGame(
-          state.game ?? newGame(level.timeLimitSeconds),
-          now(),
-        );
+        let game = tickGame(state.game ?? freshGame(level), now());
         if (command === "play") {
           if (game.status === "game-over")
-            game = newGame(
-              level.timeLimitSeconds,
+            game = freshGame(
+              level,
               game.multiplier,
               game.run + 1,
+              body.assist === undefined
+                ? game.adventure?.assist !== false
+                : body.assist !== false,
+              state.adventureCheckpoint,
             );
           if (game.status === "ready")
-            game = newGame(
-              level.timeLimitSeconds,
+            game = freshGame(
+              level,
               body.multiplier === undefined
                 ? game.multiplier
                 : integer(body.multiplier, "timer setting", 0, 2),
               game.run,
+              body.assist === undefined
+                ? game.adventure?.assist !== false
+                : body.assist !== false,
+              game.adventure,
             );
+          // Accessibility may safely promote assistance during an active run.
+          // Manual hazards can only be selected before starting a new step.
+          if (body.assist === true && game.adventure)
+            game.adventure.assist = true;
+          if (game.status === "ready")
+            state.adventureCheckpoint = structuredClone(game.adventure);
           if (game.status === "ready" || game.status === "paused") {
             game.status = "active";
             game.lastTick = now();
@@ -812,6 +873,53 @@ WHERE e.player_id=$1 ORDER BY e.updated_at DESC,e.course_id LIMIT 100`,
         return progressResponse(id, row.version, row.definition, state);
       });
     });
+  route("POST", "/api/learning/:courseId/action", async (req) => {
+    const p = await player(req),
+      id = param(req, "courseId"),
+      body = object(req.body);
+    const run = integer(body.run, "run", 0, 2_000_000_000);
+    const sequence = integer(
+      body.sequence,
+      "action sequence",
+      1,
+      2_000_000_000,
+    );
+    if (!ADVENTURE_ACTIONS.includes(body.action as AdventureAction))
+      throw new CourseError("Choose an available game action.");
+    return db.transaction(async (tx) => {
+      const row = await enrolled(tx, id, p.id),
+        state = row.progress;
+      const { question } = currentQuestion(row.definition, state);
+      if (
+        state.finished ||
+        state.blocked ||
+        state.assessment?.status === "pending" ||
+        !question ||
+        body.questionId !== deliveryId(state, question) ||
+        !state.game ||
+        state.game.run !== run
+      )
+        throw new CourseError("This game step is no longer active.", 409);
+      const last = state.game.actionSequence ?? 0;
+      if (sequence <= last)
+        return progressResponse(id, row.version, row.definition, state);
+      if (sequence !== last + 1)
+        throw new CourseError(
+          "Game actions arrived out of order. Retry the current action.",
+          409,
+        );
+      if (state.game.status !== "active")
+        throw new CourseError("Resume this game step before moving.", 409);
+      state.game = applyGameAction(
+        state.game,
+        body.action as AdventureAction,
+        now(),
+      );
+      state.game.actionSequence = sequence;
+      await saveProgress(tx, id, p.id, state);
+      return progressResponse(id, row.version, row.definition, state);
+    });
+  });
   route("POST", "/api/learning/:courseId/classify", async (req) => {
     const p = await player(req);
     const id = param(req, "courseId");
@@ -875,6 +983,8 @@ WHERE e.player_id=$1 ORDER BY e.updated_at DESC,e.course_id LIMIT 100`,
         throw new CourseError("Choose an available answer.");
       if (!state.game || state.game.status === "ready")
         throw new CourseError("Start this game step before submitting.", 409);
+      if (state.game.status === "paused")
+        throw new CourseError("Resume this game step before submitting.", 409);
       state.game = tickGame(state.game, now());
       if (state.game.status === "game-over") {
         await saveProgress(tx, id, p.id, state);
@@ -887,6 +997,10 @@ WHERE e.player_id=$1 ORDER BY e.updated_at DESC,e.course_id LIMIT 100`,
         independent: correct && !state.assisted,
         elapsedMs: activityElapsedMs,
       };
+      state.game = applyGameTask(state.game, state.activity);
+      const taskAdventure = state.game.adventure;
+      state.activity.adventure = structuredClone(taskAdventure);
+      const multiplier = state.game.multiplier;
       state.feedback =
         correct && !state.assisted ? undefined : question.explanation;
       await tx.query(
@@ -961,7 +1075,14 @@ WHERE e.player_id=$1 ORDER BY e.updated_at DESC,e.course_id LIMIT 100`,
         state.assessmentLevelId = level.id;
         await classify(tx, id, p.id, row.definition, state, provider);
       }
-      state.game = undefined;
+      state.game = freshGame(
+        currentQuestion(row.definition, state).level,
+        multiplier,
+        0,
+        taskAdventure?.assist !== false,
+        state.levelId === level.id ? taskAdventure : undefined,
+      );
+      state.adventureCheckpoint = structuredClone(state.game.adventure);
       await saveProgress(tx, id, p.id, state);
       return progressResponse(id, row.version, row.definition, state);
     });

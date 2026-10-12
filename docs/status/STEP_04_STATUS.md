@@ -1,5 +1,7 @@
 # Step 4: Playable 3D Story and Individual Rewards
 
+This report describes the initial timer and reward implementation. The corrected physical game loop, avatar clips, checkpoint continuity and audio are documented in [Physical Adventure Runtime](ADVENTURE_RUNTIME.md); final browser acceptance and deployment remain pending as recorded in the [implementation handoff](ADVENTURE_HANDOFF.md).
+
 ## Playable Adventure
 
 Published tutor-authored levels use Workshop, Temple Chase, Racing, or Wrestling.
