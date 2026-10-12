@@ -230,6 +230,7 @@ export default function CourseAdventure({
     void gameAudio.activate().catch(() => {});
     const questionId = current.question.id;
     const runNumber = current.game.run;
+    const commandSerial = gameCommandSerial.current;
     controlQueue.current = controlQueue.current
       .catch(() => {})
       .then(async () => {
@@ -237,6 +238,7 @@ export default function CourseAdventure({
         if (
           !mounted.current ||
           inputBusy.current ||
+          commandSerial !== gameCommandSerial.current ||
           live?.question?.id !== questionId ||
           live.game?.run !== runNumber ||
           live.game.status !== "active"
@@ -252,11 +254,15 @@ export default function CourseAdventure({
               action,
             },
           );
-          if (mounted.current && acceptGameSnapshot(next)) {
+          if (
+            mounted.current &&
+            commandSerial === gameCommandSerial.current &&
+            acceptGameSnapshot(next)
+          ) {
             setControlNotice("");
           }
         } catch (e) {
-          if (mounted.current)
+          if (mounted.current && commandSerial === gameCommandSerial.current)
             setControlNotice(
               e instanceof Error ? e.message : "Controls could not be saved.",
             );

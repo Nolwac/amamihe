@@ -194,6 +194,8 @@ export default function CourseScene({
         );
         const index = picked?.pickedMesh?.metadata?.answerIndex;
         element.dataset.lastGatePick = picked?.pickedMesh?.name || "none";
+        element.dataset.gateChoiceIndex = String(index);
+        element.dataset.gateCallback = String(Boolean(live.current.onChoose));
         if (Number.isInteger(index)) live.current.onChoose?.(index);
       };
       element.addEventListener("pointerdown", press);
@@ -700,10 +702,30 @@ export default function CourseScene({
           // as correct tasks increase the actual separation from the guardian.
           const phone = element.clientWidth < 600;
           const closingGap = Math.max(0, 10 - frame.guardianGap);
-          const nextFollowYaw = phone ? 0.3 + closingGap * 0.06 : 0.3;
+          // Rise above the guardian as it closes, with extra elevation when
+          // the right lane leaves less room for a clear quarter-view angle.
           const nextFollowBeta = phone
-            ? 1.35 - Math.min(0.3, closingGap * 0.052)
+            ? Math.max(
+                camera.lowerBetaLimit ?? 0.75,
+                1.35 -
+                  Math.min(0.3, closingGap * 0.052) -
+                  Math.min(0.08, closingGap * 0.015) -
+                  Math.max(0, frame.avatar.x) * 0.16,
+              )
             : 1.35;
+          // A wide closing-gap orbit puts the phone camera behind the gold
+          // capitals. Keep its lateral offset inside their open corridor while
+          // retaining enough quarter-view separation to see past the guardian.
+          const maximumFollowYaw = Math.asin(
+            Math.min(
+              1,
+              Math.max(0, 3.6 - camera.target.x) /
+                (camera.radius * Math.sin(nextFollowBeta)),
+            ),
+          );
+          const nextFollowYaw = phone
+            ? Math.min(0.3 + closingGap * 0.06, maximumFollowYaw)
+            : 0.3;
           // Apply only the chase offset so dragging to orbit remains available.
           camera.alpha += nextFollowYaw - followYaw;
           // The wider closing-gap view rises above the surrounding temple walls.
@@ -787,6 +809,25 @@ export default function CourseScene({
         });
         element.dataset.sceneReady = "true";
       });
+      const reportAssetError = (error: unknown) => {
+        if (disposed) return;
+        element.dataset.assetError = "true";
+        element.dataset.assetErrorMessage =
+          error instanceof Error
+            ? error.message
+            : "The adventure character could not be loaded.";
+        console.error(
+          "Adventure character loading failed:",
+          element.dataset.assetErrorMessage,
+        );
+      };
+      scene.onReadyTimeoutObservable.addOnce(() =>
+        reportAssetError(
+          new Error(
+            "The adventure character and world did not finish preparing within the scene readiness timeout.",
+          ),
+        ),
+      );
       const loaded = loadCourseHumans(
         scene,
         outfit,
@@ -797,13 +838,16 @@ export default function CourseScene({
           player = actors.player;
           opponent = actors.opponent;
           element.dataset.avatarReady = "true";
-          return scene.whenReadyAsync().then(() => {
-            if (!disposed) live.current.onReady?.();
-          });
+          // Readiness may never resolve after a shader error or timeout. Only
+          // asset creation must finish before this scene can be disposed.
+          void scene
+            .whenReadyAsync()
+            .then(() => {
+              if (!disposed) live.current.onReady?.();
+            })
+            .catch(reportAssetError);
         })
-        .catch(() => {
-          if (!disposed) element.dataset.assetError = "true";
-        });
+        .catch(reportAssetError);
       release = () => {
         if (live.current.game)
           gameAudio.setMovement({ active: false, speed: 0, theme });
@@ -815,8 +859,19 @@ export default function CourseScene({
         engine.stopRenderLoop();
         camera.detachControl();
         void loaded.finally(() => {
-          scene.dispose();
-          engine.dispose();
+          let released = false;
+          const finish = () => {
+            if (released) return;
+            released = true;
+            scene.dispose();
+            engine.dispose();
+          };
+          // Pending shader preparation still references this engine. Release
+          // after readiness or a bounded timeout, even if readiness never
+          // resolves, rather than retaining the scene indefinitely.
+          scene.onReadyTimeoutDuration = 15000;
+          scene.onReadyTimeoutObservable.addOnce(finish);
+          void scene.whenReadyAsync().then(finish, finish);
         });
       };
     };

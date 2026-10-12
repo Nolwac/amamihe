@@ -26,6 +26,7 @@ test("two browsers share real 3D avatars, course rooms and a consented team batt
     ).json();
     draft.definition.title = "Social course " + draft.id;
     draft.definition.levels = draft.definition.levels.slice(0, 1);
+    draft.definition.levels[0].theme = "temple-chase";
     draft.definition.concepts = draft.definition.concepts.slice(0, 1);
     const saved = await context.request.put("/api/studio/courses/" + draft.id, {
       data: { revision: draft.revision, definition: draft.definition },
@@ -165,10 +166,17 @@ test("two browsers share real 3D avatars, course rooms and a consented team batt
         "true",
         { timeout: 60000 },
       );
-    // Separate avatars through actual learner input before capturing the room.
+    // Answer selection highlights a gate; movement comes from the physical
+    // controls. Move early in an untimed run, before obstacle assistance acts.
+    await page.getByLabel("Section timing", { exact: true }).selectOption("0");
     await page
-      .getByRole("button", { name: /A public page with no reuse permission/ })
+      .getByRole("button", { name: "Start section", exact: true })
       .click();
+    await expect(page.locator("canvas[data-course-theme]")).toHaveAttribute(
+      "data-game-status",
+      "active",
+    );
+    await page.getByRole("button", { name: "Move left", exact: true }).click();
     await expect
       .poll(
         async () => {
@@ -178,7 +186,19 @@ test("two browsers share real 3D avatars, course rooms and a consented team batt
         { timeout: 15000 },
       )
       .toBeLessThan(-0.5);
-    // Capture after the receiving browser has polled and interpolated the move.
+    await page
+      .getByRole("button", { name: "Pause section", exact: true })
+      .click();
+    await expect(page.locator("canvas[data-course-theme]")).toHaveAttribute(
+      "data-game-status",
+      "paused",
+    );
+    await expect(beta.locator("canvas[data-course-theme]")).toHaveAttribute(
+      "data-game-status",
+      "ready",
+    );
+    // Both learners are stationary while the receiving browser polls and
+    // interpolates the final paused position before the room capture.
     await beta.waitForTimeout(4000);
     await beta.screenshot({ path: "test-results/step8-shared-course.png" });
     for (const p of [page, beta]) {

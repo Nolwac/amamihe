@@ -498,7 +498,22 @@ async function answer(
   await page.getByRole("button", { name: "Submit task", exact: true }).click();
   const response = await answered;
   expect(response.ok()).toBe(true);
-  return response.json() as Promise<LearningProgress>;
+  const result = (await response.json()) as LearningProgress;
+  const questionId = response.request().postDataJSON().questionId as string;
+  // The HTTP response can arrive before React commits its feedback and the
+  // next 3D frame. A previous task's strike pulse must not satisfy this wait.
+  await expect
+    .poll(
+      async () =>
+        (await snapshot(page))?.events.some(
+          (event) =>
+            event.type === "task-correct" &&
+            event.id?.startsWith(`${questionId}:`),
+        ),
+      { timeout: 3000, intervals: [50, 100] },
+    )
+    .toBe(true);
+  return result;
 }
 
 test("all adventure themes animate real limb poses and task-driven scene encounters", async ({
@@ -759,6 +774,89 @@ test("all adventure themes animate real limb poses and task-driven scene encount
   expect(errors).toEqual([]);
 });
 
+test("manual actions queued before pause cannot leak into the resumed run", async ({
+  page,
+  context,
+}) => {
+  await createAccount(context.request, "Queued Motion Explorer");
+  const draft = await publishThemes(context.request, ["temple-chase"]);
+  await enter(page, draft);
+  await page.getByLabel("Section timing", { exact: true }).selectOption("0");
+  await page
+    .getByRole("button", { name: "Start section", exact: true })
+    .click();
+  await expect.poll(async () => (await snapshot(page))?.status).toBe("active");
+
+  const actionPath = `/api/learning/${draft.id}/action`;
+  const actionRoute = `**${actionPath}`;
+  const commands: { action: string; sequence: number }[] = [];
+  let releaseFirst!: () => void;
+  let firstReceived!: () => void;
+  const held = new Promise<void>((resolve) => (releaseFirst = resolve));
+  const received = new Promise<void>((resolve) => (firstReceived = resolve));
+  await page.route(actionRoute, async (route) => {
+    const body = route.request().postDataJSON();
+    commands.push({ action: body.action, sequence: body.sequence });
+    const response = await route.fetch();
+    expect(response.ok()).toBe(true);
+    if (commands.length === 1) {
+      const accepted: LearningProgress = await response.json();
+      expect(accepted.game!.actionSequence).toBe(1);
+      expect(accepted.game!.adventure!.targetLane).toBe(1);
+      firstReceived();
+      await held;
+    }
+    await route.fulfill({ response });
+  });
+  try {
+    await page.getByRole("button", { name: "Move right", exact: true }).click();
+    await received;
+    // This input is waiting behind the first response; it has not reached the
+    // server when the learner pauses and resumes this same run.
+    await page.getByRole("button", { name: "Move left", exact: true }).click();
+    await page
+      .getByRole("button", { name: "Pause section", exact: true })
+      .click();
+    await expect
+      .poll(async () => (await snapshot(page))?.status)
+      .toBe("paused");
+    await page
+      .getByRole("button", { name: "Resume section", exact: true })
+      .click();
+    await expect
+      .poll(async () => (await snapshot(page))?.status)
+      .toBe("active");
+
+    releaseFirst();
+    // A distinct fresh action gives a positive response to await after the
+    // queue drains, without relying on a timeout to prove the old input vanished.
+    const freshResponse = page.waitForResponse(
+      (response) =>
+        response.url().endsWith(actionPath) &&
+        response.request().postDataJSON()?.action === "jump",
+    );
+    await page.getByRole("button", { name: "Jump", exact: true }).click();
+    const response = await freshResponse;
+    expect(response.ok()).toBe(true);
+    const fresh: LearningProgress = await response.json();
+    expect(fresh.game!.actionSequence).toBe(2);
+    expect(fresh.game!.adventure!.targetLane).toBe(1);
+    expect(commands).toEqual([
+      { action: "right", sequence: 1 },
+      { action: "jump", sequence: 2 },
+    ]);
+    const saved: LearningProgress = await (
+      await context.request.get(`/api/learning/${draft.id}`)
+    ).json();
+    expect(saved.game!.status).toBe("active");
+    expect(saved.game!.actionSequence).toBe(2);
+    expect(saved.game!.adventure!.targetLane).toBe(1);
+  } finally {
+    releaseFirst();
+    await page.unroute(actionRoute);
+  }
+});
+
 test("phone manual controls cause actual jump, obstacle Game Over and a checkpoint-preserving retry", async ({
   page,
   context,
@@ -869,6 +967,10 @@ test("phone manual controls cause actual jump, obstacle Game Over and a checkpoi
   await expect(
     page.getByRole("heading", { name: "Game Over", exact: true }),
   ).toBeVisible({ timeout: 25000 });
+  // The React notice can precede the capped 3D frame that applies the collision.
+  await expect
+    .poll(async () => (await snapshot(page))?.status)
+    .toBe("game-over");
   const caught = (await snapshot(page))!;
   expect(caught.status).toBe("game-over");
   expect(caught.actor.position[2]).toBeGreaterThan(initial.actor.position[2]);
@@ -1068,7 +1170,18 @@ test("phone manual controls cause actual jump, obstacle Game Over and a checkpoi
     .getByRole("button", { name: "Pause section", exact: true })
     .click();
   await expect.poll(async () => (await snapshot(page))?.status).toBe("paused");
-  readableActors((await snapshot(page))!);
+  const readableHurdle = (await snapshot(page))!;
+  readableActors(readableHurdle);
+  for (const name of ["LeftFoot", "RightFoot"]) {
+    const point = readableHurdle.actorVisibility[name];
+    expect(point.inFrame, `${name} must remain in the phone viewport`).toBe(
+      true,
+    );
+    expect(
+      point.occluded,
+      `${name} is hidden by ${point.occluder} after clearing the hurdle`,
+    ).toBe(false);
+  }
   await coloredAvatarFrame(
     page,
     "test-results/adventure-phone-hurdle-readable.png",
@@ -1080,5 +1193,29 @@ test("phone manual controls cause actual jump, obstacle Game Over and a checkpoi
   expect(successful.game!.adventure!.collision).toBeNull();
   expect(successful.completedLevelIds).toEqual(prior.completedLevelIds);
   expect(successful.points).toBe(prior.points);
+  await page
+    .getByRole("button", { name: "Resume section", exact: true })
+    .click();
+  await page.getByRole("button", { name: "Move right", exact: true }).click();
+  await expect
+    .poll(async () => (await snapshot(page))!.actor.position[0])
+    .toBeGreaterThan(1.5);
+  await page
+    .getByRole("button", { name: "Pause section", exact: true })
+    .click();
+  await expect.poll(async () => (await snapshot(page))?.status).toBe("paused");
+  const rightLane = (await snapshot(page))!;
+  readableActors(rightLane);
+  for (const name of ["Hips", "LeftFoot", "RightFoot"]) {
+    const point = rightLane.actorVisibility[name];
+    expect(point.inFrame, `${name} must remain visible in the right lane`).toBe(
+      true,
+    );
+    expect(
+      point.occluded,
+      `${name} is hidden by ${point.occluder} in the right lane`,
+    ).toBe(false);
+  }
+  await coloredAvatarFrame(page, "test-results/adventure-phone-right-lane.png");
   expect(errors).toEqual([]);
 });
