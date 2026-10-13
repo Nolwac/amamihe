@@ -28,4 +28,6 @@ Suggested ages and times are starting content-design choices, not measured learn
 
 Implementation source: `b212d9aae8977e2a6307e682153562e41386cf71`. The complete browser run precedes the final finder-only layer change; the focused seven checks cover that change. The subsequent CI run verifies the final branch head.
 
+The first PR CI run passed build, formatting, Node checks and 30 browser journeys, including every phone/children’s check. Its second social browser was still in the lazy adventure loading fallback when the helper’s five-second wait expired. The helper now waits up to 30 seconds for the same visible adventure view before interacting; no assertions or retries were removed. The focused two-browser social journey passed locally in 55.7 seconds after this test-only adjustment. The updated branch requires a fresh complete CI run before promotion.
+
 Evidence: `evidence/reports/mobile-kids-browser-final.json`, `mobile-kids-rendering-audit.json` and `mobile-kids-verification.json`; seven actual captures are in `evidence/screenshots/mobile-kids-*.png`. The public verifier syntax and its native Node 24 catalogue import passed locally.
