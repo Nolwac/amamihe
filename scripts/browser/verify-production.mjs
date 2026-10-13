@@ -2,6 +2,7 @@ import { chromium } from "@playwright/test";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
 import assert from "node:assert/strict";
+import { KIDS_COURSES } from "../../shared/catalogue.ts";
 
 // This is a permanent deployment smoke check, not an account-creation script.
 // Public checks never send mail, submit learner evidence, or modify production data.
@@ -214,6 +215,56 @@ try {
     "private studio requires authentication",
     "published course catalogue responds",
     "maintained storytelling pilot is published with six levels, twelve tasks and a training notebook",
+  );
+  const childrenResponse = await context.request.get(
+    base + "/api/courses?audience=kids&limit=4",
+  );
+  assert.equal(childrenResponse.status(), 200);
+  const children = await childrenResponse.json();
+  assert.equal(children.total, KIDS_COURSES.length);
+  assert.deepEqual(
+    children.courses.map((course) => course.id).sort(),
+    KIDS_COURSES.map((course) => course.id).sort(),
+    "The children’s finder must expose all maintained age bands.",
+  );
+  for (const [index, course] of KIDS_COURSES.entries()) {
+    const response = await context.request.get(
+      base + "/api/courses/" + course.id,
+    );
+    assert.equal(response.status(), 200);
+    const published = await response.json();
+    assert.equal(published.definition.title, course.title);
+    assert.ok(published.definition.summary.includes("Ages " + course.ages));
+    assert.equal(published.definition.levels.length, 2);
+    assert.equal(
+      published.definition.levels.reduce((n, l) => n + l.questions.length, 0),
+      4,
+    );
+    assert.equal(
+      published.definition.levels.reduce(
+        (n, l) => n + l.retryQuestions.length,
+        0,
+      ),
+      4,
+    );
+    for (const level of published.definition.levels) {
+      assert.equal(level.timeLimitSeconds, 0);
+      assert.equal(
+        level.worldStyle,
+        ["garden", "story-trail", "pattern-track"][index],
+      );
+      for (const question of [...level.questions, ...level.retryQuestions]) {
+        for (const field of ["answer", "hint", "explanation", "rubric"])
+          assert.equal(
+            question[field],
+            undefined,
+            "Public children’s previews must hide grading fields.",
+          );
+      }
+    }
+  }
+  evidence.checks.push(
+    "three maintained children’s games: age bands, bounded finder, two levels/four challenges/fresh retries, untimed compatible worlds and private grading fields",
   );
   for (const viewport of [
     { width: 1280, height: 900 },
