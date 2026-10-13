@@ -49,13 +49,25 @@ Every signed-in player can open **Tutor studio**. Start a blank course or the si
 
 Published course versions are immutable. Four published houses load per district page; **Course houses** offers previews, explicit enrollment, district navigation, and saved adventures. **Search portals** opens a genuine 3D result universe with bounded previews and course-doorstep enrollment. Enrollments stay pinned to their original version after tutor edits. Draft ownership, optimistic revision checks, prerequisite validation, and transaction locks protect content and progress.
 
-The playable checkpoint runner persists question evidence and assistance, requires criterion-mapped independent fresh retries after wrong or assisted answers, and awards each level's activity points once. Exhausted retry coverage stops progression. By default, a clearly labeled mock chooses an eligible next level only after clearance. The optional server adapter uses OpenRouter’s typed Jev Decisions API; a missing private key or zero cost budget prevents live calls. Neither provider generates teaching content. Quiz clearance and points do not certify practical competence.
+The playable checkpoint runner persists question evidence and assistance, requires criterion-mapped independent fresh retries after wrong or assisted answers, and awards each level's activity points once. Exhausted fresh retry coverage continues as unlimited practice with an authored-content gap notice; previously explained answers cannot earn new independent credit. By default, a clearly labeled mock chooses an eligible next level only after clearance. The optional server adapter uses OpenRouter’s typed Jev Decisions API; a missing private key or zero cost budget prevents live calls. Neither provider generates teaching content. Quiz clearance and points do not certify practical competence.
 
 Adventures use animated human rigs and physical encounters: jump, slide and change lanes while a guardian pursues you, earn race boosts through independent answers, spar against a reacting opponent, or build at workshop stations. Navigation assistance is enabled by default; select **Manual obstacle controls** before starting for direct obstacle play. Focus the world for arrows/A/D, Space to jump, S to slide and F to strike, or use the touch buttons. Game Over restores the current task's checkpoint. Open **Sound** and enable audio for original theme music and movement/action effects. See the [adventure runtime guide](docs/status/ADVENTURE_RUNTIME.md).
 
-The corrective adventure/audio build passes final local validation and is ready for review; CI and production promotion remain pending. See the [handoff](docs/status/ADVENTURE_HANDOFF.md) for evidence and release boundaries.
+The immersive recovery/audio release is publicly verified at `ec64f2e` (PR #3). The mobile-control, smoother-geometry and children’s-course follow-up is described in [its handoff](docs/status/MOBILE_KIDS_HANDOFF.md); its own production promotion is pending.
 
 **Model Makers** and the featured storytelling card open the published pilot directly: six sequential levels, twelve primary checkpoints and twelve fresh retries, with practical assignments for corpus preparation, byte tokenization, causal architecture, parameter accounting, training, and evaluation. Parameter and evaluation levels include server-checked arithmetic workbenches. The training level includes a downloadable **1,040,768-parameter** Python/PyTorch notebook for a learner-owned environment. Browser-hosted Python training and verified training competence remain outside this prototype. **Try foundations checkpoint** opens the separate three-question introduction; its completion cannot complete the pilot. See [pilot delivery](docs/status/PILOT_CURRICULUM.md).
+
+Choose **Arrange controls** (the six-dot button) to drag city icons, the walking pad, or adventure control groups. Arrow keys move a focused control in arrange mode; **Reset layout** restores the defaults and **Done** returns to play. Positions stay on the device and are clamped/repacked after viewport changes. Opening a control closes the other HUD menus; popovers stay within the viewport. Panels start collapsed. Arrangement pauses active adventures.
+
+Open **Children’s games** in the city menu, or choose its filter in **Course houses**, to find three maintained, self-contained English starter games. They also appear in the street/portal catalogue:
+
+| Course | Suggested ages | Game and learning |
+| --- | --- | --- |
+| Number Garden | 3–5, with a grown-up | Calm garden workshop; count seeds and recognize shapes; solved tasks grow flowers. |
+| Story Trail | 6–8 | Daylight woodland trail; follow an original short story and match rhyme endings. |
+| Pattern Racers | 9–12 | Racing track; infer number rules and repair repeated robot instructions. |
+
+Each has two levels, four primary challenges, four fresh retries, reading and optional drawing practice, and no task deadline. These are original authored starter examples for review, not a child-tested learning-outcome claim. Ages guide course selection; the account does not collect age. The storytelling-model pilot remains available.
 
 ## Storage and Production Configuration
 

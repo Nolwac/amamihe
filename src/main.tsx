@@ -1,3 +1,9 @@
+import {
+  HudLayout,
+  FloatingControl,
+  ArrangeControls,
+  useHudEditing,
+} from "./FloatingHud";
 import BillboardLinks from "./BillboardLinks";
 import AudioControls from "./AudioControls";
 import { useBillboards, type Billboard } from "./billboardPresence";
@@ -29,7 +35,7 @@ const ReviewDesk = lazy(() => import("./ReviewDesk"));
 const WardrobeShop = lazy(() => import("./WardrobeShop"));
 const CourseScene = lazy(() => import("./CourseScene"));
 import type { CourseSummary, PublishedCourse } from "../shared/course";
-import { STORYTELLING_COURSE_ID } from "../shared/catalogue";
+import { STORYTELLING_COURSE_ID, KIDS_COURSES } from "../shared/catalogue";
 import "./courses.css";
 import { AccountGate, AccountControls, type Player } from "./AccountGate";
 type Question = {
@@ -134,6 +140,7 @@ function Icon({ name, size = 22 }: { name: string; size?: number }) {
   );
 }
 function App() {
+  const arrangingControls = useHudEditing();
   const cityAds = useBillboards();
   const [advertisement, setAdvertisement] = useState<Billboard | null>(null);
   const [breakMode, setBreakMode] = useState(false);
@@ -145,6 +152,7 @@ function App() {
   const [pilot, setPilot] = useState<PublishedCourse | null>(null);
   const [pilotError, setPilotError] = useState("");
   const [courses, setCourses] = useState<CourseSummary[]>([]);
+  const [childrenOnly, setChildrenOnly] = useState(false);
   const [catalogueOffset, setCatalogueOffset] = useState(0);
   const [catalogueTotal, setCatalogueTotal] = useState(0);
   const [catalogueRevision, setCatalogueRevision] = useState(0);
@@ -184,7 +192,7 @@ function App() {
   useEffect(() => {
     let alive = true;
     api<{ courses: CourseSummary[]; total: number }>(
-      `/courses?limit=4&offset=${catalogueOffset}`,
+      `/courses?limit=4&offset=${catalogueOffset}${childrenOnly ? "&audience=kids" : ""}`,
     )
       .then((data) => {
         if (alive) {
@@ -198,7 +206,7 @@ function App() {
     return () => {
       alive = false;
     };
-  }, [catalogueOffset, catalogueRevision]);
+  }, [catalogueOffset, catalogueRevision, childrenOnly]);
   useEffect(() => {
     if (!player) return;
     let alive = true;
@@ -231,9 +239,25 @@ function App() {
       /* Device storage optional. */
     }
   }, [courseId, player?.id]);
+  const visibleCourses = childrenOnly
+    ? courses
+        .filter((c) => KIDS_COURSES.some((k) => k.id === c.id))
+        .sort(
+          (a, b) =>
+            KIDS_COURSES.findIndex((k) => k.id === a.id) -
+            KIDS_COURSES.findIndex((k) => k.id === b.id),
+        )
+    : courses;
+  const visibleEnrollments = childrenOnly
+    ? enrollments.filter((c) => KIDS_COURSES.some((k) => k.id === c.courseId))
+    : enrollments;
   const policy = useWorldPolicy(
     Boolean(player),
-    breakMode ? "break" : courseId || studio || loading ? "waiting" : "active",
+    breakMode
+      ? "break"
+      : courseId || studio || loading || arrangingControls
+        ? "waiting"
+        : "active",
   );
   useEffect(() => {
     if (house !== "MODEL MAKERS") return;
@@ -346,7 +370,10 @@ function App() {
       setPlayer(session.player);
     });
   return (
-    <div className={"app" + (!player ? " creating-character" : "")}>
+    <div
+      data-view={courseId || studio ? "course" : "city"}
+      className={"app" + (!player ? " creating-character" : "")}
+    >
       <header className="topbar">
         <a className="brand" href="#" onClick={() => setTab("explore")}>
           <span className="brand-mark">
@@ -356,158 +383,186 @@ function App() {
             amamihe<small>A WORLD OF POSSIBILITY</small>
           </span>
         </a>
-        <details className="city-menu">
-          <summary aria-label="Open city menu">☰</summary>
-          <nav aria-label="Main navigation">
-            <button
-              className={tab === "explore" ? "active" : ""}
-              onClick={() => setTab("explore")}
+        <FloatingControl id="menu" label="city menu">
+          <details className="city-menu">
+            <summary aria-label="Open city menu">☰</summary>
+            <nav aria-label="Main navigation">
+              <button
+                className={tab === "explore" ? "active" : ""}
+                onClick={() => setTab("explore")}
+              >
+                <Icon name="compass" size={17} /> Explore the world
+              </button>
+              <button
+                className={tab === "learn" ? "active" : ""}
+                onClick={() => {
+                  setChildrenOnly(false);
+                  setCatalogueOffset(0);
+                  setDirectory(true);
+                }}
+              >
+                <Icon name="book" size={17} /> My learning
+              </button>
+              {player && (
+                <>
+                  <button
+                    onClick={() => {
+                      setDirectory(true);
+                      setChildrenOnly(false);
+                      setCatalogueOffset(0);
+                      setHouse(null);
+                    }}
+                  >
+                    Course houses
+                  </button>
+                  <button
+                    onClick={() => {
+                      setDirectory(true);
+                      setChildrenOnly(true);
+                      setCatalogueOffset(0);
+                      setHouse(null);
+                    }}
+                  >
+                    Children’s games
+                  </button>
+                  <button
+                    onClick={() => {
+                      setPortals(true);
+                      setDirectory(false);
+                      setHouse(null);
+                    }}
+                  >
+                    Search portals
+                  </button>
+                  <button
+                    className="tutor-toggle"
+                    onClick={() => {
+                      setStudio(true);
+                      setHouse(null);
+                    }}
+                  >
+                    Tutor studio
+                  </button>
+                </>
+              )}
+            </nav>
+          </details>
+        </FloatingControl>
+        <FloatingControl id="skills" label="skill categories">
+          <details className="city-skills">
+            <summary aria-label="Show skill categories">✦</summary>
+            <div className="skills-hud" aria-label="Skill categories">
+              {[
+                ["crown", "Creativity"],
+                ["tech", "Tech"],
+                ["chat", "Communication"],
+                ["team", "Leadership"],
+              ].map(([icon, label]) => (
+                <div key={label} className={"skill-category " + icon}>
+                  <span className="skill-hex">
+                    <Icon name={icon} />
+                  </span>
+                  <small>{label}</small>
+                </div>
+              ))}
+            </div>
+          </details>
+        </FloatingControl>
+        <FloatingControl id="map" label="district map">
+          <details className="city-map">
+            <summary aria-label="Show district map">⌖</summary>
+            <div
+              role="img"
+              className="district-map"
+              aria-label="Workshop District map"
             >
-              <Icon name="compass" size={17} /> Explore the world
-            </button>
-            <button
-              className={tab === "learn" ? "active" : ""}
-              onClick={() => setDirectory(true)}
-            >
-              <Icon name="book" size={17} /> My learning
-            </button>
-            {player && (
-              <>
-                <button
-                  onClick={() => {
-                    setDirectory(true);
-                    setHouse(null);
-                  }}
-                >
-                  Course houses
-                </button>
-                <button
-                  onClick={() => {
-                    setPortals(true);
-                    setDirectory(false);
-                    setHouse(null);
-                  }}
-                >
-                  Search portals
-                </button>
-                <button
-                  className="tutor-toggle"
-                  onClick={() => {
-                    setStudio(true);
-                    setHouse(null);
-                  }}
-                >
-                  Tutor studio
-                </button>
-              </>
-            )}
-          </nav>
-        </details>
-        <details className="city-skills">
-          <summary aria-label="Show skill categories">✦</summary>
-          <div className="skills-hud" aria-label="Skill categories">
-            {[
-              ["crown", "Creativity"],
-              ["tech", "Tech"],
-              ["chat", "Communication"],
-              ["team", "Leadership"],
-            ].map(([icon, label]) => (
-              <div key={label} className={"skill-category " + icon}>
-                <span className="skill-hex">
-                  <Icon name={icon} />
-                </span>
-                <small>{label}</small>
-              </div>
-            ))}
-          </div>
-        </details>
-        <details className="city-map">
-          <summary aria-label="Show district map">⌖</summary>
-          <div
-            role="img"
-            className="district-map"
-            aria-label="Workshop District map"
-          >
-            <svg viewBox="0 0 120 120" aria-hidden="true">
-              <defs>
-                <clipPath id="map-clip">
-                  <circle cx="60" cy="60" r="55" />
-                </clipPath>
-              </defs>
-              <g clipPath="url(#map-clip)">
-                <rect width="120" height="120" fill="#657a71" />
-                <path
-                  d="M55-10v140M-10 77h140"
-                  stroke="#aa9c7d"
-                  strokeWidth="21"
-                />
-                <path
-                  d="M55-10v140M-10 77h140"
-                  stroke="#d4bfa1"
-                  strokeWidth="12"
-                />
-                {[
-                  [22, 64, 18, 26, "#bb7050"],
-                  [80, 55, 20, 27, "#667f92"],
-                  [39, 23, 30, 23, "#37877d"],
-                  [15, 22, 18, 29, "#cea357"],
-                  [85, 23, 19, 24, "#915e69"],
-                ].map(([x, y, w, h, c], i) => (
-                  <rect
-                    key={i}
-                    x={x}
-                    y={y}
-                    width={w}
-                    height={h}
-                    rx="2"
-                    fill={String(c)}
-                    stroke="#ddcbb3"
-                    strokeWidth="1"
-                  />
-                ))}
-                {[
-                  [12, 90],
-                  [92, 92],
-                  [14, 10],
-                  [100, 40],
-                  [80, 14],
-                ].map(([cx, cy], i) => (
-                  <circle key={i} cx={cx} cy={cy} r="7" fill="#3c6854" />
-                ))}
-                <g
-                  transform={`translate(${55 + stats.x * 3},${98 - (stats.z + 5) * 3}) rotate(${(stats.heading * 180) / Math.PI})`}
-                >
+              <svg viewBox="0 0 120 120" aria-hidden="true">
+                <defs>
+                  <clipPath id="map-clip">
+                    <circle cx="60" cy="60" r="55" />
+                  </clipPath>
+                </defs>
+                <g clipPath="url(#map-clip)">
+                  <rect width="120" height="120" fill="#657a71" />
                   <path
-                    d="M0-7 5 6 0 3-5 6Z"
-                    fill="#fff4db"
-                    stroke="#17362f"
-                    strokeWidth="1.5"
+                    d="M55-10v140M-10 77h140"
+                    stroke="#aa9c7d"
+                    strokeWidth="21"
                   />
+                  <path
+                    d="M55-10v140M-10 77h140"
+                    stroke="#d4bfa1"
+                    strokeWidth="12"
+                  />
+                  {[
+                    [22, 64, 18, 26, "#bb7050"],
+                    [80, 55, 20, 27, "#667f92"],
+                    [39, 23, 30, 23, "#37877d"],
+                    [15, 22, 18, 29, "#cea357"],
+                    [85, 23, 19, 24, "#915e69"],
+                  ].map(([x, y, w, h, c], i) => (
+                    <rect
+                      key={i}
+                      x={x}
+                      y={y}
+                      width={w}
+                      height={h}
+                      rx="2"
+                      fill={String(c)}
+                      stroke="#ddcbb3"
+                      strokeWidth="1"
+                    />
+                  ))}
+                  {[
+                    [12, 90],
+                    [92, 92],
+                    [14, 10],
+                    [100, 40],
+                    [80, 14],
+                  ].map(([cx, cy], i) => (
+                    <circle key={i} cx={cx} cy={cy} r="7" fill="#3c6854" />
+                  ))}
+                  <g
+                    transform={`translate(${55 + stats.x * 3},${98 - (stats.z + 5) * 3}) rotate(${(stats.heading * 180) / Math.PI})`}
+                  >
+                    <path
+                      d="M0-7 5 6 0 3-5 6Z"
+                      fill="#fff4db"
+                      stroke="#17362f"
+                      strokeWidth="1.5"
+                    />
+                  </g>
                 </g>
-              </g>
-              <circle
-                cx="60"
-                cy="60"
-                r="56"
-                stroke="#d9bf85"
-                strokeWidth="3"
-                fill="none"
-              />
-            </svg>
-            <small>WORKSHOP DISTRICT</small>
-          </div>
-        </details>
-        <div className="points-chip" aria-label="Earned skill points">
+                <circle
+                  cx="60"
+                  cy="60"
+                  r="56"
+                  stroke="#d9bf85"
+                  strokeWidth="3"
+                  fill="none"
+                />
+              </svg>
+              <small>WORKSHOP DISTRICT</small>
+            </div>
+          </details>
+        </FloatingControl>
+        <div
+          className="points-chip"
+          data-hud-obstacle="points"
+          aria-label="Earned skill points"
+        >
           <Icon name="coin" size={26} />
           <b>{player?.points || 0}</b>
           <span>points</span>
         </div>
         {player && !courseId && (
-          <div className="city-audio">
-            <AudioControls />
-          </div>
+          <FloatingControl id="audio" label="sound settings">
+            <div className="city-audio">
+              <AudioControls />
+            </div>
+          </FloatingControl>
         )}
-        <div className="player-chip">
+        <div className="player-chip" data-hud-obstacle="profile">
           <img
             className="mini-avatar"
             src="/assets/explorer-portrait.png"
@@ -570,21 +625,23 @@ function App() {
             <span className="location-pill">
               ⌖ &nbsp; Venture City <span>•</span> Workshop District
             </span>
-            <details className="city-graphics">
-              <summary aria-label="City graphics settings">⚙</summary>
-              <label className="quality-control">
-                Graphics{" "}
-                <select
-                  aria-label="Graphics quality"
-                  value={quality}
-                  onChange={(e) => setQuality(e.target.value)}
-                >
-                  <option value="low">Low · adaptive 144–360p</option>
-                  <option value="medium">Medium · 720p</option>
-                  <option value="high">High · 1080p</option>
-                </select>
-              </label>
-            </details>
+            <FloatingControl id="graphics" label="graphics settings">
+              <details className="city-graphics">
+                <summary aria-label="City graphics settings">⚙</summary>
+                <label className="quality-control">
+                  Graphics{" "}
+                  <select
+                    aria-label="Graphics quality"
+                    value={quality}
+                    onChange={(e) => setQuality(e.target.value)}
+                  >
+                    <option value="low">Low · adaptive 144–360p</option>
+                    <option value="medium">Medium · 720p</option>
+                    <option value="high">High · 1080p</option>
+                  </select>
+                </label>
+              </details>
+            </FloatingControl>
           </div>
           {studio || courseId ? (
             <div className="world-loading">
@@ -614,6 +671,7 @@ function App() {
                     studio ||
                     tab === "learn" ||
                     breakMode ||
+                    arrangingControls ||
                     policy.state?.status === "arrested"),
                 )}
                 mode={player ? "world" : "avatar"}
@@ -631,72 +689,78 @@ function App() {
               />
             </Suspense>
           )}
-          <div className="touch-controls" aria-label="Movement controls">
-            {[
-              ["", ""],
-              ["↑", "ArrowUp"],
-              ["", ""],
-              ["←", "ArrowLeft"],
-              ["↓", "ArrowDown"],
-              ["→", "ArrowRight"],
-            ].map(([label, key], i) =>
-              key ? (
-                <button
-                  key={i}
-                  aria-label={"Walk " + key.replace("Arrow", "")}
-                  onPointerDown={(e) => {
-                    e.currentTarget.setPointerCapture(e.pointerId);
-                    window.dispatchEvent(new KeyboardEvent("keydown", { key }));
-                  }}
-                  onPointerUp={() =>
-                    window.dispatchEvent(new KeyboardEvent("keyup", { key }))
-                  }
-                  onPointerCancel={() =>
-                    window.dispatchEvent(new KeyboardEvent("keyup", { key }))
-                  }
+          <FloatingControl id="movement" label="movement controls">
+            <div className="touch-controls" aria-label="Movement controls">
+              {[
+                ["", ""],
+                ["↑", "ArrowUp"],
+                ["", ""],
+                ["←", "ArrowLeft"],
+                ["↓", "ArrowDown"],
+                ["→", "ArrowRight"],
+              ].map(([label, key], i) =>
+                key ? (
+                  <button
+                    key={i}
+                    aria-label={"Walk " + key.replace("Arrow", "")}
+                    onPointerDown={(e) => {
+                      e.currentTarget.setPointerCapture(e.pointerId);
+                      window.dispatchEvent(
+                        new KeyboardEvent("keydown", { key }),
+                      );
+                    }}
+                    onPointerUp={() =>
+                      window.dispatchEvent(new KeyboardEvent("keyup", { key }))
+                    }
+                    onPointerCancel={() =>
+                      window.dispatchEvent(new KeyboardEvent("keyup", { key }))
+                    }
+                  >
+                    {label}
+                  </button>
+                ) : (
+                  <span key={i} />
+                ),
+              )}
+            </div>
+          </FloatingControl>
+          <FloatingControl id="status" label="rendering status">
+            <div className="scene-bottom">
+              <span>
+                <span
+                  role="img"
+                  className="keyboard-hint"
+                  aria-label="W A S D to walk"
                 >
-                  {label}
-                </button>
-              ) : (
-                <span key={i} />
-              ),
-            )}
-          </div>
-          <div className="scene-bottom">
-            <span>
-              <span
-                role="img"
-                className="keyboard-hint"
-                aria-label="W A S D to walk"
-              >
-                {["W", "A", "S", "D"].map((key) => (
-                  <kbd key={key}>{key}</kbd>
-                ))}
+                  {["W", "A", "S", "D"].map((key) => (
+                    <kbd key={key}>{key}</kbd>
+                  ))}
+                </span>
+                to walk <i /> Drag to look around <i /> Click a house
               </span>
-              to walk <i /> Drag to look around <i /> Click a house
-            </span>
-            <span
-              className={
-                "engine-status" +
-                (stats.avatarReady && stats.fps < 5 ? " slow" : "")
-              }
-            >
-              <span /> LIVE 3D{" "}
-              <b
-                title={
-                  stats.avatarReady && stats.fps < 5
-                    ? "Frames are arriving slowly. Try Low graphics or close other tabs."
-                    : undefined
+              <span
+                className={
+                  "engine-status" +
+                  (stats.avatarReady && stats.fps < 5 ? " slow" : "")
                 }
               >
-                {!stats.avatarReady
-                  ? "Loading"
-                  : stats.fps > 0
-                    ? `${stats.fps} FPS`
-                    : "<1 FPS"}
-              </b>
-            </span>
-          </div>
+                <span /> LIVE 3D{" "}
+                <b
+                  title={
+                    stats.avatarReady && stats.fps < 5
+                      ? "Frames are arriving slowly. Try Low graphics or close other tabs."
+                      : undefined
+                  }
+                >
+                  {!stats.avatarReady
+                    ? "Loading"
+                    : stats.fps > 0
+                      ? `${stats.fps} FPS`
+                      : "<1 FPS"}
+                </b>
+              </span>
+            </div>
+          </FloatingControl>
           <button
             className="course-entry"
             aria-label="Visit Model Makers"
@@ -757,6 +821,12 @@ function App() {
           <button onClick={() => setDirectory(true)}>View my progress ↗</button>
         </footer>
       </main>
+      {player &&
+        !studio &&
+        !directory &&
+        !portals &&
+        !house &&
+        !advertisement && <ArrangeControls />}
       {player && (
         <WorldPolicy
           state={policy.state}
@@ -800,7 +870,11 @@ function App() {
           <header className="course-bar">
             <div>
               <span className="eyebrow">VENTURE CITY · COURSE HOUSES</span>
-              <h1>Find your next skill</h1>
+              <h1>
+                {childrenOnly
+                  ? "Choose your learning game"
+                  : "Find your next skill"}
+              </h1>
             </div>
             <button
               className="course-secondary"
@@ -809,55 +883,59 @@ function App() {
               Return to city
             </button>
           </header>
-          <Suspense fallback={<p>Opening wardrobe…</p>}>
-            <WardrobeShop
-              key={`${player.points}:${player.outfit}`}
-              onChanged={refreshPoints}
-            />
-            <ReviewDesk />
-            <DeviceCheck />
-            <AdDesk />
-            <BillboardLinks ads={cityAds} />
-            <SocialPanel
-              social={social}
-              playerId={player.id}
-              courses={courses}
-              onRewards={refreshPoints}
-            />
-          </Suspense>
-          <article className="directory-card">
-            <h2>Foundations checkpoint · 3 questions</h2>
-            <p>
-              Separate introductory checkpoint. This does not complete the
-              model-training course.
-            </p>
-            <button
-              className="course-secondary"
-              onClick={() => {
-                setDirectory(false);
-                setHouse("FOUNDATIONS CHECKPOINT");
-              }}
-            >
-              Try foundations checkpoint
-            </button>
-            {(attempt || result) && (
-              <button
-                className="course-secondary"
-                onClick={() => {
-                  setDirectory(false);
-                  setTab("learn");
-                }}
-              >
-                View foundations checkpoint progress
-              </button>
-            )}
-          </article>
-          {enrollments.length > 0 && (
+          {!childrenOnly && (
+            <>
+              <Suspense fallback={<p>Opening wardrobe…</p>}>
+                <WardrobeShop
+                  key={`${player.points}:${player.outfit}`}
+                  onChanged={refreshPoints}
+                />
+                <ReviewDesk />
+                <DeviceCheck />
+                <AdDesk />
+                <BillboardLinks ads={cityAds} />
+                <SocialPanel
+                  social={social}
+                  playerId={player.id}
+                  courses={courses}
+                  onRewards={refreshPoints}
+                />
+              </Suspense>
+              <article className="directory-card">
+                <h2>Foundations checkpoint · 3 questions</h2>
+                <p>
+                  Separate introductory checkpoint. This does not complete the
+                  model-training course.
+                </p>
+                <button
+                  className="course-secondary"
+                  onClick={() => {
+                    setDirectory(false);
+                    setHouse("FOUNDATIONS CHECKPOINT");
+                  }}
+                >
+                  Try foundations checkpoint
+                </button>
+                {(attempt || result) && (
+                  <button
+                    className="course-secondary"
+                    onClick={() => {
+                      setDirectory(false);
+                      setTab("learn");
+                    }}
+                  >
+                    View foundations checkpoint progress
+                  </button>
+                )}
+              </article>
+            </>
+          )}
+          {visibleEnrollments.length > 0 && (
             <div
               className="course-directory-grid"
               aria-label="Enrolled courses"
             >
-              {enrollments.map((course) => (
+              {visibleEnrollments.map((course) => (
                 <article className="directory-card" key={course.courseId}>
                   <span className="eyebrow">
                     MY ADVENTURES · VERSION {course.version}
@@ -881,8 +959,30 @@ function App() {
               ))}
             </div>
           )}
+          <div className="course-audience-filters" aria-label="Course audience">
+            <button
+              className="course-secondary"
+              aria-pressed={!childrenOnly}
+              onClick={() => {
+                setChildrenOnly(false);
+                setCatalogueOffset(0);
+              }}
+            >
+              All courses
+            </button>
+            <button
+              className="course-secondary"
+              aria-pressed={childrenOnly}
+              onClick={() => {
+                setChildrenOnly(true);
+                setCatalogueOffset(0);
+              }}
+            >
+              Children’s games
+            </button>
+          </div>
           <div className="course-directory-grid">
-            {courses.map((course) => (
+            {visibleCourses.map((course) => (
               <article className="directory-card" key={course.id}>
                 <span className="eyebrow">
                   PUBLISHED HOUSE · {course.language} · V{course.version}
@@ -1356,6 +1456,8 @@ function App() {
 }
 createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
-    <App />
+    <HudLayout>
+      <App />
+    </HudLayout>
   </React.StrictMode>,
 );

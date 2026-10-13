@@ -290,3 +290,10 @@ See [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) for delivery order and [RUL
 Use a classifier/scorer interface rather than a chat-completion dependency. Tutor-authored criteria define allowable outcomes such as `correct`, `partially_correct`, `incorrect`, and `insufficient_evidence`; routing defines eligible actions such as `advance`, `retry`, `explain`, and `review_prerequisite`. Map typed outputs or probability scores to versioned assessment records. Do not require generated rationale prose; retain criterion IDs, outcome codes, and referenced evidence.
 
 A small context window is handled through per-question or rubric-aligned classification calls followed by compact stage aggregation and route classification. Classification accuracy, calibration, ambiguity handling, and available no-purchase deployment determine suitability. Constrained outputs alone do not establish that grades are correct.
+
+
+## Mobile controls and children’s starter worlds
+
+The mobile follow-up uses viewport-bounded, device-persisted draggable HUD islands, explicit arrangement mode, keyboard repositioning and reset. Default city/course anchors avoid collisions and overlapping popovers. Arrangement pauses adventures; ordinary movement/camera input remains separate from dragging controls.
+
+Optional `CourseLevel.worldStyle` selects a compatible authored garden, story-trail or pattern-track presentation over existing workshop, temple-chase or racing physics. Maintained starter curricula serve suggested ages 3–5 (helper-supported counting/shapes), 6–8 (short stories/rhymes) and 9–12 (number patterns/repeated instructions). Ages are discovery text rather than account profiling or new grading permissions. These courses use finite authored resources and fresh retries, immutable publication and existing assessment/reward rules. They are added alongside the original storytelling-model pilot. Content review and learner evaluation remain separate from software checks.

@@ -1,6 +1,7 @@
 import { learningRequestKey } from "./request-limits.js";
 import { registerOperations } from "./operations.js";
 import { publishPilotCourse } from "./pilot-course.js";
+import { publishKidsCourses } from "./kids-courses.js";
 import {
   initializeWorldPolicySchema,
   registerWorldPolicy,
@@ -44,6 +45,7 @@ const db = await openDatabase({
 await initializeSchema(db);
 await initializeCourseSchema(db);
 await publishPilotCourse(db);
+await publishKidsCourses(db);
 await initializePracticeSchema(db);
 await initializeReviewSchema(db);
 await initializeSocialSchema(db);

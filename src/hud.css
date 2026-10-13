@@ -1,0 +1,386 @@
+.hud-item {
+  position: fixed;
+  pointer-events: auto;
+  z-index: 9;
+  right: max(14px, env(safe-area-inset-right));
+  width: max-content;
+  max-width: calc(100vw - 24px);
+}
+.hud-item > .city-menu,
+.hud-item > .city-skills,
+.hud-item > .city-map,
+.hud-item > .city-audio,
+.hud-item > .city-graphics,
+.hud-item > .touch-controls,
+.hud-item > .scene-bottom,
+.hud-item > .police-controls,
+.hud-item > .police-detention.course-directory {
+  position: relative;
+  inset: auto;
+  transform: none;
+  margin: 0;
+}
+.hud-skills {
+  top: max(92px, calc(env(safe-area-inset-top) + 82px));
+}
+.hud-map {
+  top: max(146px, calc(env(safe-area-inset-top) + 136px));
+}
+.hud-audio {
+  top: max(200px, calc(env(safe-area-inset-top) + 190px));
+}
+.hud-graphics {
+  bottom: max(130px, calc(env(safe-area-inset-bottom) + 130px));
+}
+.hud-police {
+  bottom: max(72px, calc(env(safe-area-inset-bottom) + 72px));
+  z-index: 32;
+}
+.hud-menu {
+  bottom: max(14px, env(safe-area-inset-bottom));
+}
+.hud-movement {
+  left: max(14px, env(safe-area-inset-left));
+  right: auto;
+  bottom: max(112px, calc(env(safe-area-inset-bottom) + 112px));
+}
+.hud-status {
+  left: max(14px, env(safe-area-inset-left));
+  right: auto;
+  bottom: max(72px, calc(env(safe-area-inset-bottom) + 72px));
+  pointer-events: none;
+}
+.hud-status .scene-bottom > span:first-child {
+  display: none;
+}
+.hud-item .audio-controls > summary {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  font-size: 22px;
+}
+.hud-item .police-menu > summary {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+}
+.hud-item .city-menu nav,
+.hud-item .city-graphics .quality-control,
+.hud-item .city-skills .skills-hud,
+.hud-item .city-map .district-map,
+.hud-item .city-audio .audio-options,
+.hud-police .police-options {
+  position: fixed;
+  inset: auto max(12px, env(safe-area-inset-right))
+    max(74px, calc(env(safe-area-inset-bottom) + 74px)) auto;
+  max-width: calc(100vw - 24px);
+  max-height: min(50dvh, 380px);
+  overflow: auto;
+  z-index: 60;
+}
+.hud-item .city-graphics .quality-control {
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+  border-radius: 12px;
+  width: min(280px, calc(100vw - 24px));
+}
+.hud-item .quality-control select {
+  width: 100%;
+  min-height: 44px;
+}
+.hud-item .city-map .district-map {
+  width: 150px;
+  height: 150px;
+  overflow: visible;
+}
+.hud-item .city-skills .skills-hud {
+  width: min(300px, calc(100vw - 24px));
+  justify-content: space-around;
+}
+.hud-arrange {
+  position: fixed;
+  right: max(72px, calc(env(safe-area-inset-right) + 72px));
+  bottom: max(14px, env(safe-area-inset-bottom));
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  color: var(--gold);
+  background: var(--hud);
+  font-size: 26px;
+  z-index: 35;
+}
+.hud-editing {
+  outline: 2px dashed #ffe395;
+  outline-offset: 3px;
+  cursor: grab;
+  touch-action: none;
+  z-index: 81;
+}
+.hud-editing > * {
+  pointer-events: none;
+}
+.hud-editing details > :not(summary) {
+  display: none !important;
+}
+.hud-edit-bar {
+  position: fixed;
+  z-index: 90;
+  top: max(12px, env(safe-area-inset-top));
+  left: 12px;
+  right: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 12px;
+  background: #132b2afa;
+  color: #fff0d5;
+  border: 1px solid var(--gold);
+  font-size: 12px;
+}
+.hud-edit-bar span {
+  flex: 1;
+  min-width: 110px;
+}
+.hud-edit-bar button {
+  min-height: 44px;
+  color: #172d29;
+  background: #ffd378;
+  border-radius: 8px;
+  padding: 8px 12px;
+}
+.app[data-view="course"] .topbar,
+.app[data-view="course"] .game-shell .hud-item {
+  visibility: hidden;
+}
+.hud-adventure-tools {
+  top: max(50px, calc(env(safe-area-inset-top) + 50px));
+  right: 12px;
+  z-index: 31;
+  width: min(350px, calc(100vw - 24px));
+}
+.course-adventure .hud-adventure-tools .adventure-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+.app .course-adventure .hud-adventure-tools .adventure-header-actions > button,
+.app
+  .course-adventure
+  .hud-adventure-tools
+  .adventure-header-actions
+  > details
+  > summary,
+.app .course-adventure .hud-adventure-tools .audio-controls > summary {
+  width: 44px;
+  min-width: 44px;
+  height: 44px;
+  padding: 3px;
+}
+.course-adventure .course-bar {
+  min-height: 44px;
+  pointer-events: none;
+}
+.course-adventure .course-bar > div:first-child {
+  pointer-events: auto;
+}
+.course-adventure .course-bar h1 {
+  max-width: min(340px, calc(100vw - 24px));
+  font-size: 14px;
+  display: block;
+}
+@media (max-height: 560px) and (min-width: 500px) {
+  .hud-skills,
+  .hud-map,
+  .hud-audio,
+  .hud-graphics,
+  .hud-police,
+  .hud-menu {
+    top: 86px;
+    bottom: auto;
+  }
+  .hud-skills {
+    right: 284px;
+  }
+  .hud-map {
+    right: 230px;
+  }
+  .hud-audio {
+    right: 176px;
+  }
+  .hud-graphics {
+    right: 122px;
+  }
+  .hud-police {
+    right: 68px;
+  }
+  .hud-menu {
+    right: 14px;
+  }
+  .hud-movement {
+    bottom: 14px;
+  }
+  .hud-status {
+    display: none;
+  }
+  .hud-item .city-menu nav,
+  .hud-item .city-graphics .quality-control,
+  .hud-item .city-skills .skills-hud,
+  .hud-item .city-map .district-map,
+  .hud-item .city-audio .audio-options,
+  .hud-police .police-options {
+    bottom: 14px;
+    max-height: calc(100dvh - 28px);
+  }
+}
+
+.hud-status.hud-editing {
+  pointer-events: auto;
+}
+.police-menu {
+  position: relative;
+}
+.police-alert {
+  position: absolute;
+  top: -6px;
+  right: -4px;
+  color: #182b29;
+  background: #ffd378;
+  border-radius: 50%;
+  padding: 0 6px;
+  font-size: 12px;
+}
+.app .course-adventure .course-bar h1 {
+  max-width: min(340px, calc(100vw - 24px));
+  font-size: 14px;
+  display: block;
+}
+
+.hud-movement .touch-controls {
+  grid-template-columns: repeat(3, 44px);
+}
+.hud-movement .touch-controls button {
+  height: 44px;
+  width: 44px;
+}
+
+.app[data-view="course"] .hud-police {
+  visibility: hidden;
+}
+.app[data-view="course"] .hud-arrange {
+  left: 70px;
+  right: auto;
+}
+.hud-adventure-timer {
+  left: 12px;
+  right: auto;
+  top: 108px;
+  z-index: 31;
+}
+.hud-adventure-status {
+  left: 12px;
+  right: auto;
+  top: 172px;
+  z-index: 31;
+}
+.hud-adventure-movement {
+  left: 12px;
+  right: auto;
+  bottom: max(14px, env(safe-area-inset-bottom));
+  z-index: 31;
+}
+.app .hud-item > .adventure-timer,
+.app .hud-item > .adventure-status-menu,
+.app .hud-item > .adventure-pad {
+  position: relative;
+  inset: auto;
+}
+.app .hud-adventure-timer .adventure-timer {
+  font-size: 14px;
+  padding: 6px 8px;
+  max-width: 80px;
+}
+.app .hud-adventure-status .compact-popover,
+.app .hud-adventure-movement .adventure-pad-buttons {
+  position: fixed;
+  left: 12px;
+  right: auto;
+  bottom: 76px;
+  top: auto;
+  width: min(320px, calc(100vw - 24px));
+  max-height: 50dvh;
+  overflow: auto;
+  background: #14292df5;
+  padding: 12px;
+  border-radius: 12px;
+}
+.hud-adventure-movement .adventure-pad-buttons {
+  flex-wrap: wrap;
+}
+.hud-adventure-movement .adventure-key-help {
+  display: none;
+}
+.hud-adventure-movement .movement-menu[open] {
+  padding: 0;
+  border: 0;
+  background: none;
+}
+.app .course-adventure .adventure-content {
+  padding-bottom: 76px;
+}
+@media (max-width: 360px) {
+  .hud-adventure-timer {
+    top: 158px;
+  }
+  .hud-adventure-status {
+    top: 218px;
+  }
+}
+@media (max-height: 560px) and (min-width: 500px) {
+  .hud-adventure-tools {
+    top: 12px;
+  }
+  .hud-adventure-timer {
+    top: 58px;
+  }
+  .hud-adventure-status {
+    top: 120px;
+  }
+  .app .course-adventure .course-bar h1 {
+    max-width: 160px;
+  }
+}
+
+/* Keep a moved menu's own toggle reachable; choose the roomier vertical side. */
+.app .hud-item .city-menu nav,
+.app .hud-item .city-graphics .quality-control,
+.app .hud-item .city-skills .skills-hud,
+.app .hud-item .city-map .district-map,
+.app .hud-item .audio-options,
+.app .hud-item .compact-popover,
+.app .hud-police .police-options,
+.app .hud-adventure-movement .adventure-pad-buttons {
+  position: fixed;
+  left: auto;
+  right: var(--hud-panel-right, 12px);
+  top: var(--hud-panel-top, auto);
+  bottom: var(--hud-panel-bottom, 74px);
+  max-width: calc(100vw - var(--hud-panel-right, 12px) - 12px);
+  max-height: min(var(--hud-panel-height, 50dvh), calc(100dvh - 24px));
+  overflow: auto;
+}
+
+.app[data-view="course"] .hud-police:has([data-arrested="true"]) {
+  visibility: visible;
+  top: auto;
+  bottom: max(14px, env(safe-area-inset-bottom));
+}

@@ -155,3 +155,6 @@ The original Phase 9 evaluates the prototype. The remaining integration and worl
 No milestone claims physical 2 GB-device acceptance, learner effectiveness, live provider access or human moderation coverage solely from automated fixtures. No purchased services or paid inference fallback are introduced.
 
 Implementation records: [Step 10](docs/status/STEP_10_STATUS.md), [Step 11](docs/status/STEP_11_STATUS.md), [Step 12](docs/status/STEP_12_STATUS.md), [Step 13](docs/status/STEP_13_STATUS.md), [Step 14](docs/status/STEP_14_STATUS.md), [Step 15](docs/status/STEP_15_STATUS.md). These records distinguish working behavior, fixture coverage and outstanding external acceptance gates.
+
+
+The mobile/children’s-content follow-up adds movable HUD controls, softer procedural geometry and three English starter games across suggested ages 3–5, 6–8 and 9–12. See [MOBILE_KIDS_HANDOFF.md](docs/status/MOBILE_KIDS_HANDOFF.md) for implementation, executed validation and release boundaries. Physical-device and learner-outcome acceptance remain open.

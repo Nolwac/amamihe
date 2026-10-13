@@ -4,7 +4,7 @@
 
 The physical-adventure/audio release from PR #2 was merged and publicly verified at `d7485ea45769cf47a519cdb227327eae69c85193`. This follow-up responds to learner feedback about recovery, retry limits, obstructive panels, rapid camera movement, reading, practice, teaching-role coverage, police presentation and faint sound.
 
-The follow-up is on `fix/immersive-learning-recovery`. Its production promotion is pending. Keep published course versions, private deployment configuration, learner evidence and unrelated VPS services intact.
+The follow-up was merged as PR #3 and publicly verified at `ec64f2ebcbbce187d9e45ce570416db80f5c0d0b` on 12 October 2026. The next mobile/children’s-content follow-up is recorded in [MOBILE_KIDS_HANDOFF.md](MOBILE_KIDS_HANDOFF.md). Keep published course versions, private deployment configuration, learner evidence and unrelated VPS services intact.
 
 ## Implemented behavior
 

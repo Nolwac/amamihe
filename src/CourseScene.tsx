@@ -52,6 +52,7 @@ export type SceneGame = {
 /** Tutor preview and published adventures share real rigs, geometry and physics. */
 export default function CourseScene({
   theme,
+  worldStyle,
   outfit = "terracotta",
   game,
   onReady,
@@ -67,6 +68,7 @@ export default function CourseScene({
   resources?: CourseResource[];
   selectedResource?: string;
   onResource?: (id: string) => void;
+  worldStyle?: import("../shared/course").WorldStyle;
   theme: Theme;
   outfit?: string;
   game?: SceneGame;
@@ -110,7 +112,7 @@ export default function CourseScene({
     let release: (() => void) | undefined;
     const initialize = () => {
       if (disposed) return;
-      const engine = new Engine(element, false, {
+      const engine = new Engine(element, true, {
         preserveDrawingBuffer: false,
         stencil: false,
         powerPreference: "low-power",
@@ -120,7 +122,13 @@ export default function CourseScene({
       const temple = theme === "temple-chase",
         boxing = theme === "wrestling";
       scene.clearColor = Color4.FromHexString(
-        temple ? "#142b2fff" : boxing ? "#26383fff" : "#adc9ceff",
+        worldStyle
+          ? "#c6e3d6ff"
+          : temple
+            ? "#142b2fff"
+            : boxing
+              ? "#26383fff"
+              : "#adc9ceff",
       );
       const camera = new ArcRotateCamera(
         "adventure-follow-camera",
@@ -145,10 +153,10 @@ export default function CourseScene({
       );
       light.intensity = temple ? 1.25 : 1.1;
       light.groundColor = Color3.FromHexString("#6b6860");
-      const environment = createCourseEnvironment(scene, theme);
+      const environment = createCourseEnvironment(scene, theme, worldStyle);
       const stations = createResourceStations(scene);
       const guardian = createGuardian(scene);
-      guardian.root.setEnabled(temple);
+      guardian.root.setEnabled(temple && worldStyle !== "story-trail");
       const guardianMeshes = new Set(guardian.root.getChildMeshes());
       const synchronizeAds = createBillboards(
         scene,
@@ -408,6 +416,8 @@ export default function CourseScene({
         const frame = adventureFrame(state);
         return {
           theme,
+          worldStyle,
+          gardenFlowers: environment.productCount(),
           status: renderedStatus,
           distance: frame.distance,
           speed: frame.speed,
@@ -422,7 +432,10 @@ export default function CourseScene({
           projectedOpponent: opponent
             ? projectActor(opponent.root, true)
             : null,
-          projectedGuardian: temple ? projectActor(guardian.root) : null,
+          projectedGuardian:
+            temple && worldStyle !== "story-trail"
+              ? projectActor(guardian.root)
+              : null,
           actorVisibility: player
             ? Object.fromEntries(
                 ["Head", "Spine2", "Hips", "LeftFoot", "RightFoot"].map(
@@ -453,12 +466,14 @@ export default function CourseScene({
                 }),
               )
             : null,
-          guardianVisibility: temple
-            ? visibilityPoint(
-                guardian.root.position.add(new Vector3(0, 3.2, 0)),
-              )
-            : null,
-          guardian: temple ? guardian.snapshot() : null,
+          guardianVisibility:
+            temple && worldStyle !== "story-trail"
+              ? visibilityPoint(
+                  guardian.root.position.add(new Vector3(0, 3.2, 0)),
+                )
+              : null,
+          guardian:
+            temple && worldStyle !== "story-trail" ? guardian.snapshot() : null,
           environmentMaterials: scene.meshes
             .filter((mesh) => mesh.name.startsWith("world-section-"))
             .slice(0, 8)
@@ -923,13 +938,15 @@ export default function CourseScene({
       disposed = true;
       release?.();
     };
-  }, [theme, outfit]);
+  }, [theme, outfit, worldStyle]);
   return (
     <canvas
-      key={`${theme}:${outfit}`}
+      key={`${theme}:${outfit}:${worldStyle || "default"}`}
       ref={canvas}
       className="course-scene"
       data-course-theme={theme}
+      data-world-style={worldStyle || theme}
+      data-geometry-style="soft-bevels"
       aria-label={`3D ${theme.replaceAll("-", " ")} ${game ? "adventure" : "playable theme preview"}. Drag to orbit; use the movement controls during play.`}
       tabIndex={0}
     />
