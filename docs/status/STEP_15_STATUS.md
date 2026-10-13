@@ -6,7 +6,7 @@ Shared presence exposes connecting, connected and reconnecting states. Requests 
 
 Privately assigned moderators receive an operations view for active presence, unresolved participant reports, pending placements and arrest appeals. They can dismiss an arrest after reviewing its explanation. Existing signal mute/unmute, creator withdrawal and advertising approval retain their separate authorization checks. Anonymous and ordinary accounts cannot read operations counts. No production moderator is assigned automatically.
 
-Shared deployment accepts a bounded optional configuration allowlist for moderator identifiers, idle thresholds and decision settings. Values stay in the private host file; inherited shell settings cannot override that file during promotion. Existing deployments need no new values. Classification remains mock and its default budget zero. No secret or paid service was introduced.
+Shared deployment accepts a bounded optional configuration allowlist for moderator identifiers, idle thresholds and decision settings. Values stay in the private host file; inherited shell settings cannot override that file during promotion. Existing deployments need no new values. Classification remains historical answer-key and its default budget zero. No secret or paid service was introduced.
 
 Verification includes the isolated operations authorization check, the full Node regression suite, accessibility checks and a two-browser journey covering animated peers, disconnect/reconnect, course rooms, team battle rewards and reporting/blocking. The public verifier additionally checks new health capabilities and anonymous authorization gates. Browser and API evidence establish prototype behavior, not learning effectiveness, physical 2 GB performance or large-scale capacity.
 
@@ -19,3 +19,5 @@ The eight-player fixture uses one 390 × 844 software-rendered browser and seven
 Reproduce the bounded-room check against an isolated test-email server with `EMAIL_TEST_OUTBOX=/tmp/amamihe-test-outbox npx tsx scripts/browser/audit-shared-world.mjs`. It refuses non-loopback destinations and removes fixture presence on completion. Never interpret synthetic participant activity as learner outcomes.
 
 City advertisements have native destination links and an explicit preview when their 3D billboard is selected. Billboard polling is separated from the scene renderer so the ordinary interface does not eagerly import rendering modules. Typed decisions also reject malformed probability distributions and combined contexts exceeding the conservative request budget before network access.
+
+Provider update: these milestone observations precede the [local tev1 integration](TEV1_HANDOFF.md). Refer to that handoff for current inference behavior and its release boundary. Historical captures remain in Git history.

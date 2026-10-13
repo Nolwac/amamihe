@@ -86,7 +86,8 @@ services:
       - ALL
     security_opt:
       - no-new-privileges:true
-    mem_limit: 512m
+    mem_limit: 3g
+    cpus: 2.0
     restart: unless-stopped
     logging: *bounded_logging
 

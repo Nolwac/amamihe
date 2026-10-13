@@ -34,7 +34,7 @@ The course-adventure image demonstrates Temple Chase. Racing and Wrestling appea
 
 ## Illustration Limits
 
-UI text and example values are illustrative. The avatar image's generic skill levels are not proof of earned mastery; registration grants starter gear, not automatic learning credit. Search results must preview separate courses rather than imply that the five displayed topics necessarily belong to one course. The police notice is a mockup: enforcement applies to the published engagement policy, not merely being outside an assigned zone. Implementation must follow the technical documents where illustrative text differs.
+UI text and example values are illustrative. The avatar image's generic skill levels are not proof of earned mastery; registration grants starter gear, not automatic learning credit. Search results must preview separate courses rather than imply that the five displayed topics necessarily belong to one course. The police notice is a concept preview: enforcement applies to the published engagement policy, not merely being outside an assigned zone. Implementation must follow the technical documents where illustrative text differs.
 
 Review feedback can identify a scene number, then address layout, camera, character design, UI, world density, or gameplay clarity. All implemented scenes must preserve genuine 3D while meeting the 2 GB device and low-quality budgets.
 

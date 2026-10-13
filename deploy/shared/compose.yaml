@@ -63,9 +63,7 @@ services:
       SOCIAL_MODERATOR_IDS: ${SOCIAL_MODERATOR_IDS:-}
       WORLD_IDLE_WARNING_SECONDS: ${WORLD_IDLE_WARNING_SECONDS:-600}
       WORLD_IDLE_ARREST_SECONDS: ${WORLD_IDLE_ARREST_SECONDS:-900}
-      DECISION_PROVIDER: ${DECISION_PROVIDER:-mock}
-      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
-      OPENROUTER_MAX_REQUEST_COST_USD: ${OPENROUTER_MAX_REQUEST_COST_USD:-0}
+      OLLAMA_BASE_URL: http://127.0.0.1:11434
     ports:
       - "127.0.0.1:${APP_LOOPBACK_PORT:?Select an unused explicit loopback port}:3000"
     volumes:
@@ -97,7 +95,8 @@ services:
       - ALL
     security_opt:
       - no-new-privileges:true
-    mem_limit: 512m
+    mem_limit: 3g
+    cpus: 2.0
     restart: unless-stopped
     logging: *bounded_logging
 

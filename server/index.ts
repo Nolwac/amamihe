@@ -11,6 +11,7 @@ import {
   registerAdvertising,
 } from "./advertising.js";
 import { decisionConfiguration } from "./decision-provider.js";
+import { startLocalModel } from "./local-model.js";
 import { initializeSocialSchema, registerSocial } from "./social.js";
 import { initializeReviewSchema, registerReviews } from "./reviews.js";
 import { initializePracticeSchema, registerPractice } from "./practice.js";
@@ -23,7 +24,13 @@ import staticPlugin from "@fastify/static";
 import { randomUUID } from "node:crypto";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { mockClassify, questions, type Chunk } from "./classifier.js";
+import {
+  classifyFoundation,
+  selectFoundationQuestions,
+  publicFoundationResult,
+  questions,
+  type Chunk,
+} from "./classifier.js";
 import { openDatabase } from "./db.js";
 import { initializeSchema } from "./schema.js";
 import { Authentication, registerAuthentication } from "./auth.js";
@@ -32,6 +39,7 @@ import { initializeCourseSchema, registerCourses } from "./courses.js";
 import { readRelease } from "./release.js";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const release = await readRelease();
+const stopLocalModel = await startLocalModel();
 const dbPath = process.env.DATA_DIR || path.join(root, ".data");
 if (process.env.NODE_ENV === "production" && !process.env.DATABASE_URL?.trim())
   throw new Error(
@@ -63,6 +71,7 @@ const app = Fastify({
       : false,
 });
 app.addHook("onClose", async () => db.close());
+app.addHook("onClose", async () => stopLocalModel());
 await app.register(cookie);
 await app.register(rateLimit, {
   max: 300,
@@ -96,7 +105,10 @@ registerWorldPolicy(app, db, auth);
 registerAuthentication(app, auth);
 const decisions = decisionConfiguration();
 registerCourses(app, db, auth, decisions.provider);
-app.get("/api/decision-status", async () => decisions.status);
+app.get("/api/decision-status", async (_req, reply) => {
+  reply.header("Cache-Control", "no-store");
+  return decisions.status();
+});
 registerRewards(app, db, auth);
 registerPractice(app, db, auth);
 registerReviews(app, db, auth);
@@ -109,7 +121,7 @@ app.get("/api/health", async () => {
     ok: true,
     storage: db.kind === "pglite" ? "PostgreSQL / PGlite" : "PostgreSQL",
     classifier: decisions.provider.identity,
-    decisionService: decisions.status,
+    decisionService: await decisions.status(),
     release,
     features: {
       courseStudio: true,
@@ -142,8 +154,8 @@ app.get("/api/session", async (req, reply) => {
       )
     ).rows[0]?.result || null;
   const a = (
-    await db.query<{ id: string }>(
-      "SELECT id FROM attempts WHERE player_id=$1 AND status='playing' ORDER BY created_at DESC LIMIT 1",
+    await db.query<{ id: string; question_order?: string[] }>(
+      "SELECT id,question_order FROM attempts WHERE player_id=$1 AND status='playing' ORDER BY created_at DESC LIMIT 1",
       [p.id],
     )
   ).rows[0];
@@ -156,11 +168,13 @@ app.get("/api/session", async (req, reply) => {
     : 0;
   return {
     player: p,
-    result,
+    result: publicFoundationResult(result),
     active: a
       ? {
           id: a.id,
-          questions: questions.map(({ answer, explanation, ...q }) => q),
+          questions: (a.question_order ?? questions.map((q) => q.id))
+            .map((id) => questions.find((q) => q.id === id)!)
+            .map(({ answer, explanation, ...q }) => q),
           answered,
         }
       : null,
@@ -197,11 +211,24 @@ app.post("/api/attempts", async (req, reply) => {
   const p = await player(req);
   if (!p) return reply.code(401).send({ error: "Create your player first." });
   const id = randomUUID();
-  await db.query("INSERT INTO attempts(id,player_id) VALUES($1,$2)", [
-    id,
-    p.id,
-  ]);
-  return { id, questions: questions.map(({ answer, explanation, ...q }) => q) };
+  try {
+    const plan = await selectFoundationQuestions(decisions.provider);
+    await db.query(
+      "INSERT INTO attempts(id,player_id,question_order,decision_plan) VALUES($1,$2,$3,$4)",
+      [id, p.id, JSON.stringify(plan.order), JSON.stringify(plan.decisions)],
+    );
+    return {
+      id,
+      questions: plan.order
+        .map((id) => questions.find((q) => q.id === id)!)
+        .map(({ answer, explanation, ...q }) => q),
+    };
+  } catch {
+    return reply.code(503).send({
+      error:
+        "The local learning guide could not select your questions. Try again; earlier progress stays saved.",
+    });
+  }
 });
 app.post<{ Params: { id: string }; Body: { questionId: string } }>(
   "/api/attempts/:id/help",
@@ -209,8 +236,8 @@ app.post<{ Params: { id: string }; Body: { questionId: string } }>(
     const p = await player(req);
     if (!p) return reply.code(401).send({ error: "Sign in first." });
     const a = (
-      await db.query(
-        "SELECT id FROM attempts WHERE id=$1 AND player_id=$2 AND status=$3",
+      await db.query<{ id: string; question_order?: string[] }>(
+        "SELECT id,question_order FROM attempts WHERE id=$1 AND player_id=$2 AND status=$3",
         [req.params.id, p.id, "playing"],
       )
     ).rows[0];
@@ -242,8 +269,8 @@ app.post<{ Params: { id: string }; Body: Chunk }>(
     )
       return reply.code(400).send({ error: "Invalid response." });
     const a = (
-      await db.query(
-        "SELECT id FROM attempts WHERE id=$1 AND player_id=$2 AND status=$3",
+      await db.query<{ id: string; question_order?: string[] }>(
+        "SELECT id,question_order FROM attempts WHERE id=$1 AND player_id=$2 AND status=$3",
         [req.params.id, p.id, "playing"],
       )
     ).rows[0];
@@ -260,7 +287,7 @@ app.post<{ Params: { id: string }; Body: Chunk }>(
           [req.params.id, q.id],
         )
       ).rows.length &&
-      questions[answered]?.id !== q.id
+      (a.question_order ?? questions.map((q) => q.id))[answered] !== q.id
     )
       return reply.code(409).send({ error: "Complete questions in order." });
     const assisted =
@@ -294,7 +321,7 @@ app.post<{ Params: { id: string } }>(
           reply.code(404);
           return { error: "Attempt not found." };
         }
-        if (a.status === "complete") return a.result;
+        if (a.status === "complete") return publicFoundationResult(a.result);
         const rows = (
           await tx.query<{
             question_id: string;
@@ -303,13 +330,14 @@ app.post<{ Params: { id: string } }>(
             elapsed_ms: number;
           }>("SELECT * FROM chunks WHERE attempt_id=$1", [req.params.id])
         ).rows;
-        const result = mockClassify(
+        const result = await classifyFoundation(
           rows.map((c) => ({
             questionId: c.question_id,
             answer: c.answer,
             assisted: c.assisted,
             elapsedMs: c.elapsed_ms,
           })),
+          decisions.provider,
         );
         await tx.query(
           "UPDATE attempts SET status='complete',result=$1 WHERE id=$2",

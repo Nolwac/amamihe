@@ -35,7 +35,7 @@ these do not establish automatic bandwidth or asset-tier adaptation.
 
 Independent level clearance awards activity points once in the enrollment
 transaction and writes a unique ledger event. Existing balances receive an
-idempotent opening record. Completing a course's confirmed mock checkpoints earns
+idempotent opening record. Completing a course's confirmed historical answer-key checkpoints earns
 one checkpoint-finisher badge. This badge does not certify model training or
 practical mastery.
 
@@ -63,14 +63,14 @@ Build and formatting checks pass. The Node suite passes 47 checks with one
 optional external PostgreSQL fixture skipped. All ten browser journeys passed;
 a follow-up gameplay run also verifies the refined 3D gate picking and render
 resolution controls. The opening-ledger migration preserves historical balances
-and remains idempotent. See [local verification](../../evidence/reports/step4-verification.json).
+and remains idempotent. See [local verification](https://github.com/Nolwac/amamihe/blob/3eab1e9f5d6a1acd1a15b9fb721fef0517df8003/evidence/reports/step4-verification.json).
 
-Runtime captures: [Temple Chase](../../evidence/screenshots/step4-temple-chase.png),
-[Game Over](../../evidence/screenshots/step4-temple-game-over.png),
-[Racing](../../evidence/screenshots/step4-racing.png),
-[Wrestling](../../evidence/screenshots/step4-wrestling.png),
-[Workshop](../../evidence/screenshots/step4-workshop.png),
-[mobile adventure](../../evidence/screenshots/step4-mobile-adventure.png), and
+Runtime captures: [Temple Chase](https://github.com/Nolwac/amamihe/blob/3eab1e9f5d6a1acd1a15b9fb721fef0517df8003/evidence/screenshots/step4-temple-chase.png),
+[Game Over](https://github.com/Nolwac/amamihe/blob/3eab1e9f5d6a1acd1a15b9fb721fef0517df8003/evidence/screenshots/step4-temple-game-over.png),
+[Racing](https://github.com/Nolwac/amamihe/blob/3eab1e9f5d6a1acd1a15b9fb721fef0517df8003/evidence/screenshots/step4-racing.png),
+[Wrestling](https://github.com/Nolwac/amamihe/blob/3eab1e9f5d6a1acd1a15b9fb721fef0517df8003/evidence/screenshots/step4-wrestling.png),
+[Workshop](https://github.com/Nolwac/amamihe/blob/3eab1e9f5d6a1acd1a15b9fb721fef0517df8003/evidence/screenshots/step4-workshop.png),
+[mobile adventure](https://github.com/Nolwac/amamihe/blob/3eab1e9f5d6a1acd1a15b9fb721fef0517df8003/evidence/screenshots/step4-mobile-adventure.png), and
 [mobile wardrobe](../../evidence/screenshots/step4-mobile-wardrobe.png).
 
 CI reruns the full suite before promotion. Its production browser job requires
@@ -78,3 +78,5 @@ this release's exact server revision, matching client bundle, gameplay/reward
 feature flags, HTTPS/HSTS, authorization boundaries, and desktop/mobile rendering.
 Production checks do not create accounts, send synthetic email, or write learner
 records; authenticated gameplay runs against isolated test storage.
+
+Provider update: these milestone observations precede the [local tev1 integration](TEV1_HANDOFF.md). Refer to that handoff for current inference behavior and its release boundary. Historical captures remain in Git history.

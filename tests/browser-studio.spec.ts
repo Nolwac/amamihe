@@ -178,7 +178,7 @@ test("tutor publishes an authored 3D course and a separate learner resumes and c
         ).json();
         expect(restored.version).toBe(1);
         expect(restored.question?.id).toBe(savedQuestionId);
-        expect(restored.questionIndex).toBe(1);
+        expect(restored.questionIndex).toBe(progress.questionIndex);
         refreshed = true;
       } else if (
         progress.completedLevelIds.length > clearedBefore &&
@@ -199,7 +199,7 @@ test("tutor publishes an authored 3D course and a separate learner resumes and c
     ).toBeVisible();
     expect(progress.completedLevelIds).toHaveLength(6);
     expect(progress.points).toBe(expectedPoints);
-    expect(progress.result?.mocked).toBe(true);
+    expect(progress.result?.provider).toBe("ollama:tev1:0.8b");
     expect(
       (await (await learner.request.get("/api/session")).json()).player.points,
     ).toBe(expectedPoints);

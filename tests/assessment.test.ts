@@ -1,9 +1,9 @@
+import { policyProvider } from "./provider-fixture.js";
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
   assessLevel,
   boundedChunks,
-  mockProvider,
   type ClassificationProvider,
   type Evidence,
 } from "../server/assessment.js";
@@ -20,7 +20,13 @@ const evidence: Evidence[] = level.questions.map((q) => ({
   elapsed_ms: 100,
 }));
 test("post-clearance assessment aggregates criterion evidence and validates authored routing", async () => {
-  const result = await assessLevel(definition, level, evidence, [level.id]);
+  const result = await assessLevel(
+    definition,
+    level,
+    evidence,
+    [level.id],
+    policyProvider,
+  );
   assert.equal(result.status, "confirmed");
   assert.equal(result.grades.length, evidence.length);
   assert(result.criteria.every((c) => c.independent));
@@ -46,6 +52,7 @@ test("assistance and errors persist while fresh independent evidence repairs onl
     level,
     [first, ...evidence.slice(1)],
     [level.id],
+    policyProvider,
   );
   assert.equal(pending.status, "pending");
   const result = await assessLevel(
@@ -53,6 +60,7 @@ test("assistance and errors persist while fresh independent evidence repairs onl
     level,
     [first, ...evidence.slice(1), repair],
     [level.id],
+    policyProvider,
   );
   assert.equal(result.status, "confirmed");
   assert.equal(result.assistanceCount, 1);
@@ -61,30 +69,30 @@ test("assistance and errors persist while fresh independent evidence repairs onl
 });
 test("invalid grades, uncertain scores, hallucinated tasks and locked routes remain pending", async () => {
   const providers: ClassificationProvider[] = [
-    { ...mockProvider, grade: async () => ({ score: 1 }) },
+    { ...policyProvider, grade: async () => ({ score: 1 }) },
     {
-      ...mockProvider,
+      ...policyProvider,
       grade: async (input) => ({
-        ...((await mockProvider.grade(input)) as object),
-        confidence: 0.5,
+        ...((await policyProvider.grade(input)) as object),
+        tags: ["uncertain"],
       }),
     },
     {
-      ...mockProvider,
+      ...policyProvider,
       route: async () => ({
         nextLevelId: definition.levels.at(-1)!.id,
         taskIds: [],
       }),
     },
     {
-      ...mockProvider,
+      ...policyProvider,
       route: async () => ({
         nextLevelId: definition.levels[1].id,
         taskIds: ["invented"],
       }),
     },
     {
-      ...mockProvider,
+      ...policyProvider,
       grade: async () => {
         throw new Error("Provider unavailable");
       },
@@ -104,7 +112,7 @@ test("invalid grades, uncertain scores, hallucinated tasks and locked routes rem
 });
 test("unresponsive providers time out without selecting a route", async () => {
   const result = await assessLevel(definition, level, evidence, [level.id], {
-    ...mockProvider,
+    ...policyProvider,
     grade: () => new Promise(() => {}),
   });
   assert.equal(result.status, "pending");

@@ -31,6 +31,17 @@ jobs:
       - run: npm ci
       - run: npm run format:check
       - run: npm run build
+      - name: Install local CPU decision runtime and verified model
+        run: |
+          bash scripts/models/install-ollama.sh "$RUNNER_TEMP/ollama"
+          python3 scripts/models/pull-tev1.py "$RUNNER_TEMP/ollama-models"
+          OLLAMA_HOST=127.0.0.1:11434 OLLAMA_MODELS="$RUNNER_TEMP/ollama-models" \
+            OLLAMA_NO_CLOUD=1 OLLAMA_NOPRUNE=1 "$RUNNER_TEMP/ollama/bin/ollama" serve > /tmp/amamihe-ollama.log 2>&1 &
+          for i in $(seq 1 60); do
+            if curl --fail --silent http://127.0.0.1:11434/api/version; then exit 0; fi
+            sleep 1
+          done
+          exit 1
       - run: npm test
       - run: npx playwright install --with-deps chromium
       - run: npm start > /tmp/amamihe-api.log 2>&1 &

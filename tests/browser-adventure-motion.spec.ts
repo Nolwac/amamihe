@@ -491,7 +491,12 @@ async function answer(
   level: number,
   question: number,
 ) {
-  const task = draft.definition.levels[level].questions[question];
+  const delivered: LearningProgress = await (
+    await page.request.get(`/api/learning/${draft.id}`)
+  ).json();
+  expect(delivered.levelId).toBe(draft.definition.levels[level].id);
+  const task =
+    draft.definition.levels[level].questions[delivered.questionIndex];
   await page
     .getByRole("button", { name: task.options[task.answer], exact: false })
     .click();

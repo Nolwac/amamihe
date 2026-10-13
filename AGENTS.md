@@ -2,7 +2,7 @@
 
 ## Project Structure & Module Organization
 
-`src/` contains the React interface and Babylon.js scenes; `server/` contains the Fastify API, storage adapter, schema, and mock classifier. `tests/` holds Node and Playwright checks. Runtime assets belong in `public/assets/`. Group utilities under `scripts/assets/`, `scripts/browser/`, or `scripts/deploy/`. Supporting documentation lives in `docs/`; concept scenes in `docs/design/previews/`; verification reports and screenshots in `evidence/reports/` and `evidence/screenshots/`. Host configuration belongs in `deploy/shared/` or `deploy/vps/`. Local PGlite data belongs in ignored `.data/`.
+`src/` contains the React interface and Babylon.js scenes; `server/` contains the Fastify API, storage adapter, schema, and local tev1 decision adapter. `tests/` holds Node and Playwright checks. Runtime assets belong in `public/assets/`. Group utilities under `scripts/assets/`, `scripts/browser/`, `scripts/models/`, or `scripts/deploy/`. Supporting documentation lives in `docs/`; concept scenes in `docs/design/previews/`; verification reports and screenshots in `evidence/reports/` and `evidence/screenshots/`. Host configuration belongs in `deploy/shared/` or `deploy/vps/`. Local PGlite data belongs in ignored `.data/`.
 
 ## Build, Test, and Development Commands
 
@@ -24,4 +24,4 @@ Use short imperative subjects, following the existing history, such as `Fix chec
 
 ## Product and Configuration Rules
 
-Follow `RULES.md`: preserve genuine 3D, predefined tutor content, chunk evidence, and post-clearance routing. Keep mock decisions clearly labeled and practice points separate from mastery. Never commit secrets or expose them through `VITE_*`. Production requires TLS-verified external PostgreSQL; local development defaults to PGlite. Use placeholder environment examples and keep private configuration outside Git.
+Follow `RULES.md`: preserve genuine 3D, predefined tutor content, chunk evidence, and post-clearance assessment. Use actual local tev1 inference for routing and selection; preserve pending decisions on failure. Keep practice points separate from mastery. Never commit secrets or expose them through `VITE_*`. Production requires TLS-verified external PostgreSQL; local development defaults to PGlite. Use placeholder environment examples and keep private configuration outside Git. Node/browser integration checks require the verified model and a running Ollama 0.35+ service.

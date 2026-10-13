@@ -5,6 +5,9 @@ export async function initializeSchema(db: DatabaseQueries) {
 CREATE TABLE IF NOT EXISTS attempts (id TEXT PRIMARY KEY, player_id TEXT REFERENCES players(id), status TEXT NOT NULL DEFAULT 'playing', created_at TIMESTAMPTZ DEFAULT now(), result JSONB);
 CREATE TABLE IF NOT EXISTS chunks (attempt_id TEXT REFERENCES attempts(id), question_id TEXT NOT NULL, answer INTEGER NOT NULL, assisted BOOLEAN NOT NULL, elapsed_ms INTEGER NOT NULL, PRIMARY KEY(attempt_id, question_id));
 CREATE TABLE IF NOT EXISTS assistance (attempt_id TEXT REFERENCES attempts(id), question_id TEXT NOT NULL, PRIMARY KEY(attempt_id, question_id));`);
+  await db.exec(
+    "ALTER TABLE attempts ADD COLUMN IF NOT EXISTS question_order JSONB; ALTER TABLE attempts ADD COLUMN IF NOT EXISTS decision_plan JSONB;",
+  );
   await db.exec(`
 CREATE TABLE IF NOT EXISTS player_inventory (player_id TEXT REFERENCES players(id), gear_id TEXT NOT NULL, PRIMARY KEY(player_id,gear_id));
 CREATE TABLE IF NOT EXISTS player_badges (player_id TEXT REFERENCES players(id), badge_id TEXT NOT NULL, title TEXT NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT now(), PRIMARY KEY(player_id,badge_id));

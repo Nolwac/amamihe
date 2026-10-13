@@ -8,7 +8,7 @@ show the authored explanation and require a fresh independent task. Exhausted ba
 block progression without discarding earned activity points.
 
 Each question produces a persisted evidence chunk. After independent level clearance,
-question-level mock classification runs with an 8 KiB serialized request ceiling,
+question-level historical answer-key classification runs with an 8 KiB serialized request ceiling,
 validated criterion IDs, binary scores, confidence threshold, error tags, and a
 one-second call timeout. Grades and deterministic criterion aggregates are persisted
 in `course_assessments`. Routing receives only criteria and eligible authored IDs,
@@ -29,9 +29,11 @@ Existing end-to-end browser
 journeys exercise authoring, help, fresh retries, level clearance, and restored progress.
 The deployment browser check requires the exact release and learning-assessment feature.
 
-The active provider is explicitly mocked; no OpenRouter credentials are required.
+The active provider is explicitly historical answer-key based; no OpenRouter credentials are required.
 Real model agreement against tutor-scored fixtures remains an integration gate.
 The playable evaluator currently supports authored multiple-choice answer keys.
 The bounded text splitter is a prepared utility, not an open-ended grading interface.
 Spatial evaluators belong to the subsequent gameplay implementation; executable
 training evidence and sandboxing remain in the practice-environment milestone.
+
+Provider update: these milestone observations precede the [local tev1 integration](TEV1_HANDOFF.md). Refer to that handoff for current inference behavior and its release boundary. Historical captures remain in Git history.

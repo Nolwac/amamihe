@@ -122,14 +122,14 @@ Amamihe is a genuine 3D learning game world built around tutor-configured storie
 - Learning Police may warn, arrest, and temporarily evict policy violators through audited server decisions. Provide release through an in-game point fine or bounded learning aligned with the player's goals; never require real payment.
 - Protect legitimate breaks, loading, lost connectivity, suspended tabs, accessibility adjustments, and waiting for tools/grades from false idle penalties.
 - Preserve mastery and course progress, provide appeals, and process fines/release exactly once. Keep NPC presentation separate from authoritative enforcement logic.
-- Use OpenRouter for operational classification. Verify a purpose-built endpoint's capabilities and no-purchase access; do not label generic chat models, safety-only models, or downstream model routers as equivalent educational classifiers.
+- Use local CPU-only Ollama with the verified `tev1:0.8b` decision model for operational classification and authored activity selection. Call `/v1/systemone` without inference credentials. Do not introduce a hosted provider, generated teaching content, or an automatic alternate provider. Preserve progress and pending status if inference fails.
 
 ## Preset Gameplay and Level-Clearance Routing
 
 - Tutors choose gameplay themes and configure authored task banks, deadlines, point/action bindings, checkpoints, and retries through the studio.
 - Temple Chase maps timely task completion to escape and obstacle clearance. An expired active section timer causes Game Over and retry of that specific step.
 - Racing maps correct, faster task completion to speed boosts; Wrestling maps it to stylized avatar punches/combos. Reward valid task performance, not speed alone.
-- Run the classification checkpoint only after the player clears the level. Assess stored chunks, aggregate results, and select the next level and approved task set. In-level mechanics, feedback, help, and Game Over use deterministic policies.
+- Run checkpoint assessment after independent level clearance. Assess stored chunks and select an eligible next level. Use local decision inference before delivery to choose a permitted quiz question or unfinished teaching role; store choices so reloads preserve the delivery. In-level physics, answer keys, assistance, feedback, Game Over and rewards use authoritative deterministic policies.
 - Do not treat game-level clearance, provisional open-ended submissions, or action points as confirmed mastery before checkpoint assessment.
 - Exclude downloads, connection failures, tool startup, and classifier wait time from course deadlines. Support configured accessibility timing without invalidating learning evidence.
 - Keep course Game Over distinct from Learning Police enforcement. Preserve completed steps and never penalize checkpoint waiting as idle misconduct.

@@ -27,3 +27,5 @@ Product architecture, implementation milestones, and mandatory rules remain at t
 - [Live Contabo operations](../deploy/contabo/README.md)
 
 Measured reports live in `evidence/reports/`; actual browser screenshots live in `evidence/screenshots/`. Concept illustrations live in `docs/design/previews/`.
+
+Current operational inference: [local tev1 decisions](status/TEV1_HANDOFF.md).

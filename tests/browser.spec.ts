@@ -41,23 +41,31 @@ test("3D browser journey: verified account, recorded chunks, clearance, classifi
   await page
     .getByRole("button", { name: "Try foundations checkpoint", exact: true })
     .click();
+  const entering = page.waitForResponse(
+    (r) => r.url().endsWith("/api/attempts") && r.request().method() === "POST",
+  );
   await page.getByRole("button", { name: "Enter course adventure" }).click();
+  const entryResponse = await entering;
+  expect(entryResponse.ok()).toBe(true);
+  const activeFoundation = await entryResponse.json();
   await expect(page.locator("canvas")).toHaveAttribute(
     "data-render-state",
     "paused",
   );
-  for (const choice of [
-    "Turns text into token IDs",
-    "To test how well it generalizes",
-    "Start with newly initialized weights",
-  ]) {
+  const foundationAnswers: Record<string, string> = {
+    tokens: "Turns text into token IDs",
+    split: "To test how well it generalizes",
+    scratch: "Start with newly initialized weights",
+  };
+  for (const question of activeFoundation.questions) {
+    const choice = foundationAnswers[question.id];
     await page.getByRole("button", { name: new RegExp(choice) }).click();
     await page
       .getByRole("button", { name: /Record response|Clear the level/ })
       .click();
   }
   await expect(
-    page.getByRole("button", { name: "Run mock classification" }),
+    page.getByRole("button", { name: "Assess learning checkpoint" }),
   ).toBeVisible();
   const pre = await context.request.get("/api/session");
   expect((await pre.json()).player.points).toBe(0);
@@ -65,7 +73,15 @@ test("3D browser journey: verified account, recorded chunks, clearance, classifi
   page.on("request", (r) => {
     if (r.url().endsWith("/complete")) completeURL = r.url();
   });
-  await page.getByRole("button", { name: "Run mock classification" }).click();
+  const assessed = page.waitForResponse(
+    (r) => r.url().endsWith("/complete") && r.request().method() === "POST",
+  );
+  await page
+    .getByRole("button", { name: "Assess learning checkpoint" })
+    .click();
+  const assessedResponse = await assessed;
+  expect(assessedResponse.ok()).toBe(true);
+  expect((await assessedResponse.json()).provider).toBe("ollama:tev1:0.8b");
   await expect(page.getByText("Data Workshop", { exact: true })).toBeVisible();
   await expect(page.getByText("+60", { exact: true })).toBeVisible();
   await context.request.post(completeURL, { data: {} });
@@ -106,20 +122,23 @@ test("mobile browser and touch controls, assistance tracking, and incomplete bou
   await context.request.post("/api/attempts/" + d.id + "/help", {
     data: { questionId: "tokens" },
   });
-  for (const [questionId, answer] of [
-    ["tokens", 0],
-    ["split", 1],
-    ["scratch", 2],
-  ] as const)
+  const answers: Record<string, number> = { tokens: 0, split: 1, scratch: 2 };
+  for (const { id: questionId } of d.questions)
     await context.request.post("/api/attempts/" + d.id + "/chunks", {
-      data: { questionId, answer, assisted: false, elapsedMs: 1000 },
+      data: {
+        questionId,
+        answer: answers[questionId],
+        assisted: false,
+        elapsedMs: 1000,
+      },
     });
   const result = await context.request.post(
     "/api/attempts/" + d.id + "/complete",
     { data: {} },
   );
   const r = await result.json();
-  expect(r.route).toBe("retry");
+  expect(["retry", "review_prerequisite"]).toContain(r.route);
+  expect(r.provider).toBe("ollama:tev1:0.8b");
   expect(r.independent).toBe(2);
   expect(
     r.assessments.find((x: { questionId: string }) => x.questionId === "tokens")
@@ -169,14 +188,26 @@ test("in-progress responses survive a browser refresh", async ({
   await page
     .getByRole("button", { name: "Try foundations checkpoint", exact: true })
     .click();
+  const entering = page.waitForResponse(
+    (r) => r.url().endsWith("/api/attempts") && r.request().method() === "POST",
+  );
   await page.getByRole("button", { name: "Enter course adventure" }).click();
-  await page.getByRole("button", { name: /Turns text into token IDs/ }).click();
+  const entry = await entering;
+  expect(entry.ok()).toBe(true);
+  const plan = await entry.json();
+  await page
+    .getByRole("button", { name: plan.questions[0].options[0], exact: false })
+    .click();
+  const recording = page.waitForResponse(
+    (r) => r.url().endsWith("/chunks") && r.request().method() === "POST",
+  );
   await page
     .getByRole("button", { name: "Record response & continue" })
     .click();
+  expect((await recording).ok()).toBe(true);
   await page.reload();
   await expect(
-    page.getByRole("heading", { name: /Why reserve stories/ }),
+    page.getByRole("heading", { name: plan.questions[1].prompt, exact: true }),
   ).toBeVisible();
   const state = await (await context.request.get("/api/session")).json();
   expect(state.active.answered).toBe(1);

@@ -174,8 +174,12 @@ test("phone adventure restores the paused draft and exposes world study and prac
   await practice.getByLabel("JavaScript workspace").fill("return 7;");
   await page.getByLabel("Close field journal").click();
   await page.getByRole("button", { name: "Show task", exact: true }).click();
+  const delivered = await (
+    await context.request.get(`/api/learning/${draft.id}`)
+  ).json();
+  const firstTask = level.questions[delivered.questionIndex];
   await page
-    .getByRole("button", { name: level.questions[0].options[0], exact: false })
+    .getByRole("button", { name: firstTask.options[0], exact: false })
     .click();
   await page
     .getByRole("button", { name: "Start section", exact: true })
@@ -186,7 +190,7 @@ test("phone adventure restores the paused draft and exposes world study and prac
   await page.getByRole("button", { name: "Show task", exact: true }).click();
   await expect(
     page.getByRole("button", {
-      name: level.questions[0].options[0],
+      name: firstTask.options[0],
       exact: false,
     }),
   ).toHaveAttribute("aria-pressed", "true");
@@ -199,14 +203,18 @@ test("phone adventure restores the paused draft and exposes world study and prac
     .click();
   await page
     .getByRole("button", {
-      name: level.questions[0].options[level.questions[0].answer],
+      name: firstTask.options[firstTask.answer],
       exact: false,
     })
     .click();
   await page.getByRole("button", { name: "Submit task", exact: true }).click();
+  const nextTaskProgress = await (
+    await context.request.get(`/api/learning/${draft.id}`)
+  ).json();
+  const nextTask = level.questions[nextTaskProgress.questionIndex];
   await page
     .getByRole("button", {
-      name: level.questions[1].options[level.questions[1].answer],
+      name: nextTask.options[nextTask.answer],
       exact: false,
     })
     .click();

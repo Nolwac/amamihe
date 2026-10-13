@@ -14,7 +14,7 @@ Base production release: PR #3, `ec64f2ebcbbce187d9e45ce570416db80f5c0d0b`. This
 - Each English starter course has two levels, four primary challenges and four mapped fresh retries, two original reading guides and two optional drawing activities, and no task deadline. Ages guide course choice; no age data is collected. Sources are linked as background frameworks, without claiming accreditation or endorsement. All three source links returned HTTP 200 at the current `www.thecorestandards.org` domain.
 - Children’s games has a dedicated city-menu entry and directory filter, so unrelated new publications do not hide the maintained courses on the first unfiltered page.
 - Startup publishes these maintained courses idempotently under the reserved curriculum owner. Content changes create new immutable versions; pinned enrollments and tutor drafts remain intact. `worldStyle` is optional and publication-validated against the gameplay theme. Existing tutor courses default to their original presentation.
-- Existing independent evidence, assistance, ten-role participation, unlimited practice/replay and exactly-once rewards remain distinct. Optional drawing and world effects do not automatically award mastery. Classification remains explicitly mocked.
+- Existing independent evidence, assistance, ten-role participation, unlimited practice/replay and exactly-once rewards remain distinct. Optional drawing and world effects do not automatically award mastery. Classification remains explicitly historical answer-key based.
 
 ## Validation
 
@@ -30,4 +30,6 @@ Implementation source: `b212d9aae8977e2a6307e682153562e41386cf71`. The complete 
 
 The first PR CI run passed build, formatting, Node checks and 30 browser journeys, including every phone/children’s check. Its second social browser was still in the lazy adventure loading fallback when the helper’s five-second wait expired. The helper now waits up to 30 seconds for the same visible adventure view before interacting; no assertions or retries were removed. The focused two-browser social journey passed locally in 55.7 seconds after this test-only adjustment. The updated branch requires a fresh complete CI run before promotion.
 
-Evidence: `evidence/reports/mobile-kids-browser-final.json`, `mobile-kids-rendering-audit.json` and `mobile-kids-verification.json`; seven actual captures are in `evidence/screenshots/mobile-kids-*.png`. The public verifier syntax and its native Node 24 catalogue import passed locally.
+Evidence: `evidence/reports/mobile-kids-browser-final.json`, `mobile-kids-rendering-audit.json` and the [historical verification manifest](https://github.com/Nolwac/amamihe/blob/3eab1e9f5d6a1acd1a15b9fb721fef0517df8003/evidence/reports/mobile-kids-verification.json); seven actual captures are in `evidence/screenshots/mobile-kids-*.png`. The public verifier syntax and its native Node 24 catalogue import passed locally.
+
+Provider update: these milestone observations precede the [local tev1 integration](TEV1_HANDOFF.md). Refer to that handoff for current inference behavior and its release boundary. Historical captures remain in Git history.
