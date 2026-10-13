@@ -221,7 +221,17 @@ test("phone adventure restores the paused draft and exposes world study and prac
   await page
     .getByRole("button", { name: "Start section", exact: true })
     .click();
+  const clearing = page.waitForResponse(
+    (r) =>
+      r.url().endsWith(`/api/learning/${draft.id}/answer`) &&
+      r.request().method() === "POST",
+  );
   await page.getByRole("button", { name: "Submit task", exact: true }).click();
+  const clearedResponse = await clearing;
+  expect(clearedResponse.ok()).toBe(true);
+  const completed = await clearedResponse.json();
+  expect(completed.assessment.status).toBe("confirmed");
+  expect(completed.finished).toBe(true);
   await expect(
     page.getByRole("heading", {
       name: "Course checkpoints complete",
