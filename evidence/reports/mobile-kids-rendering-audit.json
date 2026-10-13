@@ -1,0 +1,68 @@
+{
+  "date": "2026-10-13T02:21:13.544Z",
+  "browser": "Chromium, software WebGL",
+  "viewport": "390 x 844",
+  "throttle": "2 Mbps down / 100ms latency / 4x CPU slowdown",
+  "accountSetup": "local verified test account",
+  "serviceWorkers": "blocked for cold-transfer measurement",
+  "firstPlayableMs": 10664,
+  "fps": "8 FPS",
+  "fpsSamples": [
+    "6 FPS",
+    "5 FPS",
+    "8 FPS"
+  ],
+  "renderHeight": 183,
+  "activeTriangles": 169199,
+  "activeMaterialTypes": {
+    "StandardMaterial": 65,
+    "none": 2
+  },
+  "renderCpuMs": 45,
+  "encodedBodyBytes": 1520778,
+  "networkEncodedBodyBytes": 1520778,
+  "transferBytes": 1549339,
+  "jsHeapBytes": 74480290,
+  "browserProcessPssBytes": 490785792,
+  "browserProcessRssBytes": 773885952,
+  "rendererAndGpuPssBytes": 391113728,
+  "processMemory": [
+    {
+      "type": "browser",
+      "rss": 134815744,
+      "pss": 66377728
+    },
+    {
+      "type": "renderer",
+      "rss": 34762752,
+      "pss": 9973760
+    },
+    {
+      "type": "renderer",
+      "rss": 233525248,
+      "pss": 175270912
+    },
+    {
+      "type": "renderer",
+      "rss": 92147712,
+      "pss": 45656064
+    },
+    {
+      "type": "GPU",
+      "rss": 186105856,
+      "pss": 160212992
+    },
+    {
+      "type": "network.mojom.NetworkService",
+      "rss": 69079040,
+      "pss": 27920384
+    },
+    {
+      "type": "storage.mojom.StorageService",
+      "rss": 23449600,
+      "pss": 5373952
+    }
+  ],
+  "memorySampledProcesses": 7,
+  "limitations": "CPU/network emulation is not a physical 2 GB device test. Browser process PSS is a Linux snapshot, excludes OS/background apps and hardware GPU allocations; RSS double-counts shared pages. Timing measures authenticated game navigation and excludes account creation, verification, and email-provider latency. Software rendering is not a hardware GPU benchmark. Encoded-body totals include resources reused from cache; networkEncodedBodyBytes excludes cache hits and transferBytes includes document/resource HTTP overhead, but excludes connection/TLS overhead."
+}
