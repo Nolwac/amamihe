@@ -7,6 +7,8 @@ test("phone adventure restores the paused draft and exposes world study and prac
   page,
   context,
 }) => {
+  // Teaching-role choices and final clearance use repeated real CPU decisions.
+  test.setTimeout(300000);
   page.setDefaultTimeout(15000);
   await page.setViewportSize({ width: 390, height: 844 });
   await createAccount(context.request, "World Reader");
@@ -146,6 +148,7 @@ test("phone adventure restores the paused draft and exposes world study and prac
         r.url().endsWith(`/api/learning/${draft.id}/journey`) &&
         r.request().method() === "POST" &&
         r.request().postDataJSON()?.activity === activity,
+      { timeout: 90000 },
     );
     await click();
     const response = await saving;
@@ -224,6 +227,7 @@ test("phone adventure restores the paused draft and exposes world study and prac
     (r) =>
       r.url().endsWith(`/api/learning/${draft.id}/answer`) &&
       r.request().method() === "POST",
+    { timeout: 90000 },
   );
   await page.getByRole("button", { name: "Submit task", exact: true }).click();
   const answered = await answering;
@@ -243,6 +247,7 @@ test("phone adventure restores the paused draft and exposes world study and prac
     (r) =>
       r.url().endsWith(`/api/learning/${draft.id}/answer`) &&
       r.request().method() === "POST",
+    { timeout: 90000 },
   );
   await page.getByRole("button", { name: "Submit task", exact: true }).click();
   const clearedResponse = await clearing;

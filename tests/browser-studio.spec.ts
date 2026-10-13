@@ -41,6 +41,9 @@ test("tutor publishes an authored 3D course and a separate learner resumes and c
   context,
   browser,
 }) => {
+  // Six levels make repeated real CPU decisions on a fresh model service.
+  // Keep individual response/assertion deadlines while allowing the full flow.
+  test.setTimeout(300000);
   const errors: string[] = [];
   await page.setViewportSize({ width: 1440, height: 900 });
   page.on("pageerror", (error) => errors.push(error.stack || error.message));
@@ -145,8 +148,10 @@ test("tutor publishes an authored 3D course and a separate learner resumes and c
       await learnerPage
         .getByRole("button", { name: "Start section", exact: true })
         .click({ timeout: 30000 });
-      const answered = learnerPage.waitForResponse((response) =>
-        response.url().endsWith(`/api/learning/${original.id}/answer`),
+      const answered = learnerPage.waitForResponse(
+        (response) =>
+          response.url().endsWith(`/api/learning/${original.id}/answer`),
+        { timeout: 90000 },
       );
       await learnerPage
         .getByRole("button", { name: "Submit task", exact: true })
