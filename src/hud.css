@@ -384,3 +384,9 @@
   top: auto;
   bottom: max(14px, env(safe-area-inset-bottom));
 }
+
+.app[data-view="panel"] .topbar,
+.app[data-view="panel"] .game-shell .hud-item,
+.app[data-view="panel"] .hud-police:not(:has([data-arrested="true"])) {
+  visibility: hidden;
+}

@@ -371,7 +371,13 @@ function App() {
     });
   return (
     <div
-      data-view={courseId || studio ? "course" : "city"}
+      data-view={
+        courseId || studio
+          ? "course"
+          : directory || portals || house || advertisement
+            ? "panel"
+            : "city"
+      }
       className={"app" + (!player ? " creating-character" : "")}
     >
       <header className="topbar">
