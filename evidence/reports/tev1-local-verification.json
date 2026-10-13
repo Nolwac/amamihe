@@ -200,5 +200,22 @@
     "evidence/screenshots/tev1-local-guide-desktop.png": "198cada27b52b23391771a6ac9dc9e2480399117fbdcc9755e72e20ba284df6d",
     "evidence/screenshots/tev1-selected-category-desktop.png": "7e67b67147864d85e105e84ff2d087dec2a25e8773a378e63f2697a5fc4efd17",
     "evidence/screenshots/tev1-selected-category-phone.png": "5948e4d5bbf50a006d1fce3d7523c243d726be202b28d4adbf66949b3e9dc33c"
+  },
+  "responseTimingRegression": {
+    "normal": {
+      "passed": true,
+      "durationSeconds": 24.1
+    },
+    "delayed": {
+      "passed": true,
+      "duration": "1.3 minutes",
+      "extraResponseDelaySeconds": 6,
+      "scope": "Owned loopback transport delayed actual answer/journey responses. The actual local model and payloads were preserved."
+    },
+    "checks": [
+      "Each field study and teaching-role response confirms its saved observation and ready selection",
+      "Both authored answers await actual model-selected progress",
+      "Final checkpoint response confirms assessment and completion before UI assertions"
+    ]
   }
 }

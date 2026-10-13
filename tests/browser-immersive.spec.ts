@@ -136,14 +136,27 @@ test("phone adventure restores the paused draft and exposes world study and prac
   await expect(journal.locator(".journal-page")).toContainText(
     read.content.slice(0, 50),
   );
-  await journal.getByRole("button", { name: "Record field study" }).click();
-  await expect
-    .poll(
-      async () =>
-        (await (await context.request.get(`/api/learning/${draft.id}`)).json())
-          .journey.observed,
-    )
-    .toContain("Explainer");
+  const recordJourney = async (
+    activity: string,
+    role: string,
+    click: () => Promise<void>,
+  ) => {
+    const saving = page.waitForResponse(
+      (r) =>
+        r.url().endsWith(`/api/learning/${draft.id}/journey`) &&
+        r.request().method() === "POST" &&
+        r.request().postDataJSON()?.activity === activity,
+    );
+    await click();
+    const response = await saving;
+    expect(response.ok()).toBe(true);
+    const saved = await response.json();
+    expect(saved.progress.journey.observed).toContain(role);
+    expect(saved.progress.selection.status).toBe("ready");
+  };
+  await recordJourney("study", "Explainer", () =>
+    journal.getByRole("button", { name: "Record field study" }).click(),
+  );
   await journal.getByRole("button", { name: "Next page", exact: true }).click();
   await page.screenshot({ path: "test-results/immersive-field-journal.png" });
   await page.getByLabel("Close field journal").click();
@@ -207,10 +220,15 @@ test("phone adventure restores the paused draft and exposes world study and prac
       exact: false,
     })
     .click();
+  const answering = page.waitForResponse(
+    (r) =>
+      r.url().endsWith(`/api/learning/${draft.id}/answer`) &&
+      r.request().method() === "POST",
+  );
   await page.getByRole("button", { name: "Submit task", exact: true }).click();
-  const nextTaskProgress = await (
-    await context.request.get(`/api/learning/${draft.id}`)
-  ).json();
+  const answered = await answering;
+  expect(answered.ok()).toBe(true);
+  const nextTaskProgress = await answered.json();
   const nextTask = level.questions[nextTaskProgress.questionIndex];
   await page
     .getByRole("button", {
@@ -245,19 +263,27 @@ test("phone adventure restores the paused draft and exposes world study and prac
   const open = async (text: string) =>
     journey.locator("summary").filter({ hasText: text }).click();
   await open("Mapmaker");
-  await journey.getByRole("button", { name: "Record route review" }).click();
+  await recordJourney("map", "Mapmaker", () =>
+    journey.getByRole("button", { name: "Record route review" }).click(),
+  );
   await open("Interviewer");
   await journey
     .getByLabel("My learning goal")
     .fill("Build and evaluate an honest story model.");
-  await journey.getByRole("button", { name: "Save learning goal" }).click();
+  await recordJourney("goal", "Interviewer", () =>
+    journey.getByRole("button", { name: "Save learning goal" }).click(),
+  );
   await open("Socratic Questioner");
   await journey
     .getByLabel("My reasoning")
     .fill("Keep held-out data outside the optimizer to test generalisation.");
-  await journey.getByRole("button", { name: "Save reasoning" }).click();
+  await recordJourney("reasoning", "Socratic Questioner", () =>
+    journey.getByRole("button", { name: "Save reasoning" }).click(),
+  );
   await open("Diagnostician");
-  await journey.getByRole("button", { name: "Record evidence review" }).click();
+  await recordJourney("diagnosis", "Diagnostician", () =>
+    journey.getByRole("button", { name: "Record evidence review" }).click(),
+  );
   await open("Sparring Partner");
   await journey
     .getByRole("button", {
@@ -265,12 +291,16 @@ test("phone adventure restores the paused draft and exposes world study and prac
       exact: true,
     })
     .click();
-  await journey.getByRole("button", { name: "Check rehearsal" }).click();
+  await recordJourney("rehearsal", "Sparring Partner", () =>
+    journey.getByRole("button", { name: "Check rehearsal" }).click(),
+  );
   await open("Clerk");
   await journey
     .getByLabel("My course takeaway")
     .fill("Trace story rights and reserve held-out stories before training.");
-  await journey.getByRole("button", { name: "Save course takeaway" }).click();
+  await recordJourney("reflection", "Clerk", () =>
+    journey.getByRole("button", { name: "Save course takeaway" }).click(),
+  );
   await expect(
     journey
       .getByRole("status")
