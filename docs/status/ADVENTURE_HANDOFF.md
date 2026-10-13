@@ -1,5 +1,7 @@
 # Adventure and Audio Implementation Handoff
 
+Current continuation: [Local tev1 decisions and deployment handoff](TEV1_HANDOFF.md) records the merged model integration, final regression results and unresolved VPS promotion/access blocker. The adventure results below remain a historical milestone.
+
 ## Implemented
 
 - Shared deterministic adventure physics with server-owned collisions, ordered run-bound controls, automatic assistance, and checkpoint-preserving retries.
