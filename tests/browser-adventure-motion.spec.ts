@@ -1181,6 +1181,10 @@ test("phone manual controls cause actual jump, obstacle Game Over and a checkpoi
     .click();
   await expect.poll(async () => (await snapshot(page))?.status).toBe("paused");
   const readableHurdle = (await snapshot(page))!;
+  await writeFile(
+    "test-results/adventure-phone-hurdle-pose.json",
+    JSON.stringify(readableHurdle, null, 2),
+  );
   readableActors(readableHurdle);
   for (const name of ["LeftFoot", "RightFoot"]) {
     const point = readableHurdle.actorVisibility[name];

@@ -766,6 +766,9 @@ export default function CourseScene({
                 1.35 -
                   Math.min(0.3, closingGap * 0.052) -
                   Math.min(0.08, closingGap * 0.015) -
+                  // Preserve room above the moving shoulder for the feet as
+                  // the player lands after a hurdle, including the stride pose.
+                  Math.min(0.18, Math.max(0, closingGap - 3) * 0.09) -
                   Math.max(0, frame.avatar.x) * 0.22,
               )
             : 1.35;

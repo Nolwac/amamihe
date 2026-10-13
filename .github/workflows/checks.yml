@@ -7,8 +7,13 @@ on:
 permissions:
   contents: read
 jobs:
-  verify:
+  verify_shards:
+    name: Browser verification (${{ matrix.shard }}/4)
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -43,6 +48,8 @@ jobs:
           done
           exit 1
       - run: npm test
+        # Run the complete Node suite once; every shard verifies real inference.
+        if: matrix.shard == 1
       - run: npx playwright install --with-deps chromium
       - run: npm start > /tmp/amamihe-api.log 2>&1 &
         env:
@@ -57,7 +64,7 @@ jobs:
       - name: Verify browser journeys
         run: |
           result=0
-          npm run test:browser -- --reporter=list,json || result=$?
+          npm run test:browser -- --shard=${{ matrix.shard }}/4 --reporter=list,json || result=$?
           node scripts/browser/report-ci-failures.mjs /tmp/amamihe-browser-report.json
           exit "$result"
         env:
@@ -67,8 +74,17 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: browser-evidence
+          name: browser-evidence-${{ matrix.shard }}
           path: test-results/
+  verify:
+    needs: verify_shards
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require every verification shard to pass
+        run: test "$VERIFY_RESULT" = success
+        env:
+          VERIFY_RESULT: ${{ needs.verify_shards.result }}
   release:
     needs: verify
     if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
