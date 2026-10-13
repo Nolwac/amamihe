@@ -1,10 +1,10 @@
-# Preview Hosting
+# Hosting and local inference
 
 ## Recommended deployment
 
-Use **Render Free for the Node/Fastify application and Neon Free for PostgreSQL**. Render serves the browser build and API at the same HTTPS origin; Neon retains learner profiles, assessment evidence, and rewards across service restarts. This preserves the current stack and avoids cross-site session cookies.
+Use the **existing VPS and the bundled application image** for the complete learning game. The private shared-host configuration preserves external PostgreSQL, HTTPS, email and the verified-release gate. See [shared deployment](../../deploy/contabo/README.md) and [local decisions](../status/TEV1_HANDOFF.md). The earlier free-preview research below is historical and cannot host the current local inference requirement.
 
-The browser renders the Babylon.js world on the learner's device. Server GPU hosting is unnecessary. The backend processes small assessment records and the mock classifier; model-training environments are a separate future workload.
+The browser renders the Babylon.js world on the learner's device. Server GPU hosting is unnecessary. The backend runs CPU-only Ollama with verified tev1:0.8b weights for typed decisions; learner model-training environments remain separate. The current deployment uses the existing VPS with a 3 GiB/two-core API/inference container plus the database. Earlier free-preview options below do not provide enough memory for this local inference workflow.
 
 `render.yaml` requests one free Node service, Node.js 24, the existing production build, and `/api/health`. `DATABASE_URL` must be supplied privately. No managed Render database, paid disk, paid instance, or OpenRouter key is requested.
 
@@ -27,17 +27,17 @@ Koyeb remains an unselected alternative: its current official free-instance quot
 
 ## Classification and training services
 
-The implemented mock classifier has no inference charge or external model dependency. A future OpenRouter free-model endpoint is limited to 20 requests/minute and 50 requests/day without purchased credits. Ten graded response chunks plus one routing call use at least eleven requests, allowing approximately four such assessments per day before retries. This is a small trial allowance, not community-scale inference capacity. A qualifying educational classification model still needs tutor-reviewed benchmarking; Jev Router's catalogue entry does not establish that suitability.
+Local tev1 inference requires no hosted key or paid model endpoint. It consumes the existing server CPU/RAM. A 512 MB preview host can display authoring/discovery but cannot run this model and complete the learning loop; use the current bundled VPS image. See [local decisions](../status/TEV1_HANDOFF.md).
 
 Google Colab and Kaggle notebooks remain candidates for the later small-model training curriculum. Current account eligibility, free compute quotas, and available sessions have not been verified. They must not be treated as guaranteed GPU hosting or required to render the browser game.
 
 Hugging Face Docker Spaces is excluded from the zero-purchase deployment. Its current documentation requires a paid personal PRO or organization plan to create Docker/Gradio compute Spaces, although CPU Basic hardware itself has no hourly cost. Static Spaces remain free. Protected visibility, which keeps source private while publishing an app, is also a paid-plan feature.
 
-## Deploy the prepared configuration
+## Historical free-preview configuration
 
 1. Create or use a **Neon Free** project near the chosen Render region. Select a pooled PostgreSQL connection string with TLS and set conservative compute limits. Keep the free plan; do not enable a paid fallback.
 2. Connect the private GitHub repository to a Render account. Create a Blueprint from `render.yaml` and supply `DATABASE_URL` as a secret environment variable. Confirm the selected service remains **Free**, with no disk or paid database.
-3. Allow the build and health check to finish. Open the actual Render HTTPS URL and exercise guest registration, avatar movement, the authored questions, post-clearance mock classification, and refresh recovery.
+3. This historical free configuration can demonstrate discovery and authoring only. Full learning requires the bundled local model on a sufficiently sized host.
 4. Restart/redeploy the service and repeat recovery with the same browser cookie. Verify that evidence and points remain in external PostgreSQL rather than local ephemeral files.
 5. Record the deployed URL and browser evidence only after those checks pass. A configuration file or healthy local server does not establish public deployment.
 
@@ -69,9 +69,9 @@ Sleeping free services are acceptable for this proof of concept. They are not an
 
 ## Optional single-VPS deployment
 
-`deploy/vps/compose.yaml` runs the existing Node image, PostgreSQL 17, and Caddy on one Linux VPS. This is an optional alternative to the free Render/Neon recommendation; no VPS has been purchased or provisioned. Current advertised VPS and domain prices are summarized below; checkout totals, inventory, and registration availability require confirmation.
+`deploy/vps/compose.yaml` runs the existing Node image, PostgreSQL 17, and Caddy on one Linux VPS. The current production game uses the existing VPS with the shared-host configuration. The standalone configuration is an alternative for a dedicated machine. Current advertised VPS and domain prices are summarized below; checkout totals, inventory, and registration availability require confirmation.
 
-Start with **2 GB server RAM** for a bounded proof of concept, with room for the OS and Docker. The configured service limits total approximately 1.4 GB: app 512 MB, PostgreSQL 768 MB, Caddy 128 MB. This is a starting budget, not a concurrency guarantee. The browser still renders the 3D world; the VPS needs no GPU. Building the image can exceed available RAM while services are running: build on another machine and transfer the image, or stop the stack for an on-server build. Runtime memory limits do not constrain the image build.
+Budget at least **4–6 GB server RAM** for local inference and room for the OS and Docker. Configured standalone service limits total approximately 3.9 GiB: API/inference 3 GiB, PostgreSQL 768 MB, Caddy 128 MB. This is a starting budget, not a concurrency guarantee. The browser still renders the 3D world; the VPS needs no GPU. Building the image can exceed available RAM while services are running: build on another machine and transfer the image, or stop the stack for an on-server build. Runtime memory limits do not constrain the image build.
 
 For an off-server build, `docker compose --file deploy/vps/compose.yaml --env-file .env.vps build app` produces `amamihe-app:local`. Transfer it with `docker save`/`docker load`, then start the VPS stack with `docker compose --file deploy/vps/compose.yaml --env-file .env.vps up -d --no-build`.
 
@@ -127,10 +127,10 @@ Database backups do not replace the private environment file, PostgreSQL TLS mat
 
 ## Current deployment evidence
 
-- The local production API responds with `ok: true` and `mock-classifier-v1`.
+- The local production API responds with `ok: true`, `classifier: ollama:tev1:0.8b`, and a ready decision service with the pinned model digest.
 - GitHub reports a private repository and native Git read access works. The Pages endpoint returns HTTP 403, `Resource not accessible by integration`.
 - A fresh Cloudflare quick-tunnel attempt used the verified official `cloudflared` 2026.10.0 release. Provisioning failed because direct DNS was unavailable; the supported HTTPS proxy request returned HTTP 403, `Your request was blocked`.
-- No public preview URL has been created or browser-verified. Saved documentation-domain additions do not establish connectivity or deployment.
+- The earlier preview-host investigation did not create a public URL. The game now runs at [amamihe.online](https://amamihe.online); exact tev1 promotion evidence is recorded in the release workflow.
 
 ## Official sources
 
@@ -141,7 +141,7 @@ Database backups do not replace the private environment file, PostgreSQL TLS mat
 - Supabase: [current pricing data](https://github.com/supabase/supabase/blob/master/packages/shared-data/plans.ts), [billing quotas](https://github.com/supabase/supabase/blob/master/apps/docs/content/guides/platform/billing-on-supabase.mdx), [compute](https://github.com/supabase/supabase/blob/master/apps/docs/content/guides/platform/compute-and-disk.mdx), and [pausing](https://github.com/supabase/supabase/blob/master/apps/docs/content/guides/platform/free-project-pausing.mdx).
 - GitHub: [Pages limits](https://github.com/github/docs/blob/main/content/pages/getting-started-with-github-pages/github-pages-limits.md) and [plan availability](https://github.com/github/docs/blob/main/data/reusables/gated-features/pages.md).
 - Hugging Face: [live Spaces overview](https://huggingface.co/docs/hub/spaces-overview) and [provider-maintained source](https://github.com/huggingface/hub-docs/blob/main/docs/hub/spaces-overview.md).
-- Classification and training: [OpenRouter free-model limits](https://openrouter.ai/docs/api/reference/limits.md), [model catalogue](https://openrouter.ai/api/v1/models), [Google Colab repository](https://github.com/googlecolab/colabtools), and [Kaggle notebook repository](https://github.com/Kaggle/docker-python).
+- Classification and training: [Ollama tev1 model card](https://ollama.com/library/tev1), [Together AI tev1 project](https://github.com/togethercomputer/tev1), [Google Colab repository](https://github.com/googlecolab/colabtools), and [Kaggle notebook repository](https://github.com/Kaggle/docker-python).
 
 ## Optional VPS and domain pricing
 

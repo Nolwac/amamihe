@@ -122,7 +122,10 @@ async function exerciseTransactions(db: Database) {
         ]);
         await tx.query(
           "UPDATE attempts SET status='complete',result=$1 WHERE id=$2",
-          [JSON.stringify({ points: 60, mocked: true }), attempt],
+          [
+            JSON.stringify({ points: 60, provider: "ollama:tev1:0.8b" }),
+            attempt,
+          ],
         );
       });
     await Promise.all([complete(), complete(), complete()]);
@@ -142,7 +145,7 @@ async function exerciseTransactions(db: Database) {
           [attempt],
         )
       ).rows[0].result,
-      { points: 60, mocked: true },
+      { points: 60, provider: "ollama:tev1:0.8b" },
     );
     return player;
   } finally {

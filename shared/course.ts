@@ -95,6 +95,7 @@ export type PublishedCourse = {
   definition: PublicCourseDefinition;
 };
 export type LearningProgress = {
+  selection?: import("./decision.js").LearningSelection;
   journey?: import("./learning-journey.js").LearningJourney;
   practiceDeliveryId?: string;
   practiceOnly?: boolean;
@@ -127,7 +128,7 @@ export type LearningProgress = {
   level?: Omit<PublicCourseLevel, "questions" | "retryQuestions">;
   assessment?: import("../server/assessment.js").Assessment;
   result?: {
-    mocked: boolean;
+    provider: string;
     label: string;
     nextLevelId: string | null;
     awardedPoints: number;

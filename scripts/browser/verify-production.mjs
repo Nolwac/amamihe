@@ -3,6 +3,11 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
 import assert from "node:assert/strict";
 import { KIDS_COURSES } from "../../shared/catalogue.ts";
+import {
+  DECISION_MODEL,
+  DECISION_MODEL_DIGEST,
+  DECISION_IDENTITY,
+} from "../../shared/decision.ts";
 
 // This is a permanent deployment smoke check, not an account-creation script.
 // Public checks never send mail, submit learner evidence, or modify production data.
@@ -53,7 +58,10 @@ while (true) {
       candidate.features?.authorizedBillboards &&
       candidate.features?.learningPolice &&
       candidate.features?.worldOperations &&
-      candidate.storage === "PostgreSQL"
+      candidate.storage === "PostgreSQL" &&
+      candidate.classifier === DECISION_IDENTITY &&
+      candidate.decisionService?.ready === true &&
+      candidate.decisionService?.modelDigest === DECISION_MODEL_DIGEST
     ) {
       const html = await fetch(base + "/", {
         signal: AbortSignal.timeout(10_000),
@@ -174,7 +182,14 @@ try {
   assert.ok(Array.isArray(await ads.json()));
   const decisions = await context.request.get(base + "/api/decision-status");
   assert.equal(decisions.status(), 200);
-  assert.ok(["mock", "openrouter"].includes((await decisions.json()).mode));
+  const decisionStatus = await decisions.json();
+  assert.equal(decisionStatus.mode, "ollama");
+  assert.equal(decisionStatus.ready, true);
+  assert.equal(decisionStatus.model, DECISION_MODEL);
+  assert.equal(decisionStatus.modelDigest, DECISION_MODEL_DIGEST);
+  evidence.checks.push(
+    "local tev1:0.8b typed inference ready with the exact verified model manifest",
+  );
   const catalogue = await context.request.get(
     base + "/api/courses?limit=4&offset=0",
   );

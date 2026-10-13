@@ -31,9 +31,13 @@ test("authentication gates gameplay and password/email-code login restores the s
   const attempt = await (
     await context.request.post("/api/attempts", { data: {} })
   ).json();
-  await context.request.post(`/api/attempts/${attempt.id}/chunks`, {
-    data: { questionId: "tokens", answer: 0, elapsedMs: 1000 },
-  });
+  const stored = await context.request.post(
+    `/api/attempts/${attempt.id}/chunks`,
+    {
+      data: { questionId: attempt.questions[0].id, answer: 0, elapsedMs: 1000 },
+    },
+  );
+  expect(stored.ok()).toBe(true);
   await page.getByRole("button", { name: "Account settings" }).click();
   await expect(
     page.getByText(credentials.email, { exact: true }),

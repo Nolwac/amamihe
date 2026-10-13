@@ -45,7 +45,7 @@ type Question = {
   options: string[];
 };
 type Result = {
-  mocked: boolean;
+  provider: string;
   model: string;
   independent: number;
   total: number;
@@ -816,7 +816,8 @@ function App() {
               <strong>Foundation, not fiction.</strong>
               <p>
                 A real browser world. Persistent progress.
-                <br />A mock classifier, ready for the next chapter.
+                <br />
+                Your local learning guide, ready for the next chapter.
               </p>
             </div>
           </div>
@@ -1119,10 +1120,10 @@ function App() {
                 </p>
               </details>
             )}
-            <p className="mock-note">
-              MOCK CLASSIFIER · Your enrollment stays on this published version.
-              Task-driven adventures include timed sections, step retries, and
-              cosmetic rewards.
+            <p className="learning-note">
+              LOCAL LEARNING GUIDE · Your enrollment stays on this published
+              version. Task-driven adventures include timed sections, step
+              retries, and cosmetic rewards.
             </p>
             <button
               className="primary"
@@ -1297,9 +1298,9 @@ function App() {
                   <li>Recognize held-out evaluation</li>
                   <li>Know what “from scratch” means</li>
                 </ul>
-                <div className="mock-note">
-                  MOCK CLASSIFIER · Recorded responses are assessed only after
-                  level clearance. No OpenRouter calls.
+                <div className="learning-note">
+                  LOCAL LEARNING GUIDE · Recorded responses are assessed only
+                  after level clearance using tev1 on this server.
                 </div>
                 <button className="primary" disabled={busy} onClick={begin}>
                   Enter course adventure <Icon name="arrow" />
@@ -1386,15 +1387,16 @@ function App() {
                   <em>Time to reflect.</em>
                 </h2>
                 <p>
-                  Your three response chunks are stored. Now the mock classifier
-                  can assess the evidence and select your next learning route.
+                  Your three response chunks are stored. Now your local learning
+                  guide can assess the evidence and select your next learning
+                  route.
                 </p>
-                <div className="mock-note">
-                  This is the level boundary. No classification ran during the
-                  questions.
+                <div className="learning-note">
+                  This is the level boundary. Your recorded evidence is now
+                  ready for assessment.
                 </div>
                 <button className="primary" disabled={busy} onClick={classify}>
-                  Run mock classification <Icon name="arrow" />
+                  Assess learning checkpoint <Icon name="arrow" />
                 </button>
               </>
             ) : result ? (
@@ -1424,13 +1426,13 @@ function App() {
                   ))}
                 </div>
                 <div className="next-route">
-                  <span>NEXT ROUTE · MOCK DECISION</span>
+                  <span>NEXT ROUTE · LOCAL LEARNING GUIDE</span>
                   <strong>{result.nextLevel}</strong>
                   <small>
                     FSRS review: {new Date(result.nextReview).toLocaleString()}
                   </small>
                 </div>
-                <div className="mock-note">
+                <div className="learning-note">
                   The next route is a recommendation preview. Later course
                   levels and model training are not implemented in Step 01.
                 </div>

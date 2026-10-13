@@ -12,6 +12,8 @@ Graph validation supplies the map; authored baseline questions support interview
 
 ## Verification and limits
 
-Controlled-clock policy/API checks cover scheduling, timezone display, conservative assistance, minimum evidence, ownership, pinned content, open-encounter restoration, replay and bank exhaustion. The browser journey covers a 3D early encounter, reload restoration, explanation use and unchanged course points. This verifies scheduler behavior; it does not establish improved delayed recall or practical transfer. Actual classification remains the existing explicit mock, and practical artifacts are not promoted into mastery.
+Controlled-clock policy/API checks cover scheduling, timezone display, conservative assistance, minimum evidence, ownership, pinned content, open-encounter restoration, replay and bank exhaustion. The browser journey covers a 3D early encounter, reload restoration, explanation use and unchanged course points. This verifies scheduler behavior; it does not establish improved delayed recall or practical transfer. Actual classification remains the existing explicit historical answer-key, and practical artifacts are not promoted into mastery.
 
 Validation: build/type/format checks pass; 56 Node checks pass with one optional external-PostgreSQL skip. All 13 browser journeys pass after correcting the shared cache test's eager-load assumption. API tests explicitly verify that review results cannot add game points or overwrite clearance evidence.
+
+Provider update: these milestone observations precede the [local tev1 integration](TEV1_HANDOFF.md). Refer to that handoff for current inference behavior and its release boundary. Historical captures remain in Git history.

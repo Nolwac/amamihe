@@ -1,3 +1,4 @@
+import { policyProvider } from "./provider-fixture.js";
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { mkdtemp, rm } from "node:fs/promises";
@@ -46,7 +47,7 @@ test("children's worlds publish idempotently and complete independently without 
       message.match(/\b\d{6}\b/)![0],
     );
     await app.register(cookie);
-    registerCourses(app, db, auth);
+    registerCourses(app, db, auth, policyProvider);
     const childCatalogue = (
       await app.inject("/api/courses?audience=kids")
     ).json();

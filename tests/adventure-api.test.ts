@@ -1,3 +1,4 @@
+import { policyProvider } from "./provider-fixture.js";
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { mkdtemp, rm } from "node:fs/promises";
@@ -6,10 +7,7 @@ import path from "node:path";
 import Fastify, { type LightMyRequestResponse } from "fastify";
 import cookie from "@fastify/cookie";
 import { Authentication } from "../server/auth.js";
-import {
-  mockProvider,
-  type ClassificationProvider,
-} from "../server/assessment.js";
+import { type ClassificationProvider } from "../server/assessment.js";
 import { openDatabase } from "../server/db.js";
 import { initializeSchema } from "../server/schema.js";
 import { initializeCourseSchema, registerCourses } from "../server/courses.js";
@@ -82,7 +80,7 @@ function course(theme: Theme = "temple-chase"): CourseDefinition {
   };
 }
 
-async function fixture(provider: ClassificationProvider = mockProvider) {
+async function fixture(provider: ClassificationProvider = policyProvider) {
   let clock = 100_000;
   const directory = await mkdtemp(
     path.join(tmpdir(), "amamihe-adventure-api-"),
@@ -220,10 +218,10 @@ function accepted(response: LightMyRequestResponse): LearningProgress {
 test("physical obstacle collisions are authoritative and retry preserves prior checkpoints and rewards", async () => {
   let grades = 0;
   const f = await fixture({
-    ...mockProvider,
+    ...policyProvider,
     async grade(input) {
       grades++;
-      return mockProvider.grade(input);
+      return policyProvider.grade(input);
     },
   });
   try {

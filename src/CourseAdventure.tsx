@@ -47,7 +47,7 @@ export default function CourseAdventure({
   useEffect(() => {
     if (arrangingControls) void run(pauseForStudy);
   }, [arrangingControls]);
-  const [decision, setDecision] = useState({ mode: "mock", ready: true });
+  const [decision, setDecision] = useState({ mode: "ollama", ready: false });
   useEffect(() => {
     void request<{ mode: string; ready: boolean }>("/decision-status")
       .then(setDecision)
@@ -148,20 +148,32 @@ export default function CourseAdventure({
     return () => window.clearInterval(timer);
   }, []);
   useEffect(() => {
-    if (progress?.game?.status !== "active" || !progress.question) return;
+    if (busy || progress?.game?.status !== "active" || !progress.question)
+      return;
     let pending = false,
       alive = true;
     const poll = window.setInterval(async () => {
       if (pending || document.hidden) return;
       pending = true;
+      const questionId = latest.current?.question?.id;
+      const serial = gameCommandSerial.current;
       try {
         const next = await request<LearningProgress>(
           "/learning/" + courseId + "/tick",
-          { questionId: latest.current?.question?.id },
+          { questionId },
         );
-        if (alive) acceptGameSnapshot(next);
+        if (
+          alive &&
+          latest.current?.question?.id === questionId &&
+          serial === gameCommandSerial.current
+        )
+          acceptGameSnapshot(next);
       } catch {
-        if (alive)
+        if (
+          alive &&
+          latest.current?.question?.id === questionId &&
+          serial === gameCommandSerial.current
+        )
           setError(
             "Connection interrupted. Reconnect and reload saved progress; long connection gaps do not drain the section timer.",
           );
@@ -188,7 +200,7 @@ export default function CourseAdventure({
       window.clearInterval(poll);
       document.removeEventListener("visibilitychange", pause);
     };
-  }, [courseId, progress?.question?.id, progress?.game?.status]);
+  }, [courseId, progress?.question?.id, progress?.game?.status, busy]);
   const elapsed =
     (progress?.game?.elapsedMs ?? 0) +
     (progress?.game?.status === "active" && online && !document.hidden
@@ -710,11 +722,9 @@ export default function CourseAdventure({
                   </strong>
                   <span>✦ {progress?.points || 0} course points</span>
                   <span>
-                    {decision.mode === "mock"
-                      ? "MOCK CLASSIFIER"
-                      : decision.ready
-                        ? "TYPED CLASSIFIER"
-                        : "CLASSIFIER UNAVAILABLE"}
+                    {decision.ready
+                      ? "LOCAL LEARNING GUIDE"
+                      : "LEARNING GUIDE STARTING"}
                   </span>
                 </div>
                 <div
@@ -931,6 +941,30 @@ export default function CourseAdventure({
                 Retry assessment
               </button>
             </section>
+          ) : progress?.selection?.status === "pending" ? (
+            <section aria-label="Pending learning route">
+              <h2>Your learning guide is choosing the next activity</h2>
+              <p>
+                {progress.selection.reason ||
+                  "Your checkpoint and responses are saved."}
+              </p>
+              <button
+                className="primary"
+                disabled={busy}
+                onClick={() =>
+                  run(async () => {
+                    const next = await request<LearningProgress>(
+                      "/learning/" + courseId + "/select",
+                      {},
+                    );
+                    latest.current = next;
+                    setProgress(next);
+                  })
+                }
+              >
+                Retry learning route
+              </button>
+            </section>
           ) : progress?.finished || celebration ? (
             <section
               className="adventure-celebration"
@@ -948,12 +982,12 @@ export default function CourseAdventure({
                 {progress?.result?.label ||
                   "Your independent responses have been recorded."}
               </p>
-              <p className="mock-note">
-                {progress?.assessment?.mocked !== false
-                  ? "MOCK CLASSIFICATION"
-                  : "TYPED CLASSIFICATION"}{" "}
+              <p className="learning-note">
+                {progress?.assessment?.provider === "historical-checkpoint"
+                  ? "SAVED LEARNING CHECKPOINT"
+                  : "LOCAL LEARNING ASSESSMENT"}{" "}
                 {display?.level?.worldStyle
-                  ? " · This demo checks your answers against authored keys. Practise independently; points alone do not prove what you have learned."
+                  ? " · This checkpoint checks your answers against authored keys. Practise independently; points alone do not prove what you have learned."
                   : " · This checkpoint uses authored answer keys. It does not certify practical model training or mastery."}
               </p>
               {progress?.assessment && (

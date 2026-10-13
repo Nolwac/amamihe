@@ -1,4 +1,6 @@
 import type { CourseDefinition, CourseLevel } from "../shared/course.js";
+import { decisionConfiguration } from "./decision-provider.js";
+import type { DecisionSelection } from "../shared/decision.js";
 
 export type Evidence = {
   delivery_id: string;
@@ -10,6 +12,8 @@ export type Evidence = {
   elapsed_ms: number;
 };
 export type Grade = {
+  modelDigest?: string;
+  probabilities?: Record<string, number>;
   deliveryId: string;
   criterionId: string;
   score: number;
@@ -18,8 +22,8 @@ export type Grade = {
 };
 export type Assessment = {
   status: "confirmed" | "pending";
-  mocked: boolean;
   provider?: string;
+  routingDecision?: DecisionSelection;
   grades: Grade[];
   criteria: { id: string; score: number; independent: boolean }[];
   assistanceCount: number;
@@ -30,7 +34,8 @@ export type Assessment = {
 };
 export interface ClassificationProvider {
   readonly identity?: string;
-  readonly mocked?: boolean;
+  readonly timeoutMs?: number;
+  select(input: SelectionInput): Promise<DecisionSelection>;
   grade(input: {
     evidence: Evidence;
     criterionId: string;
@@ -38,31 +43,14 @@ export interface ClassificationProvider {
   }): Promise<unknown>;
   route(input: {
     criteria: Assessment["criteria"];
-    eligible: { id: string; taskIds: string[] }[];
+    eligible: { id: string; title?: string; taskIds: string[] }[];
   }): Promise<unknown>;
 }
-export const mockProvider: ClassificationProvider = {
-  identity: "mock-classifier-v1",
-  mocked: true,
-  async grade({ evidence, criterionId }) {
-    return {
-      deliveryId: evidence.delivery_id,
-      criterionId,
-      score: evidence.correct ? 1 : 0,
-      confidence: 1,
-      tags: evidence.assisted
-        ? ["assisted"]
-        : evidence.correct
-          ? []
-          : ["incorrect"],
-    };
-  },
-  async route({ eligible }) {
-    return {
-      nextLevelId: eligible[0]?.id ?? null,
-      taskIds: eligible[0]?.taskIds ?? [],
-    };
-  },
+export type SelectionInput = {
+  kind: DecisionSelection["kind"];
+  state: unknown;
+  instructions: string;
+  candidates: { id: string; description: string }[];
 };
 
 /** Byte-conservative budget: even a one-byte token cannot exceed this limit. */
@@ -102,14 +90,14 @@ function validGrade(
     g.criterionId === criterionId &&
     [0, 1].includes(g.score) &&
     Number.isFinite(g.confidence) &&
-    g.confidence >= 0.8 &&
+    g.confidence >= 0 &&
     g.confidence <= 1 &&
     Array.isArray(g.tags) &&
     g.tags.length <= 4 &&
     g.tags.every((t) => ["assisted", "incorrect", "uncertain"].includes(t))
   );
 }
-async function boundedCall(work: () => Promise<unknown>) {
+async function boundedCall(work: () => Promise<unknown>, timeoutMs: number) {
   let timer: ReturnType<typeof setTimeout> | undefined;
   try {
     return await Promise.race([
@@ -117,7 +105,7 @@ async function boundedCall(work: () => Promise<unknown>) {
       new Promise((_, reject) => {
         timer = setTimeout(
           () => reject(new Error("Classification timeout")),
-          1000,
+          timeoutMs,
         );
       }),
     ]);
@@ -130,11 +118,10 @@ export async function assessLevel(
   level: CourseLevel,
   evidence: Evidence[],
   completed: string[],
-  provider = mockProvider,
+  provider: ClassificationProvider = decisionConfiguration().provider,
 ): Promise<Assessment> {
   const result: Assessment = {
     status: "pending",
-    mocked: provider.mocked !== false,
     provider: provider.identity ?? "injected-provider",
     grades: [],
     criteria: level.questions.map((q) => ({
@@ -156,12 +143,14 @@ export async function assessLevel(
       );
       const criterionId = e.retry ? question?.retryFor : question?.id;
       if (!question || !criterionId) throw new Error("Unknown evidence");
-      // Objective answer-key evidence is sufficient for the mock. Full teaching
-      // resources and the entire level never enter a question grading request.
+      // Full teaching resources and the entire level never enter a grade request.
       const input = { evidence: e, criterionId, rubric: question.rubric };
       if (Buffer.byteLength(JSON.stringify(input)) > 8192)
         throw new Error("Context exceeds budget");
-      const grade = await boundedCall(() => provider.grade(input));
+      const grade = await boundedCall(
+        () => provider.grade(input),
+        provider.timeoutMs ?? 1000,
+      );
       if (
         !validGrade(grade, e, criterionId) ||
         grade.tags.includes("uncertain")
@@ -192,13 +181,21 @@ export async function assessLevel(
               ?.prerequisites ?? []
           ).every((id) => completedConcepts.has(id)),
       )
-      .map((l) => ({ id: l.id, taskIds: l.questions.map((q) => q.id) }));
+      .map((l) => ({
+        id: l.id,
+        title: l.title,
+        taskIds: l.questions.map((q) => q.id),
+      }));
     const input = { criteria: result.criteria, eligible };
     if (Buffer.byteLength(JSON.stringify(input)) > 32768)
       throw new Error("Routing context exceeds budget");
-    const route = (await boundedCall(() => provider.route(input))) as {
+    const route = (await boundedCall(
+      () => provider.route(input),
+      provider.timeoutMs ?? 1000,
+    )) as {
       nextLevelId?: unknown;
       taskIds?: unknown;
+      decision?: DecisionSelection;
     } | null;
     const selected = eligible.find((l) => l.id === route?.nextLevelId);
     if (
@@ -211,8 +208,15 @@ export async function assessLevel(
     result.status = "confirmed";
     result.nextLevelId = selected?.id ?? null;
     result.taskIds = selected?.taskIds ?? [];
-    result.reason = `${provider.mocked !== false ? "Mock answer-key" : "Typed classifier"} grades confirm independent criteria; routing selected an eligible authored task set. This is not practical mastery certification.`;
-  } catch {
+    result.routingDecision = route.decision;
+    result.reason =
+      "Local decision inference confirmed recorded independent criteria and selected an eligible authored task set. This is not practical mastery certification.";
+  } catch (error) {
+    result.reason =
+      "Assessment pending: " +
+      (error instanceof Error
+        ? error.message.slice(0, 240)
+        : "The local learning guide is unavailable.");
     /* Preserve evidence and stay pending; never silently grant mastery. */
   }
   return result;

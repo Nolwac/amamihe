@@ -35,7 +35,7 @@ export function registerOperations(
         presenceSeconds: 20,
         pollSeconds: 3,
       },
-      modelMode: process.env.DECISION_PROVIDER || "mock",
+      modelMode: "ollama · tev1:0.8b",
       emailConfigured: Boolean(process.env.EMAIL_PROVIDER),
       notice:
         "Counts establish current prototype activity, not service capacity or learning effectiveness.",

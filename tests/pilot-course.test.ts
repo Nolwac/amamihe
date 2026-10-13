@@ -1,3 +1,4 @@
+import { policyProvider } from "./provider-fixture.js";
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { mkdtemp, rm } from "node:fs/promises";
@@ -29,7 +30,7 @@ test("the maintained pilot is published once, exposes all levels, and preserves 
       "pilot-test-secret-at-least-thirty-two-characters",
     );
     await app.register(cookie);
-    registerCourses(app, db, auth);
+    registerCourses(app, db, auth, policyProvider);
     const catalogue = await app.inject("/api/courses");
     assert.equal(catalogue.json().courses[0].id, STORYTELLING_COURSE_ID);
     assert.equal(catalogue.json().courses[0].levelCount, 6);

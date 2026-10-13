@@ -131,17 +131,13 @@ try:
         require(value and not any(c in value for c in '$`\r\n\x00'), 'Configuration must use literal values.')
         settings[key] = value
     required = {'AMAMIHE_SHARED_DIR','APP_LOOPBACK_PORT','POSTGRES_IMAGE','POSTGRES_ADMIN_PASSWORD','POSTGRES_APP_PASSWORD'}
-    optional = {'SOCIAL_MODERATOR_IDS','WORLD_IDLE_WARNING_SECONDS','WORLD_IDLE_ARREST_SECONDS','DECISION_PROVIDER','OPENROUTER_API_KEY','OPENROUTER_MAX_REQUEST_COST_USD'}
+    optional = {'SOCIAL_MODERATOR_IDS','WORLD_IDLE_WARNING_SECONDS','WORLD_IDLE_ARREST_SECONDS'}
     require(required <= set(settings) and set(settings) <= required | optional, 'Private configuration has unsupported or missing keys.')
     if 'SOCIAL_MODERATOR_IDS' in settings: require(len(settings['SOCIAL_MODERATOR_IDS']) <= 1200 and re.fullmatch(r'[A-Za-z0-9_-]+(?:,[A-Za-z0-9_-]+)*', settings['SOCIAL_MODERATOR_IDS']) is not None, 'Invalid moderator identifiers.')
     for name in ('WORLD_IDLE_WARNING_SECONDS','WORLD_IDLE_ARREST_SECONDS'):
         if name in settings: require(re.fullmatch(r'[0-9]{2,4}', settings[name]) is not None, 'Invalid world policy threshold.')
     warning, arrest = int(settings.get('WORLD_IDLE_WARNING_SECONDS','600')), int(settings.get('WORLD_IDLE_ARREST_SECONDS','900'))
     require(warning >= 60 and arrest >= warning + 60 and arrest <= 7200, 'Invalid world policy interval.')
-    require(settings.get('DECISION_PROVIDER','mock') in ('mock','openrouter'), 'Invalid decision provider.')
-    if 'OPENROUTER_API_KEY' in settings: require(re.fullmatch(r'[A-Za-z0-9_-]{16,256}', settings['OPENROUTER_API_KEY']) is not None, 'Invalid private decision key format.')
-    budget = settings.get('OPENROUTER_MAX_REQUEST_COST_USD','0')
-    require(re.fullmatch(r'0(?:\.[0-9]{1,8})?', budget) is not None and float(budget) <= 0.01, 'Decision request budget exceeds the bounded deployment limit.')
     shared_path = pathlib.Path(settings['AMAMIHE_SHARED_DIR'])
     require(re.fullmatch(r'/[A-Za-z0-9_./-]+', settings['AMAMIHE_SHARED_DIR']) is not None, 'Shared directory must use an absolute path containing only letters, digits, slash, dot, dash, or underscore.')
     require(shared_path.is_absolute(), 'Shared directory must be absolute.')
@@ -189,7 +185,6 @@ compose() {
     -u APP_LOOPBACK_PORT -u AMAMIHE_SHARED_DIR -u POSTGRES_IMAGE \
     -u POSTGRES_ADMIN_PASSWORD -u POSTGRES_APP_PASSWORD \
     -u SOCIAL_MODERATOR_IDS -u WORLD_IDLE_WARNING_SECONDS -u WORLD_IDLE_ARREST_SECONDS \
-    -u DECISION_PROVIDER -u OPENROUTER_API_KEY -u OPENROUTER_MAX_REQUEST_COST_USD \
     -u COMPOSE_REMOVE_ORPHANS -u COMPOSE_IGNORE_ORPHANS -u COMPOSE_PROFILES \
     -u COMPOSE_PROJECT_NAME -u COMPOSE_FILE AMAMIHE_IMAGE="$selected_image" \
     docker --host=unix:///var/run/docker.sock compose --project-name amamihe \

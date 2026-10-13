@@ -32,7 +32,7 @@ Preserve all unrelated services and the shared proxy. Caddy changes must preserv
 
 The PostgreSQL server certificate expires one year after issuance; renew it before October 10, 2027. Use private logical backups and test restoration into a separate database. Monitor host disk space: the VPS had about 29 GiB free before installation. Immutable releases accumulate, so prune only Amamihe build cache and obsolete releases after retaining the current and rollback release and their backups.
 
-This deployment publishes the existing foundation prototype, including its clearly labeled mock classifier. It does not establish completed OpenRouter integration, final artwork acceptance, or physical low-memory-device performance.
+The current application image bundles CPU-only Ollama 0.40.3 and the verified tev1:0.8b weights. It runs its decision endpoint only on container loopback and requires no inference key or first-start model download. The API and model share a 3 GiB/two-core budget. Live release verification requires the exact model digest and successful typed inference. Artwork acceptance and physical-device performance remain separate evaluation work.
 
 The application image stamps its release identity from an explicit build argument or the detached checkout HEAD. Only `.git/HEAD` enters the build context; Git configuration, credentials, and history are excluded, and no Git files enter the runtime image.
 

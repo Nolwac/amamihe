@@ -6,7 +6,6 @@ import {
 } from "../shared/learning-journey.js";
 import {
   assessLevel,
-  mockProvider,
   type Assessment,
   type Evidence,
   type ClassificationProvider,
@@ -39,6 +38,15 @@ import {
   type PublicCourseLevel,
 } from "../shared/course.js";
 import { blankCourse, storytellingCourse } from "./course-template.js";
+import {
+  decisionConfiguration,
+  DECISION_IDENTITY,
+} from "./decision-provider.js";
+import {
+  prepareLearningSelection,
+  permittedEntryLevels,
+} from "./learning-selector.js";
+import type { LearningSelection } from "../shared/decision.js";
 
 /** Draft revisions and published versions deliberately have separate counters. */
 export async function initializeCourseSchema(db: DatabaseQueries) {
@@ -84,6 +92,12 @@ CREATE TABLE IF NOT EXISTS course_assessment_runs (
 );
 INSERT INTO course_assessment_runs(course_id,player_id,level_id,attempt,result)
 SELECT course_id,player_id,level_id,0,result FROM course_assessments ON CONFLICT DO NOTHING;
+CREATE TABLE IF NOT EXISTS course_decisions (
+ course_id TEXT NOT NULL, player_id TEXT NOT NULL, decision_id TEXT NOT NULL,
+ level_id TEXT NOT NULL, selection JSONB NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+ PRIMARY KEY(course_id,player_id,decision_id),
+ FOREIGN KEY(course_id,player_id) REFERENCES course_enrollments(course_id,player_id)
+);
 CREATE TABLE IF NOT EXISTS course_chunks (
   course_id TEXT NOT NULL,
   player_id TEXT NOT NULL,
@@ -111,7 +125,13 @@ type DraftRow = {
   published_version: number | null;
   definition: CourseDefinition;
 };
-type StoredProgress = {
+export type StoredProgress = {
+  previousProviderMigrated?: boolean;
+  resumeQuestionId?: string;
+  selection?: LearningSelection;
+  entryDecisionNeeded?: boolean;
+  questionSelectionKey?: string;
+  categorySelectionKey?: string;
   lastAwardedPoints?: number;
   attemptCounter?: number;
   resumeCheckpoint?: StoredProgress;
@@ -448,6 +468,7 @@ function progressResponse(
     completedLevelIds: state.completedLevelIds,
     points: state.points,
     finished: state.finished,
+    selection: state.selection,
     journey: {
       observed,
       goal: state.journey?.goal ?? "",
@@ -495,6 +516,7 @@ function progressResponse(
     ),
     ...(!state.finished &&
     !state.blocked &&
+    state.selection?.status !== "pending" &&
     state.assessment?.status !== "pending" &&
     question
       ? {
@@ -519,6 +541,56 @@ export async function enrolled(
   ).rows[0];
   if (!row) throw new CourseError("Enter this course house first.", 404);
   const course = await published(db, id, row.version);
+  // Previously recorded checkpoints retain points, evidence and partial work.
+  // New selections use local inference without relabeling old assessments.
+  if (
+    row.progress.assessment &&
+    !row.progress.previousProviderMigrated &&
+    !row.progress.assessment.provider?.startsWith("ollama:")
+  ) {
+    const prior = row.progress.assessment;
+    row.progress.assessment = {
+      status: prior.status,
+      provider:
+        prior.status === "pending"
+          ? DECISION_IDENTITY
+          : "historical-checkpoint",
+      grades: prior.grades.map((g) => ({
+        deliveryId: g.deliveryId,
+        criterionId: g.criterionId,
+        score: g.score,
+        confidence: g.confidence,
+        tags: g.tags,
+      })),
+      criteria: prior.criteria,
+      assistanceCount: prior.assistanceCount,
+      errorCount: prior.errorCount,
+      nextLevelId: prior.nextLevelId,
+      taskIds: prior.taskIds,
+      reason:
+        "Your earlier recorded checkpoint evidence and earned points are preserved. New activity selections use the local learning guide.",
+    };
+    row.progress.result = row.progress.result
+      ? {
+          provider: "historical-checkpoint",
+          label: "Recorded checkpoint preserved",
+          nextLevelId: row.progress.result.nextLevelId,
+          awardedPoints: row.progress.result.awardedPoints,
+        }
+      : undefined;
+    row.progress.previousProviderMigrated = true;
+    await saveProgress(db, id, playerId, row.progress);
+  }
+  if (
+    !row.progress.selection &&
+    !row.progress.entryDecisionNeeded &&
+    !row.progress.finished
+  ) {
+    row.progress.resumeQuestionId = currentQuestion(
+      course.definition,
+      row.progress,
+    ).question?.id;
+  }
   // Existing progress can be upgraded without inventing independent evidence.
   if (!Array.isArray(row.progress.satisfiedQuestionIds)) {
     const level = course.definition.levels.find(
@@ -651,7 +723,7 @@ async function classify(
     ],
   );
   state.result = {
-    mocked: state.assessment.mocked,
+    provider: state.assessment.provider ?? DECISION_IDENTITY,
     label:
       state.assessment.status === "pending"
         ? "Level cleared · assessment pending"
@@ -669,6 +741,11 @@ async function classify(
     state.satisfiedQuestionIds = [];
     state.game = undefined;
     state.adventureCheckpoint = undefined;
+    state.selection = {
+      status: "pending",
+      provider: provider.identity ?? DECISION_IDENTITY,
+      level: state.assessment.routingDecision,
+    };
   } else {
     state.finished = true;
     await db.query(
@@ -682,7 +759,7 @@ export function registerCourses(
   app: FastifyInstance,
   db: Database,
   auth: Authentication,
-  provider: ClassificationProvider = mockProvider,
+  provider: ClassificationProvider = decisionConfiguration().provider,
   now: () => number = Date.now,
 ) {
   const player = async (req: FastifyRequest) => {
@@ -899,6 +976,7 @@ ORDER BY v.published_at DESC,v.course_id LIMIT $4 OFFSET $5`,
       const first = eligibleLevel(course.definition, []);
       if (!first) throw new CourseError("This course has no entry level.", 409);
       const initial: StoredProgress = {
+        entryDecisionNeeded: true,
         levelId: first.id,
         questionIndex: 0,
         retry: false,
@@ -915,6 +993,15 @@ ORDER BY v.published_at DESC,v.course_id LIMIT $4 OFFSET $5`,
         [id, p.id, version, JSON.stringify(initial)],
       );
       const row = await enrolled(tx, id, p.id);
+      await prepareLearningSelection(
+        tx,
+        id,
+        p.id,
+        row.definition,
+        row.progress,
+        provider,
+      );
+      await saveProgress(tx, id, p.id, row.progress);
       return progressResponse(id, row.version, row.definition, row.progress);
     });
   });
@@ -1027,6 +1114,14 @@ WHERE e.player_id=$1 ORDER BY e.updated_at DESC,e.course_id LIMIT 100`,
       } else throw new CourseError("Choose a learning journey activity.");
       state.journey = journey;
       if (state.game?.status === "active") state.game.status = "paused";
+      await prepareLearningSelection(
+        tx,
+        id,
+        p.id,
+        row.definition,
+        state,
+        provider,
+      );
       await saveProgress(tx, id, p.id, state);
       return {
         progress: progressResponse(id, row.version, row.definition, state),
@@ -1067,6 +1162,14 @@ WHERE e.player_id=$1 ORDER BY e.updated_at DESC,e.course_id LIMIT 100`,
         restored.assisted ||
         Boolean(current && restored.revealedQuestionIds.includes(current.id));
       if (restored.game?.status === "active") restored.game.status = "paused";
+      await prepareLearningSelection(
+        tx,
+        id,
+        p.id,
+        row.definition,
+        restored,
+        provider,
+      );
       await saveProgress(tx, id, p.id, restored);
       return progressResponse(id, row.version, row.definition, restored);
     });
@@ -1140,10 +1243,22 @@ WHERE e.player_id=$1 ORDER BY e.updated_at DESC,e.course_id LIMIT 100`,
         assessment: undefined,
         result: undefined,
         assessmentLevelId: undefined,
+        selection: undefined,
+        questionSelectionKey: undefined,
+        categorySelectionKey: undefined,
+        entryDecisionNeeded: body.scope === "course",
         game: freshGame(level),
         adventureCheckpoint: undefined,
       });
       state.assisted = revealed.includes(level.questions[0].id);
+      await prepareLearningSelection(
+        tx,
+        id,
+        p.id,
+        row.definition,
+        state,
+        provider,
+      );
       await saveProgress(tx, id, p.id, state);
       return progressResponse(id, row.version, row.definition, state);
     });
@@ -1153,6 +1268,15 @@ WHERE e.player_id=$1 ORDER BY e.updated_at DESC,e.course_id LIMIT 100`,
     const id = param(req, "courseId");
     return db.transaction(async (tx) => {
       const row = await enrolled(tx, id, p.id);
+      await prepareLearningSelection(
+        tx,
+        id,
+        p.id,
+        row.definition,
+        row.progress,
+        provider,
+      );
+      await saveProgress(tx, id, p.id, row.progress);
       return progressResponse(id, row.version, row.definition, row.progress);
     });
   });
@@ -1170,6 +1294,7 @@ WHERE e.player_id=$1 ORDER BY e.updated_at DESC,e.course_id LIMIT 100`,
         if (
           state.finished ||
           state.blocked ||
+          state.selection?.status === "pending" ||
           state.assessment?.status === "pending" ||
           !question ||
           body.questionId !== deliveryId(state, question)
@@ -1236,6 +1361,7 @@ WHERE e.player_id=$1 ORDER BY e.updated_at DESC,e.course_id LIMIT 100`,
       if (
         state.finished ||
         state.blocked ||
+        state.selection?.status === "pending" ||
         state.assessment?.status === "pending" ||
         !question ||
         body.questionId !== deliveryId(state, question) ||
@@ -1271,6 +1397,33 @@ WHERE e.player_id=$1 ORDER BY e.updated_at DESC,e.course_id LIMIT 100`,
       if (row.progress.assessment?.status !== "pending")
         throw new CourseError("There is no pending assessment.", 409);
       await classify(tx, id, p.id, row.definition, row.progress, provider);
+      await prepareLearningSelection(
+        tx,
+        id,
+        p.id,
+        row.definition,
+        row.progress,
+        provider,
+      );
+      await saveProgress(tx, id, p.id, row.progress);
+      return progressResponse(id, row.version, row.definition, row.progress);
+    });
+  });
+  route("POST", "/api/learning/:courseId/select", async (req) => {
+    const p = await player(req),
+      id = param(req, "courseId");
+    return db.transaction(async (tx) => {
+      const row = await enrolled(tx, id, p.id);
+      if (row.progress.game?.status === "active")
+        row.progress.game.status = "paused";
+      await prepareLearningSelection(
+        tx,
+        id,
+        p.id,
+        row.definition,
+        row.progress,
+        provider,
+      );
       await saveProgress(tx, id, p.id, row.progress);
       return progressResponse(id, row.version, row.definition, row.progress);
     });
@@ -1285,6 +1438,7 @@ WHERE e.player_id=$1 ORDER BY e.updated_at DESC,e.course_id LIMIT 100`,
       const { question } = currentQuestion(row.definition, state);
       if (
         state.finished ||
+        state.selection?.status === "pending" ||
         state.assessment?.status === "pending" ||
         state.blocked ||
         !question ||
@@ -1430,7 +1584,7 @@ WHERE e.player_id=$1 ORDER BY e.updated_at DESC,e.course_id LIMIT 100`,
       state.assisted = Boolean(state.practiceOnly);
       if (cleared) {
         // Classification is invoked only after independent level clearance.
-        // The mock chooses the first authored level whose prerequisites are met.
+        // The local decision model selects an eligible published level.
         if (!state.completedLevelIds.includes(level.id))
           state.completedLevelIds.push(level.id);
         if (state.replayMode === "course")
@@ -1458,6 +1612,14 @@ WHERE e.player_id=$1 ORDER BY e.updated_at DESC,e.course_id LIMIT 100`,
         state.assessmentLevelId = level.id;
         await classify(tx, id, p.id, row.definition, state, provider);
       }
+      await prepareLearningSelection(
+        tx,
+        id,
+        p.id,
+        row.definition,
+        state,
+        provider,
+      );
       state.game = freshGame(
         currentQuestion(row.definition, state).level,
         multiplier,

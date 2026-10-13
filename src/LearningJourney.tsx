@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { LEARNING_ROLES } from "../shared/learning-journey";
 import type { LearningProgress } from "../shared/course";
 
@@ -17,6 +17,8 @@ export default function LearningJourney({
   onResource: (id: string) => void;
 }) {
   const journey = progress.journey!;
+  const panel = useRef<HTMLElement>(null);
+  const nextRole = progress.selection?.category?.choice;
   const [goal, setGoal] = useState(journey.goal),
     [reasoning, setReasoning] = useState(journey.reasoning),
     [reflection, setReflection] = useState(journey.reflection),
@@ -37,6 +39,7 @@ export default function LearningJourney({
   }
   return (
     <aside
+      ref={panel}
       className="learning-journey field-journal"
       aria-label="Learning journey"
     >
@@ -49,6 +52,30 @@ export default function LearningJourney({
       </button>
       <span className="eyebrow">YOUR LEARNING CAMP</span>
       <h2>Learning journey</h2>
+      {nextRole && (
+        <div className="learning-note" role="status">
+          <p>
+            Your learning guide recommends: <strong>{nextRole}</strong>
+          </p>
+          <button
+            onClick={() => {
+              const detail = [
+                ...(panel.current?.querySelectorAll<HTMLDetailsElement>(
+                  "details",
+                ) ?? []),
+              ].find((d) =>
+                d.querySelector("summary")?.textContent?.includes(nextRole),
+              );
+              if (detail) {
+                detail.open = true;
+                detail.scrollIntoView({ block: "nearest", behavior: "smooth" });
+              }
+            }}
+          >
+            Visit next learning category
+          </button>
+        </div>
+      )}
       <p>
         Visit all ten teaching roles before completing the course. Participation
         and assessed mastery are recorded separately.

@@ -992,6 +992,20 @@
   padding-left: 16px;
   line-height: 1.7;
 }
+.learning-journey .learning-note {
+  background: #21463d;
+  color: #faefd8;
+  font-size: 14px;
+}
+.learning-journey .learning-note p {
+  color: inherit;
+}
+.learning-journey .learning-note button {
+  background: #f4d082;
+  color: #14292e;
+  border: 1px solid #b48447;
+  border-radius: 8px;
+}
 
 .course-adventure .adventure-timer {
   right: auto;

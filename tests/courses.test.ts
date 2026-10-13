@@ -1,12 +1,10 @@
+import { policyProvider } from "./provider-fixture.js";
 import {
   initializePracticeSchema,
   registerPractice,
 } from "../server/practice.js";
 import { registerRewards } from "../server/rewards.js";
-import {
-  mockProvider,
-  type ClassificationProvider,
-} from "../server/assessment.js";
+import { type ClassificationProvider } from "../server/assessment.js";
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { mkdtemp, rm } from "node:fs/promises";
@@ -122,7 +120,10 @@ function authoredCourse(): CourseDefinition {
     ],
   };
 }
-async function fixture(provider?: ClassificationProvider, now?: () => number) {
+async function fixture(
+  provider: ClassificationProvider = policyProvider,
+  now?: () => number,
+) {
   const directory = await mkdtemp(path.join(tmpdir(), "amamihe-courses-"));
   const db = await openDatabase({ dataDir: directory });
   await initializeSchema(db);
@@ -592,7 +593,7 @@ test("authored runner preserves chunk order and assistance while exhausted banks
   }
 });
 
-test("independent clearance awards exactly once and mock routing selects an eligible authored level", async () => {
+test("independent clearance awards exactly once and local routing selects an eligible authored level", async () => {
   const f = await fixture();
   try {
     const draft = await f.create();
@@ -610,7 +611,7 @@ test("independent clearance awards exactly once and mock routing selects an elig
     assert.equal(progress.points, 40);
     assert.deepEqual(progress.completedLevelIds, ["prepare"]);
     assert.deepEqual(progress.result, {
-      mocked: true,
+      provider: policyProvider.identity!,
       label: "Independent checkpoint clear",
       nextLevelId: "evaluate",
       awardedPoints: 40,
@@ -811,10 +812,10 @@ test("retry coverage targets the missing primary criterion and skips already sat
 test("pending post-clearance classification survives reload and retries without duplicate rewards", async () => {
   let fail = true;
   const f = await fixture({
-    ...mockProvider,
+    ...policyProvider,
     route: async (input) => {
       if (fail) throw new Error("Unavailable");
-      return mockProvider.route(input);
+      return policyProvider.route(input);
     },
   });
   try {
@@ -1293,10 +1294,10 @@ test("reasoning prompts are delivered only after assistance is recorded", async 
 test("pending replay grading cannot overwrite earned assessment or prevent returning to the original checkpoint", async () => {
   let fail = false;
   const f = await fixture({
-    ...mockProvider,
+    ...policyProvider,
     route: async (input) => {
       if (fail) throw new Error("Provider unavailable");
-      return mockProvider.route(input);
+      return policyProvider.route(input);
     },
   });
   try {
@@ -1490,6 +1491,74 @@ test("historical checkpoint evidence completes its teaching roles without requir
     assert.equal(p.journey!.completed, true);
     assert.equal(p.journey!.observed.length, 10);
     assert.equal(p.points, 100);
+  } finally {
+    await f.close();
+  }
+});
+
+test("provider migration preserves a partial delivery and a completed course without erasing criteria or rewards", async () => {
+  const f = await fixture();
+  try {
+    const draft = await f.create();
+    await f.publish(draft);
+    let p = await f.enroll(draft.id);
+    p = accepted(await f.answer(draft.id, p));
+    const savedQuestion = p.question!.id;
+    await f.db.query(
+      "UPDATE course_enrollments SET progress=(progress-'selection'-'questionSelectionKey'-'categorySelectionKey')||$3::jsonb WHERE course_id=$1 AND player_id=$2",
+      [
+        draft.id,
+        f.learner.playerId,
+        JSON.stringify({
+          assessment: {
+            status: "confirmed",
+            provider: "retired-answer-key-provider",
+            grades: [],
+            criteria: [],
+            assistanceCount: 0,
+            errorCount: 0,
+            nextLevelId: p.levelId,
+            taskIds: [],
+          },
+        }),
+      ],
+    );
+    p = (
+      await f.request(
+        "GET",
+        `/api/learning/${draft.id}`,
+        undefined,
+        f.learner.cookie,
+      )
+    ).json();
+    assert.equal(p.question?.id, savedQuestion);
+    assert.equal(p.levelProgress?.cleared, 1);
+    assert.equal(p.points, 0);
+    assert.equal(p.assessment?.provider, "historical-checkpoint");
+    p = accepted(await f.answer(draft.id, p));
+    p = accepted(await f.answer(draft.id, p));
+    assert.equal(p.finished, true);
+    assert.equal(p.points, 100);
+    await f.db.query(
+      "UPDATE course_enrollments SET progress=progress-'previousProviderMigrated' WHERE course_id=$1 AND player_id=$2",
+      [draft.id, f.learner.playerId],
+    );
+    await f.db.query(
+      "UPDATE course_enrollments SET progress=jsonb_set(progress,'{assessment,provider}','\"retired-answer-key-provider\"') WHERE course_id=$1 AND player_id=$2",
+      [draft.id, f.learner.playerId],
+    );
+    p = (
+      await f.request(
+        "GET",
+        `/api/learning/${draft.id}`,
+        undefined,
+        f.learner.cookie,
+      )
+    ).json();
+    assert.equal(p.finished, true);
+    assert.equal(p.points, 100);
+    assert.equal(p.completedLevelIds.length, 2);
+    assert.equal(p.assessment?.provider, "historical-checkpoint");
   } finally {
     await f.close();
   }

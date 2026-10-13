@@ -1,0 +1,221 @@
+{
+  "verifiedAt": "2026-10-13T14:17:30.713Z",
+  "passed": true,
+  "scope": "Isolated local API with actual CPU inference and test-only email outbox.",
+  "health": {
+    "ok": true,
+    "storage": "PostgreSQL / PGlite",
+    "classifier": "ollama:tev1:0.8b",
+    "decisionService": {
+      "mode": "ollama",
+      "ready": true,
+      "model": "tev1:0.8b",
+      "modelDigest": "sha256:8d11b3146b7f3f4f4d5e9a64665ab2bdaf8b46e4ec42a5880b60a716ae50e3fb",
+      "reason": "Local tev1 typed inference verified; no API key is required."
+    },
+    "release": "development",
+    "features": {
+      "courseStudio": true,
+      "courseVersions": true,
+      "learningAssessment": true,
+      "playableThemes": true,
+      "physicalAdventure": true,
+      "gameAudio": true,
+      "cosmeticRewards": true,
+      "adaptiveResources": true,
+      "practiceEnvironments": true,
+      "reviewScheduling": true,
+      "sharedWorld": true,
+      "teamBattles": true,
+      "authorizedBillboards": true,
+      "learningPolice": true,
+      "worldOperations": true
+    }
+  },
+  "courseId": "amamihe-number-garden",
+  "entrySelections": {
+    "status": "ready",
+    "provider": "ollama:tev1:0.8b",
+    "level": {
+      "kind": "level",
+      "primitive": "noul",
+      "approvalProbability": 0.9965707348697939,
+      "provider": "ollama:tev1:0.8b",
+      "model": "tev1:0.8b",
+      "modelDigest": "sha256:8d11b3146b7f3f4f4d5e9a64665ab2bdaf8b46e4ec42a5880b60a716ae50e3fb",
+      "choice": "level-0",
+      "probabilities": {
+        "level-0": 0.9965707348697939,
+        "_deferred": 0.0034292651302061383
+      },
+      "confidence": 0.9931414697395877,
+      "durationMs": 786
+    },
+    "question": {
+      "kind": "question",
+      "primitive": "choice",
+      "provider": "ollama:tev1:0.8b",
+      "model": "tev1:0.8b",
+      "modelDigest": "sha256:8d11b3146b7f3f4f4d5e9a64665ab2bdaf8b46e4ec42a5880b60a716ae50e3fb",
+      "choice": "question-0-0",
+      "confidence": 0.08091704566982882,
+      "probabilities": {
+        "question-0-0": 0.6658775257222492,
+        "question-0-1": 0.3341224742777507
+      },
+      "durationMs": 97
+    },
+    "category": {
+      "kind": "category",
+      "primitive": "choice",
+      "provider": "ollama:tev1:0.8b",
+      "model": "tev1:0.8b",
+      "modelDigest": "sha256:8d11b3146b7f3f4f4d5e9a64665ab2bdaf8b46e4ec42a5880b60a716ae50e3fb",
+      "choice": "Interviewer",
+      "confidence": 0.3337368819986839,
+      "probabilities": {
+        "Mapmaker": 0.1544393370664679,
+        "Interviewer": 0.6318602594364413,
+        "Socratic Questioner": 0.0343920435850452,
+        "Explainer": 0.023518738243904627,
+        "Examiner": 0.1557896216681411
+      },
+      "durationMs": 111
+    }
+  },
+  "afterGoal": {
+    "level": {
+      "kind": "level",
+      "model": "tev1:0.8b",
+      "choice": "level-0",
+      "provider": "ollama:tev1:0.8b",
+      "primitive": "noul",
+      "confidence": 0.9931414697395877,
+      "durationMs": 786,
+      "modelDigest": "sha256:8d11b3146b7f3f4f4d5e9a64665ab2bdaf8b46e4ec42a5880b60a716ae50e3fb",
+      "probabilities": {
+        "level-0": 0.9965707348697939,
+        "_deferred": 0.0034292651302061383
+      },
+      "approvalProbability": 0.9965707348697939
+    },
+    "status": "ready",
+    "category": {
+      "kind": "category",
+      "primitive": "choice",
+      "provider": "ollama:tev1:0.8b",
+      "model": "tev1:0.8b",
+      "modelDigest": "sha256:8d11b3146b7f3f4f4d5e9a64665ab2bdaf8b46e4ec42a5880b60a716ae50e3fb",
+      "choice": "Mapmaker",
+      "confidence": 0.03845409603842809,
+      "probabilities": {
+        "Mapmaker": 0.31886258647298704,
+        "Socratic Questioner": 0.12832201439450522,
+        "Explainer": 0.23644387603394812,
+        "Examiner": 0.31637152309855965
+      },
+      "durationMs": 974
+    },
+    "provider": "ollama:tev1:0.8b",
+    "question": {
+      "kind": "question",
+      "model": "tev1:0.8b",
+      "choice": "question-0-0",
+      "provider": "ollama:tev1:0.8b",
+      "primitive": "choice",
+      "confidence": 0.08091704566982882,
+      "durationMs": 97,
+      "modelDigest": "sha256:8d11b3146b7f3f4f4d5e9a64665ab2bdaf8b46e4ec42a5880b60a716ae50e3fb",
+      "probabilities": {
+        "question-0-0": 0.6658775257222492,
+        "question-0-1": 0.3341224742777507
+      }
+    }
+  },
+  "checks": [
+    "Actual pinned model selected entry level, question and teaching role",
+    "Model provenance retained across browser reload",
+    "Recording a learning goal reselects category without reshuffling the question",
+    "Recommended category opens its actual activity panel",
+    "Desktop and phone render local guide without page errors",
+    "Phone recommendation panel passed WCAG 2 A/AA and 2.1 AA checks after contrast adjustment"
+  ],
+  "errors": [],
+  "node": {
+    "passed": 114,
+    "skipped": 1,
+    "failed": 0,
+    "skipReason": "Optional external TEST_DATABASE_URL not configured."
+  },
+  "browser": {
+    "startTime": "2026-10-13T14:03:13.281Z",
+    "duration": 717517.775,
+    "expected": 31,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0,
+    "scope": "Full suite before the final scoped recommendation contrast/text edits; corrected panel and reload/category behavior then checked with actual inference and axe."
+  },
+  "bundledApplication": {
+    "imageId": "sha256:e1dd40ce746500509fab4d849b163656ec8beee396e94142d92d1a5b97aca1fb",
+    "network": "none",
+    "readOnlyRoot": true,
+    "user": 1000,
+    "cpuLimit": 2,
+    "memoryLimitGiB": 3,
+    "observedReadyMemoryGiB": 1.476,
+    "health": {
+      "ok": true,
+      "storage": "PostgreSQL / PGlite",
+      "classifier": "ollama:tev1:0.8b",
+      "decisionService": {
+        "mode": "ollama",
+        "ready": true,
+        "model": "tev1:0.8b",
+        "modelDigest": "sha256:8d11b3146b7f3f4f4d5e9a64665ab2bdaf8b46e4ec42a5880b60a716ae50e3fb",
+        "reason": "Local tev1 typed inference verified; no API key is required."
+      },
+      "release": "development",
+      "features": {
+        "courseStudio": true,
+        "courseVersions": true,
+        "learningAssessment": true,
+        "playableThemes": true,
+        "physicalAdventure": true,
+        "gameAudio": true,
+        "cosmeticRewards": true,
+        "adaptiveResources": true,
+        "practiceEnvironments": true,
+        "reviewScheduling": true,
+        "sharedWorld": true,
+        "teamBattles": true,
+        "authorizedBillboards": true,
+        "learningPolice": true,
+        "worldOperations": true
+      }
+    },
+    "scope": "Development-tagged image with the final provider runtime; later UI-only text/contrast edits verified separately. Exact revision promotion is a CI gate."
+  },
+  "captures": {
+    "evidence/screenshots/tev1-local-guide-desktop.png": "198cada27b52b23391771a6ac9dc9e2480399117fbdcc9755e72e20ba284df6d",
+    "evidence/screenshots/tev1-selected-category-desktop.png": "7e67b67147864d85e105e84ff2d087dec2a25e8773a378e63f2697a5fc4efd17",
+    "evidence/screenshots/tev1-selected-category-phone.png": "5948e4d5bbf50a006d1fce3d7523c243d726be202b28d4adbf66949b3e9dc33c"
+  },
+  "responseTimingRegression": {
+    "normal": {
+      "passed": true,
+      "durationSeconds": 24.1
+    },
+    "delayed": {
+      "passed": true,
+      "duration": "1.3 minutes",
+      "extraResponseDelaySeconds": 6,
+      "scope": "Owned loopback transport delayed actual answer/journey responses. The actual local model and payloads were preserved."
+    },
+    "checks": [
+      "Each field study and teaching-role response confirms its saved observation and ready selection",
+      "Both authored answers await actual model-selected progress",
+      "Final checkpoint response confirms assessment and completion before UI assertions"
+    ]
+  }
+}
