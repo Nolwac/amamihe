@@ -215,6 +215,22 @@ test("two browsers share real 3D avatars, course rooms and a consented team batt
         .getByRole("button", { name: "Course houses", exact: true })
         .click();
     }
+    // Opening the directory pauses the city before its first rendered frame.
+    // Both learners must leave their course room even while that scene is paused.
+    for (const [request, peerName] of [
+      [context.request, "Social Beta"],
+      [other.request, "Social Alpha"],
+    ] as const) {
+      await expect
+        .poll(
+          async () => {
+            const data = await (await request.get("/api/social")).json();
+            return data.presence.find((p: any) => p.name === peerName)?.room;
+          },
+          { timeout: 15000 },
+        )
+        .toMatch(/^city:/);
+    }
     await alphaPanel.getByLabel("Team name").fill("Alpha learners");
     await alphaPanel
       .getByRole("button", { name: "Create team", exact: true })

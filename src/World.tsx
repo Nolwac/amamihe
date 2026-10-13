@@ -92,6 +92,13 @@ export default function World({
   useEffect(() => {
     let disposed = false;
     let release = () => {};
+    // Room changes must not depend on rendering: a directory can pause the
+    // city as soon as it mounts after a learner leaves a course.
+    if (mode === "world")
+      publishPosition({
+        space: "city",
+        position: { x: 0, z: -5, heading: 0 },
+      });
     const yieldToInterface = () =>
       new Promise<void>((resolve) => setTimeout(resolve, 0));
     canvas.current!.dataset.sceneMode = mode;
