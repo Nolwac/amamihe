@@ -1,3 +1,4 @@
+import { createSoftBox } from "./softGeometry";
 import { configureCameraControls } from "./cameraControls";
 import { createBillboards } from "./billboards";
 import { gameAudio } from "./gameAudio";
@@ -95,6 +96,7 @@ export default function World({
       new Promise<void>((resolve) => setTimeout(resolve, 0));
     canvas.current!.dataset.sceneMode = mode;
     canvas.current!.dataset.sceneQuality = quality;
+    canvas.current!.dataset.geometryStyle = "soft-bevels";
     canvas.current!.dataset.courseHouses = JSON.stringify(
       courses.map((course) => course.id),
     );
@@ -106,7 +108,7 @@ export default function World({
     const initialize = async () => {
       await yieldToInterface();
       if (disposed) return;
-      const engine = new Engine(canvas.current!, quality !== "low", {
+      const engine = new Engine(canvas.current!, true, {
         stencil: false,
         // Retain the last frame between capped renders and browser snapshots.
         preserveDrawingBuffer: true,
@@ -347,11 +349,7 @@ export default function World({
         m: StandardMaterial,
         merge = true,
       ) {
-        const b = MeshBuilder.CreateBox(
-          n,
-          { width: w, height: h, depth: d },
-          scene,
-        );
+        const b = createSoftBox(n, w, h, d, scene);
         b.position.set(x, y, z);
         b.material = m;
         b.receiveShadows = true;
@@ -376,7 +374,7 @@ export default function World({
             diameterBottom: diameter,
             diameterTop: top,
             height,
-            tessellation: 10,
+            tessellation: quality === "low" ? 20 : 32,
           },
           scene,
         );
@@ -400,7 +398,7 @@ export default function World({
       ) {
         const b = MeshBuilder.CreateSphere(
           n,
-          { diameter: 1, segments: 8 },
+          { diameter: 1, segments: quality === "low" ? 12 : 20 },
           scene,
         );
         b.scaling.set(w, h, d);

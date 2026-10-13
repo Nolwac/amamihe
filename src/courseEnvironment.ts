@@ -1,5 +1,6 @@
+import { createSoftBox } from "./softGeometry";
 import type { Scene } from "@babylonjs/core/scene";
-import type { Theme } from "../shared/course";
+import type { Theme, WorldStyle } from "../shared/course";
 import { MeshBuilder } from "@babylonjs/core/Meshes/meshBuilder";
 import { Mesh } from "@babylonjs/core/Meshes/mesh";
 import { TransformNode } from "@babylonjs/core/Meshes/transformNode";
@@ -18,8 +19,14 @@ type Obstacle = {
 };
 
 /** Bounded geometry streams ahead of an avatar actually traversing world space. */
-export function createCourseEnvironment(scene: Scene, theme: Theme) {
+export function createCourseEnvironment(
+  scene: Scene,
+  theme: Theme,
+  worldStyle?: WorldStyle,
+) {
   const temple = theme === "temple-chase";
+  const garden = worldStyle === "garden";
+  const story = worldStyle === "story-trail";
   const racing = theme === "racing";
   const fighting = theme === "wrestling";
   const material = (name: string, hex: string) => {
@@ -45,6 +52,42 @@ export function createCourseEnvironment(scene: Scene, theme: Theme) {
   const leaf = material("jungle", "#285852");
   const beam = material("workshop-energy", "#7cddd0");
   beam.emissiveColor = Color3.FromHexString("#257c70");
+  if (garden || story) {
+    stone.diffuseColor = Color3.FromHexString("#e0c9a0");
+    leaf.diffuseColor = Color3.FromHexString("#5e9a76");
+    water.diffuseColor = Color3.FromHexString("#86c7da");
+  }
+  function flower(parent: TransformNode | null, x: number, z: number) {
+    const root = new TransformNode("garden-flower", scene);
+    root.parent = parent;
+    root.position.set(x, 0, z);
+    const stem = MeshBuilder.CreateCylinder(
+      "flower-stem",
+      { diameter: 0.06, height: 0.65, tessellation: 12 },
+      scene,
+    );
+    stem.parent = root;
+    stem.position.y = 0.33;
+    stem.material = leaf;
+    stem.isPickable = false;
+    for (let i = 0; i < 7; i++) {
+      const petal = MeshBuilder.CreateSphere(
+        i === 6 ? "flower-center" : "flower-petal",
+        { diameter: i === 6 ? 0.22 : 0.28, segments: 8 },
+        scene,
+      );
+      petal.parent = root;
+      petal.position.set(
+        i === 6 ? 0 : Math.cos((i * Math.PI) / 3) * 0.18,
+        0.72,
+        i === 6 ? 0 : Math.sin((i * Math.PI) / 3) * 0.18,
+      );
+      petal.scaling.y = 0.35;
+      petal.material = i === 6 ? gold : clay;
+      petal.isPickable = false;
+    }
+    return root;
+  }
 
   function box(
     name: string,
@@ -57,7 +100,7 @@ export function createCourseEnvironment(scene: Scene, theme: Theme) {
     mat: StandardMaterial,
     parent?: TransformNode,
   ) {
-    const mesh = MeshBuilder.CreateBox(name, { width, height, depth }, scene);
+    const mesh = createSoftBox(name, width, height, depth, scene);
     mesh.position.set(x, y, z);
     mesh.material = mat;
     mesh.parent = parent ?? null;
@@ -128,7 +171,42 @@ export function createCourseEnvironment(scene: Scene, theme: Theme) {
           box("bridge-edge-gold", x, 1.02, 9, 0.22, 0.12, 18, gold, chunk);
         }
         for (let z = 2; z < 18; z += 6) {
-          if (racing) {
+          if (garden || story) {
+            const side = Math.sign(x);
+            if (garden) {
+              box("garden-bed", side * 5, 0.12, z, 2.4, 0.24, 2, clay, chunk);
+              for (let seed = 0; seed < 3; seed++)
+                flower(chunk, side * 5 + (seed - 1) * 0.6, z);
+            } else {
+              const trunk = MeshBuilder.CreateCylinder(
+                "story-tree-trunk",
+                { diameter: 0.3, height: 3, tessellation: 16 },
+                scene,
+              );
+              trunk.parent = chunk;
+              trunk.position.set(side * 6, 1.5, z);
+              trunk.material = clay;
+              const crown = MeshBuilder.CreateSphere(
+                "story-tree-crown",
+                { diameter: 2.6, segments: 12 },
+                scene,
+              );
+              crown.parent = chunk;
+              crown.position.set(side * 6, 3.4, z);
+              crown.material = leaf;
+              box(
+                "story-clue-sign",
+                side * 4.2,
+                1.4,
+                z,
+                0.8,
+                0.65,
+                0.14,
+                gold,
+                chunk,
+              );
+            }
+          } else if (racing) {
             box(
               "track-barrier",
               x,
@@ -182,7 +260,7 @@ export function createCourseEnvironment(scene: Scene, theme: Theme) {
             );
             const crown = MeshBuilder.CreateSphere(
               "jungle-crown",
-              { diameter: 4, segments: 6 },
+              { diameter: 4, segments: 12 },
               scene,
             );
             crown.parent = chunk;
@@ -319,10 +397,10 @@ export function createCourseEnvironment(scene: Scene, theme: Theme) {
 
   const obstacles = new Map<string, TransformNode>();
   const clearedMaterial = material("cleared-obstacle", "#7ca697");
-  const products: Mesh[] = [];
+  const products: TransformNode[] = [];
   const spark = MeshBuilder.CreateSphere(
     "task-hit-spark",
-    { diameter: 0.3, segments: 6 },
+    { diameter: 0.3, segments: 12 },
     scene,
   );
   spark.material = light;
@@ -383,6 +461,9 @@ export function createCourseEnvironment(scene: Scene, theme: Theme) {
     }
   }
   return {
+    productCount() {
+      return products.length;
+    },
     update(
       distance: number,
       time: number,
@@ -415,21 +496,20 @@ export function createCourseEnvironment(scene: Scene, theme: Theme) {
       finish.position.z = distance + 16 - progress * 9;
       if (theme === "workshop") {
         const productIndex = Math.min(4, Math.floor(progress * 4));
+        // A new level/replay starts a fresh patch; server-earned progress is separate.
+        while (products.length > productIndex) products.pop()!.dispose();
         while (products.length < productIndex) {
-          const block = box(
-            "completed-model-module",
-            0,
-            0.25,
-            0,
-            0.45,
-            0.45,
-            0.45,
-            gold,
-          );
+          const block = garden
+            ? flower(null, 0, 0)
+            : box("completed-model-module", 0, 0.25, 0, 0.45, 0.45, 0.45, gold);
           products.push(block);
         }
         products.forEach((product, i) =>
-          product.position.set(-2.5, 0.5 + i * 0.5, distance + 2),
+          product.position.set(
+            -2.5 + (garden ? (i % 2) * 0.7 : 0),
+            garden ? 0 : 0.5 + i * 0.5,
+            distance + 2 + (garden ? Math.floor(i / 2) * 0.8 : 0),
+          ),
         );
       }
       spark.setEnabled(taskPulse > 0.05);
@@ -488,7 +568,7 @@ export function createGuardian(scene: Scene) {
   ) => {
     const mesh = MeshBuilder.CreateSphere(
       name,
-      { diameter: 1, segments: 6 },
+      { diameter: 1, segments: 12 },
       scene,
     );
     mesh.parent = parent;
@@ -526,7 +606,7 @@ export function createGuardian(scene: Scene) {
     );
     const horn = MeshBuilder.CreateCylinder(
       "guardian-horn",
-      { diameterTop: 0, diameterBottom: 0.28, height: 0.65, tessellation: 5 },
+      { diameterTop: 0, diameterBottom: 0.28, height: 0.65, tessellation: 16 },
       scene,
     );
     horn.parent = root;

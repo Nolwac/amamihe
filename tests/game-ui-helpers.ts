@@ -8,7 +8,11 @@ export async function openCityMenu(page: Page) {
   }
 }
 export async function openAdventurePanels(page: Page) {
-  await expect(page.getByLabel("Published course adventure")).toBeVisible();
+  // Two concurrent software-WebGL browsers can still be loading the lazy
+  // adventure chunk after enrollment. Wait for the actual view, then interact.
+  await expect(page.getByLabel("Published course adventure")).toBeVisible({
+    timeout: 30000,
+  });
   if (
     await page
       .getByRole("button", { name: "Show task", exact: true })

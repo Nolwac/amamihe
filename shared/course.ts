@@ -7,6 +7,7 @@ export const THEMES = [
 export const WIDGETS = ["quiz", "notebook", "javascript", "drawing"] as const;
 export type Theme = (typeof THEMES)[number];
 export type Widget = (typeof WIDGETS)[number];
+export type WorldStyle = "garden" | "story-trail" | "pattern-track";
 
 export type CourseQuestion = {
   id: string;
@@ -33,6 +34,7 @@ export type CourseConcept = {
   prerequisites: string[];
 };
 export type CourseLevel = {
+  worldStyle?: WorldStyle;
   id: string;
   title: string;
   conceptId: string;
@@ -378,6 +380,21 @@ export function validateCourse(value: unknown): ValidationIssue[] {
     const prerequisites = ids(level.prerequisites, `${path}.prerequisites`);
     if (!THEMES.includes(level.theme as Theme))
       add(`${path}.theme`, "Choose a supported story theme.");
+    if (level.worldStyle !== undefined) {
+      const styles: Record<string, string> = {
+        garden: "workshop",
+        "story-trail": "temple-chase",
+        "pattern-track": "racing",
+      };
+      if (
+        typeof level.worldStyle !== "string" ||
+        styles[level.worldStyle] !== level.theme
+      )
+        add(
+          `${path}.worldStyle`,
+          "Choose a world style compatible with the gameplay theme.",
+        );
+    }
     if (!WIDGETS.includes(level.widget as Widget))
       add(`${path}.widget`, "Choose a supported activity widget.");
     if (level.timeLimitSeconds !== 0)

@@ -27,7 +27,7 @@ export default function PortalScene({
     const engine = new Engine(element, false, {
       preserveDrawingBuffer: true,
       stencil: false,
-      antialias: false,
+      antialias: true,
       powerPreference: "low-power",
     });
     const scene = new Scene(engine);

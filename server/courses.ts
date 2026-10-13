@@ -1,3 +1,4 @@
+import { KIDS_COURSES } from "../shared/catalogue.js";
 import {
   LEARNING_ROLES,
   type LearningRole,
@@ -302,6 +303,7 @@ function levelMetadata(l: CourseLevel) {
     timeLimitSeconds: l.timeLimitSeconds,
     points: l.points,
     resourceIds: l.resourceIds,
+    ...(l.worldStyle ? { worldStyle: l.worldStyle } : {}),
     widget: l.widget,
   };
 }
@@ -822,6 +824,13 @@ export function registerCourses(
     const query = (req.query || {}) as Record<string, unknown>;
     const q = typeof query.q === "string" ? query.q.trim() : "";
     if (q.length > 200) throw new CourseError("Search is too long.");
+    if (query.audience !== undefined && query.audience !== "kids")
+      throw new CourseError("Choose a supported course audience.");
+    const catalogueParameters = [
+      q,
+      query.audience === "kids",
+      KIDS_COURSES.map((c) => c.id),
+    ];
     const offset =
       query.offset === undefined
         ? 0
@@ -832,11 +841,12 @@ export function registerCourses(
         : integer(Number(query.limit), "limit", 1, 24);
     const filter = `FROM course_versions v
 JOIN course_drafts d ON d.id=v.course_id AND d.published_version=v.version
-WHERE ($1='' OR position(lower($1) in lower((v.definition->>'title')||' '||(v.definition->>'summary')))>0)`;
+WHERE ($1='' OR position(lower($1) in lower((v.definition->>'title')||' '||(v.definition->>'summary')))>0)
+AND ($2::boolean=false OR v.course_id=ANY($3::text[]))`;
     const total = (
       await db.query<{ count: number }>(
         `SELECT count(*)::integer AS count ${filter}`,
-        [q],
+        catalogueParameters,
       )
     ).rows[0].count;
     const rows = (
@@ -851,8 +861,8 @@ WHERE ($1='' OR position(lower($1) in lower((v.definition->>'title')||' '||(v.de
         `SELECT v.course_id,v.version,v.definition->>'title' AS title,
 v.definition->>'summary' AS summary,v.definition->>'language' AS language,
 jsonb_array_length(v.definition->'levels') AS level_count ${filter}
-ORDER BY v.published_at DESC,v.course_id LIMIT $2 OFFSET $3`,
-        [q, limit, offset],
+ORDER BY v.published_at DESC,v.course_id LIMIT $4 OFFSET $5`,
+        [...catalogueParameters, limit, offset],
       )
     ).rows;
     return {
