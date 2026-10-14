@@ -108,8 +108,10 @@ jobs:
           sandbox: read-only
           safety-strategy: drop-sudo
           effort: medium
-          prompt-file: review-input/codex-prompt.md
-          codex-args: '["--ephemeral", "--cd", "candidate", "--output-schema", "${{ github.workspace }}/trusted/.github/codex/review.schema.json", "-c", "project_doc_max_bytes=0", "-c", "shell_environment_policy.inherit=\"none\""]'
+          working-directory: candidate
+          prompt-file: ${{ github.workspace }}/review-input/codex-prompt.md
+          output-schema-file: ${{ github.workspace }}/trusted/.github/codex/review.schema.json
+          codex-args: '["--ephemeral", "-c", "project_doc_max_bytes=0"]'
   publish:
     needs: [prepare, review]
     if: always() && needs.prepare.outputs.number != '' && needs.prepare.outputs.head != ''
