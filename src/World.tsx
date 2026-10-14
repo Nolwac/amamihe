@@ -274,6 +274,8 @@ export default function World({
       );
       configureCameraControls(camera);
       camera.attachControl(canvas.current!, true);
+      // Arrow keys belong to walking; keep pointer orbit without double input.
+      camera.inputs.removeByType("ArcRotateCameraKeyboardMoveInput");
       camera.lowerRadiusLimit = 6.5;
       camera.upperRadiusLimit = 18;
       camera.lowerBetaLimit = 0.85;

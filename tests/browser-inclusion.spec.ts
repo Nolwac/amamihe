@@ -33,9 +33,9 @@ test("walking follows a panned camera with keyboard and screen buttons", async (
     .poll(async () => Math.abs((await frame()).alpha - initial.alpha))
     .toBeGreaterThan(0.65);
   await page.waitForTimeout(1000);
-  for (const input of ["keyboard", "button"] as const) {
+  for (const input of ["w", "ArrowUp", "ArrowRight", "button"] as const) {
     const before = await frame();
-    if (input === "keyboard") await page.keyboard.down("w");
+    if (input !== "button") await page.keyboard.down(input);
     else {
       const bounds = await page
         .getByRole("button", { name: "Walk Up", exact: true })
@@ -47,16 +47,20 @@ test("walking follows a panned camera with keyboard and screen buttons", async (
       await page.mouse.down();
     }
     await page.waitForTimeout(450);
-    if (input === "keyboard") await page.keyboard.up("w");
+    if (input !== "button") await page.keyboard.up(input);
     else await page.mouse.up();
     const after = await frame();
     const dx = after.x - before.x,
       dz = after.z - before.z;
     const distance = Math.hypot(dx, dz);
     expect(distance).toBeGreaterThan(0.15);
-    const alignment =
-      (dx * -Math.cos(before.alpha) + dz * -Math.sin(before.alpha)) / distance;
+    const expected =
+      input === "ArrowRight"
+        ? { x: -Math.sin(before.alpha), z: Math.cos(before.alpha) }
+        : { x: -Math.cos(before.alpha), z: -Math.sin(before.alpha) };
+    const alignment = (dx * expected.x + dz * expected.z) / distance;
     expect(alignment).toBeGreaterThan(0.9);
+    expect(Math.abs(after.alpha - before.alpha)).toBeLessThan(0.08);
   }
 });
 
