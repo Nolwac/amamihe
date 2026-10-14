@@ -175,6 +175,7 @@ export function AccessProvider({ children }: { children: ReactNode }) {
       preferences.reducedMotion,
     );
     document.documentElement.dataset.dataSaver = String(preferences.dataSaver);
+    window.dispatchEvent(new Event("resize"));
     stopSpeech();
   }, [preferences]);
   useEffect(() => {
@@ -481,6 +482,7 @@ function AccessControls() {
     <>
       <button
         ref={launcher}
+        data-hud-obstacle="access-settings"
         className="access-launcher"
         aria-expanded={open}
         onClick={() => setOpen(true)}

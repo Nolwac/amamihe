@@ -147,6 +147,18 @@ export function availableCourseLanguages(d: CourseDefinition) {
       .map(([lang]) => lang),
   ];
 }
+function canonical(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(canonical);
+  if (value && typeof value === "object") {
+    const record = value as Record<string, unknown>;
+    return Object.fromEntries(
+      Object.keys(record)
+        .sort()
+        .map((key) => [key, canonical(record[key])]),
+    );
+  }
+  return value;
+}
 export function translationSourceHash(d: CourseDefinition) {
   const source = {
     language: d.language,
@@ -164,7 +176,7 @@ export function translationSourceHash(d: CourseDefinition) {
     })),
   };
   return Array.from(
-    sha256(new TextEncoder().encode(JSON.stringify(source))),
+    sha256(new TextEncoder().encode(JSON.stringify(canonical(source)))),
     (v) => v.toString(16).padStart(2, "0"),
   ).join("");
 }

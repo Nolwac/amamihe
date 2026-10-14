@@ -254,3 +254,24 @@ test("old maintained enrollments receive only source-compatible display translat
     undefined,
   );
 });
+
+test("translation fingerprints tolerate PostgreSQL JSON object ordering without changing array semantics", () => {
+  const d = kidsCourses().find(
+    (c) => c.id === "amamihe-fraction-bridge",
+  )!.definition;
+  assert.ok(d.levels.some((l) => l.questions.some((q) => q.worldTask)));
+  const reorder = (v: any): any =>
+    Array.isArray(v)
+      ? v.map(reorder)
+      : v && typeof v === "object"
+        ? Object.fromEntries(
+            Object.entries(v)
+              .reverse()
+              .map(([k, value]) => [k, reorder(value)]),
+          )
+        : v;
+  assert.equal(translationSourceHash(d), translationSourceHash(reorder(d)));
+  const changed = structuredClone(d);
+  changed.levels[0].questions[0].options.reverse();
+  assert.notEqual(translationSourceHash(d), translationSourceHash(changed));
+});

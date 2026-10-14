@@ -163,6 +163,7 @@ export default function World({
             : 1080;
       const scaleResolution = () => {
         const preferredHeight =
+          quality === "low" &&
           document.documentElement.dataset.dataSaver === "true" &&
           mode === "world"
             ? 144

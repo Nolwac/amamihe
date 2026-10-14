@@ -1,8 +1,45 @@
 import { test, expect } from "@playwright/test";
 import { createAccount } from "./auth-helpers";
-import { openAdventurePanels } from "./game-ui-helpers";
+import { openAdventurePanels, openCityMenu } from "./game-ui-helpers";
 import { UI_TRANSLATIONS } from "../shared/ui-language";
 import { LANGUAGES } from "../shared/inclusion";
+
+test("city graphics persist and accessibility settings do not obstruct the city menu", async ({
+  page,
+  context,
+}) => {
+  await createAccount(context.request, "Graphics explorer");
+  await page.goto("/");
+  await openCityMenu(page);
+  await page.getByLabel("City graphics settings", { exact: true }).click();
+  await page
+    .getByLabel("Graphics quality", { exact: true })
+    .selectOption("medium");
+  await page.reload();
+  await expect(page.locator("canvas")).toHaveAttribute(
+    "data-scene-quality",
+    "medium",
+  );
+  await openCityMenu(page);
+  await page.getByLabel("City graphics settings", { exact: true }).click();
+  await expect(
+    page.getByLabel("Graphics quality", { exact: true }),
+  ).toHaveValue("medium");
+  await page
+    .getByRole("button", { name: "Access & language", exact: true })
+    .click();
+  await page.getByLabel("Reduced motion", { exact: true }).check();
+  await page.keyboard.press("Escape");
+  await page.reload();
+  await expect(page.locator("html")).toHaveAttribute(
+    "data-access-motion",
+    "true",
+  );
+  await expect(page.locator("canvas")).toHaveAttribute(
+    "data-scene-quality",
+    "medium",
+  );
+});
 
 test("seven-language account entry and keyboard access remain protected on a small screen", async ({
   page,
@@ -68,6 +105,16 @@ test("voice navigation, version-pinned translations and public offline readings 
   page.on("pageerror", (e) => errors.push(e.message));
   await createAccount(context.request, "Inclusive explorer");
   await page.goto("/");
+  await openCityMenu(page);
+  await page.getByLabel("City graphics settings", { exact: true }).click();
+  await page
+    .getByLabel("Graphics quality", { exact: true })
+    .selectOption("medium");
+  await page.reload();
+  await expect(page.locator("canvas")).toHaveAttribute(
+    "data-scene-quality",
+    "medium",
+  );
   await page
     .getByRole("button", { name: "Access & language", exact: true })
     .click();
@@ -85,6 +132,14 @@ test("voice navigation, version-pinned translations and public offline readings 
   });
   await page.keyboard.press("Escape");
   await openAdventurePanels(page);
+  await page
+    .getByLabel("Adventure graphics", { exact: true })
+    .selectOption("720");
+  await page.reload();
+  await openAdventurePanels(page);
+  await expect(
+    page.getByLabel("Adventure graphics", { exact: true }),
+  ).toHaveValue("720");
   const original = await (
     await context.request.get("/api/learning/amamihe-number-garden")
   ).json();

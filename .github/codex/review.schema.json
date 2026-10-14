@@ -1,0 +1,43 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["decision", "summary", "findings", "reply"],
+  "properties": {
+    "decision": {
+      "type": "string",
+      "enum": ["approve", "request_changes"]
+    },
+    "summary": {
+      "type": "string"
+    },
+    "reply": {
+      "type": "string"
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "line", "priority", "title", "body"],
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "line": {
+            "type": "integer"
+          },
+          "priority": {
+            "type": "integer",
+            "enum": [0, 1, 2]
+          },
+          "title": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}
