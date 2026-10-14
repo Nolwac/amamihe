@@ -38,6 +38,8 @@ import {
   type PublicCourseLevel,
 } from "../shared/course.js";
 import { blankCourse, storytellingCourse } from "./course-template.js";
+import { worldTaskAnswer } from "../shared/world-task.js";
+import { playableCourses } from "./playable-courses.js";
 import {
   decisionConfiguration,
   DECISION_IDENTITY,
@@ -115,6 +117,7 @@ CREATE TABLE IF NOT EXISTS course_chunks (
   FOREIGN KEY(course_id, player_id) REFERENCES course_enrollments(course_id, player_id)
 );
 ALTER TABLE course_chunks ADD COLUMN IF NOT EXISTS attempt INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE course_chunks ADD COLUMN IF NOT EXISTS world_evidence JSONB;
 `);
 }
 
@@ -126,6 +129,7 @@ type DraftRow = {
   definition: CourseDefinition;
 };
 export type StoredProgress = {
+  worldAchievement?: LearningProgress["worldAchievement"];
   previousProviderMigrated?: boolean;
   resumeQuestionId?: string;
   selection?: LearningSelection;
@@ -307,11 +311,13 @@ const copyQuestion = (q: CourseQuestion): CourseQuestion => ({
   explanation: q.explanation,
   rubric: q.rubric,
   ...(typeof q.retryFor === "string" ? { retryFor: q.retryFor } : {}),
+  ...(q.worldTask ? { worldTask: structuredClone(q.worldTask) } : {}),
 });
 const publicQuestion = (q: CourseQuestion) => ({
   id: q.id,
   prompt: q.prompt,
   options: q.options,
+  ...(q.worldTask ? { worldTask: structuredClone(q.worldTask) } : {}),
 });
 function levelMetadata(l: CourseLevel) {
   return {
@@ -460,6 +466,7 @@ function progressResponse(
     assisted: state.assisted,
     feedback: state.feedback,
     activity: state.activity,
+    worldAchievement: state.worldAchievement,
     game: state.game ?? freshGame(level),
     levelProgress: {
       cleared: state.satisfiedQuestionIds.length,
@@ -807,10 +814,22 @@ export function registerCourses(
   route("POST", "/api/studio/courses", async (req, reply) => {
     const p = await player(req);
     const body = object(req.body);
-    if (!["blank", "storytelling"].includes(String(body.template)))
+    if (
+      !["blank", "storytelling", "fraction-bridge", "circuit-rescue"].includes(
+        String(body.template),
+      )
+    )
       throw new CourseError("Choose a course template.");
     const definition =
-      body.template === "storytelling" ? storytellingCourse() : blankCourse();
+      body.template === "storytelling"
+        ? storytellingCourse()
+        : body.template === "blank"
+          ? blankCourse()
+          : structuredClone(
+              playableCourses().find(
+                (c) => c.id === "amamihe-" + body.template,
+              )!.definition,
+            );
     const id = randomUUID();
     const result = await db.transaction(async (tx) => {
       // Lock the account to serialize draft creation and bound retained drafts.
@@ -1481,6 +1500,13 @@ WHERE e.player_id=$1 ORDER BY e.updated_at DESC,e.course_id LIMIT 100`,
         );
       if (answer >= question.options.length)
         throw new CourseError("Choose an available answer.");
+      if (
+        question.worldTask &&
+        worldTaskAnswer(question.worldTask, body.worldEvidence) !== answer
+      )
+        throw new CourseError(
+          "Submit the actual bridge pieces or relay settings for this task.",
+        );
       if (!state.game || state.game.status === "ready")
         throw new CourseError("Start this game step before submitting.", 409);
       if (state.game.status === "paused")
@@ -1511,6 +1537,13 @@ WHERE e.player_id=$1 ORDER BY e.updated_at DESC,e.course_id LIMIT 100`,
         independent: correct && !state.assisted,
         elapsedMs: activityElapsedMs,
       };
+      if (question.worldTask && correct && !state.assisted)
+        state.worldAchievement = {
+          question: { ...publicQuestion(question), id: questionId },
+          evidence: structuredClone(
+            body.worldEvidence,
+          ) as import("../shared/world-task.js").WorldEvidence,
+        };
       state.game = applyGameTask(state.game, state.activity);
       const taskAdventure = state.game.adventure;
       state.activity.adventure = structuredClone(taskAdventure);
@@ -1518,7 +1551,7 @@ WHERE e.player_id=$1 ORDER BY e.updated_at DESC,e.course_id LIMIT 100`,
       state.feedback =
         correct && !state.assisted ? undefined : question.explanation;
       await tx.query(
-        "INSERT INTO course_chunks(course_id,player_id,delivery_id,level_id,question_id,retry,answer,correct,assisted,elapsed_ms,attempt) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)",
+        "INSERT INTO course_chunks(course_id,player_id,delivery_id,level_id,question_id,retry,answer,correct,assisted,elapsed_ms,attempt,world_evidence) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)",
         [
           id,
           p.id,
@@ -1531,6 +1564,7 @@ WHERE e.player_id=$1 ORDER BY e.updated_at DESC,e.course_id LIMIT 100`,
           state.assisted,
           activityElapsedMs,
           state.attempt ?? 0,
+          question.worldTask ? JSON.stringify(body.worldEvidence) : null,
         ],
       );
       state.satisfiedQuestionIds ??= [];

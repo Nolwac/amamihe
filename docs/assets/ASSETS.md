@@ -1,5 +1,15 @@
 # Game Assets
 
+## City characters and civic scene
+
+The four selectable `character-{amani,kofi,nia,tayo}.glb` profiles and `character-officer.glb` derive from the verified Low explorer (`b128411df5e3933880a9e357f7ff1e9ed2a753047c71a77391a1c4a1479656e9`). They inherit the Michelle/Mixamo body and rig provenance described below. The Kofi, Nia and Tayo heads, facial features, hairstyles, shoulder silhouettes and the navy officer uniform, cap, badge and belt are authored in `scripts/assets/build-city-characters.py`. Amani retains the original explorer head. These are stylized game characters with masculine and feminine presentations, not photographs or a demographic classifier.
+
+Each profile retains 25 joints, normalized weights, and twelve actual skeletal clips, including walking, running, sitting, restraint and restrained walking. Files are 0.83–0.94 MB. Only the selected player and the officer require these animated assets in the city. The three `character-*-resident.glb` derivatives have static standing poses without skeletons; each resident has a distinct face, hair and silhouette. The 256-pixel `character-*-portrait.png` files render the actual assets for the free character picker.
+
+Rebuild from the repository root with Blender 4.3+: `blender --background --python scripts/assets/build-city-characters.py`, then `blender --background --python scripts/assets/build-city-residents.py`. The first script verifies the source checksum. Rebuild resident meshes and portraits whenever a character changes. `tests/avatar-asset.test.ts` validates provenance, weights, joints, walking samples, transport clips and the officer material contract.
+
+The permanent police station, interior cell, articulated patrol car, fraction bridge and relay workbench are original procedural geometry in `src/policeScene.ts` and `src/worldChallengeScene.ts`. Their rounded surfaces use the existing soft geometry helper. Transport and learning outcomes do not depend on an external asset service.
+
 ## Explorer
 
 `public/assets/explorer.glb` contains the live, skinned explorer: body and fingers, curved cornrows and coil bun, earrings, fitted light top, patterned jacket with cuffs and piping, tailored cargo trousers with flap pockets, light sneakers and laces, and a rounded daypack. `Idle` and `Walk` are in-place skeletal clips. Low graphics uses simpler materials. The player retains skeletal animation on every preset; background residents use static poses on Low and a mix of animated and static assets on Medium and High.

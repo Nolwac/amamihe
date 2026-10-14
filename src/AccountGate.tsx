@@ -1,8 +1,11 @@
 import { useEffect, useState } from "react";
+import CharacterPicker from "./CharacterPicker";
+import type { CharacterId } from "../shared/avatars";
 export type Player = {
   id: string;
   name: string;
   outfit: string;
+  avatar?: CharacterId;
   points: number;
   email: string;
 };
@@ -19,11 +22,15 @@ export async function accountApi<T>(route: string, body: unknown): Promise<T> {
 export function AccountGate({
   loading,
   outfit,
+  avatar = "amani",
+  onAvatar,
   onOutfit,
   onAuthenticated,
 }: {
   loading: boolean;
   outfit: string;
+  avatar?: CharacterId;
+  onAvatar?: (value: CharacterId) => void;
   onOutfit: (outfit: string) => void;
   onAuthenticated: (player: Player) => void;
 }) {
@@ -53,7 +60,7 @@ export function AccountGate({
   async function sendCode() {
     const result = await accountApi<{ challengeId: string }>(
       mode === "signup" ? "signup" : "code",
-      mode === "signup" ? { name, email, password, outfit } : { email },
+      mode === "signup" ? { name, email, password, outfit, avatar } : { email },
     );
     setChallenge(result.challengeId);
     setCode("");
@@ -229,6 +236,13 @@ export function AccountGate({
                 )}
                 {mode === "signup" && (
                   <>
+                    {onAvatar && (
+                      <CharacterPicker
+                        value={avatar}
+                        onChange={onAvatar}
+                        disabled={busy}
+                      />
+                    )}
                     <label>
                       Starter outfit <span className="free-label">FREE</span>
                     </label>

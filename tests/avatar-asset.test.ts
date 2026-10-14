@@ -13,7 +13,13 @@ function readAsset(file: string) {
   return { binary, json };
 }
 
-for (const file of ["explorer.glb", "explorer-low.glb"]) {
+for (const file of [
+  "explorer.glb",
+  "explorer-low.glb",
+  ...["amani", "kofi", "nia", "tayo", "officer"].map(
+    (id) => `character-${id}.glb`,
+  ),
+]) {
   const { binary, json } = readAsset(file);
   test(`${file} retains its skin, normalized vertex weights, and valid joints`, () => {
     const node = json.nodes.find(
@@ -90,6 +96,66 @@ for (const file of ["explorer.glb", "explorer-low.glb"]) {
     assert.ok(motion, "A named Walk clip must actually move the leg");
   });
 }
+
+test("city character assets retain source provenance, actual transport poses, and a recognizable officer uniform", () => {
+  const source = createHash("sha256")
+    .update(readAsset("explorer-low.glb").binary)
+    .digest("hex");
+  for (const id of ["amani", "kofi", "nia", "tayo", "officer"]) {
+    const { binary, json } = readAsset(`character-${id}.glb`);
+    assert.ok(binary.length < 1_500_000);
+    const node = json.nodes.find(
+      (n: { extras?: { profile: string } }) => n.extras?.profile === id,
+    );
+    assert.equal(node.extras.source_sha256, source);
+    assert.equal(json.skins[0].joints.length, 25);
+    for (const pose of [
+      "Idle",
+      "Walk",
+      "Run",
+      "Sit",
+      "Restrained",
+      "WalkRestrained",
+    ]) {
+      const clip = json.animations.find(
+        (a: { name: string }) => a.name === pose,
+      );
+      assert.ok(clip);
+      assert.ok(clip.channels.length >= 20);
+      assert.ok(
+        clip.samplers.every(
+          (s: { output: number }) => json.accessors[s.output].count >= 2,
+        ),
+      );
+    }
+    if (id === "officer") {
+      assert.ok(
+        json.materials.some((m: { name: string }) =>
+          m.name.startsWith("Uniform_Shirt"),
+        ),
+      );
+      assert.ok(
+        json.materials.some((m: { name: string }) =>
+          m.name.startsWith("Uniform_Badge"),
+        ),
+      );
+      assert.ok(
+        !json.materials.some((m: { name: string }) =>
+          m.name.startsWith("Backpack"),
+        ),
+      );
+    }
+  }
+  for (const id of ["kofi", "nia", "tayo"]) {
+    const { json } = readAsset(`character-${id}-resident.glb`);
+    assert.equal(
+      json.skins?.length ?? 0,
+      0,
+      "Background residents avoid extra skeletons.",
+    );
+    assert.ok(json.meshes.length);
+  }
+});
 
 test("the Low derivative matches its source and remains within its geometry and rig budgets", () => {
   const full = readAsset("explorer.glb");

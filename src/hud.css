@@ -29,6 +29,41 @@
 .hud-audio {
   top: max(200px, calc(env(safe-area-inset-top) + 190px));
 }
+.hud-city-block {
+  top: max(254px, calc(env(safe-area-inset-top) + 244px));
+}
+.city-district-control > summary {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--hud);
+  color: var(--gold);
+  cursor: pointer;
+  font-size: 24px;
+  list-style: none;
+}
+.city-district-control nav {
+  position: fixed;
+  right: var(--hud-panel-right, 12px);
+  top: var(--hud-panel-top, 310px);
+  bottom: var(--hud-panel-bottom, auto);
+  width: min(310px, calc(100vw - 24px));
+  max-height: var(--hud-panel-height, 40dvh);
+  overflow: auto;
+  padding: 12px;
+  display: grid;
+  gap: 8px;
+  color: var(--text);
+  background: var(--hud);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+.city-district-control button {
+  min-height: 44px;
+}
 .hud-graphics {
   bottom: max(130px, calc(env(safe-area-inset-bottom) + 130px));
 }

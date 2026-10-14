@@ -1,0 +1,50 @@
+# Learning city and playable lessons handoff
+
+## Work started — 14 October 2026
+
+Baseline: `433311a3c19f0c0a78f9093e7d60fd572b61b1d8`, following the [local tev1 handoff](TEV1_HANDOFF.md). Work is on `feat/learning-city-experiences`. Production promotion of the preceding model release remains unresolved; this work does not claim a live deployment.
+
+The learner feedback requires walking/running officers in a recognizable uniform, an arrest and boarding sequence, a police car journey to a permanent city station, varied human characters, reachable houses for published courses, and learning challenges whose solutions drive actual gameplay. Do not add a typing course. Preserve existing checkpoints, unlimited practice/replay, independent evidence, real local decision inference and exactly-once rewards.
+
+## Inspection findings
+
+- `src/World.tsx` assigns course entries to four hardcoded houses, so additional publications do not receive a city house.
+- Street residents use a frozen static asset. The first resident doubles as the arresting officer, so moving its root cannot animate a gait.
+- Arrest currently interpolates the learner/officer into an enclosure created near the starting position, with no transport or permanent station.
+- The player and background residents derive from the same character. Cloth recoloring alone does not supply different silhouettes, faces or gender presentation.
+
+## Implementation in progress
+
+1. Build deterministic course blocks with accessible entrances and explicit city navigation; retain bounded asset loading.
+2. Add a permanent station, a uniformed animated officer and a staged vehicle transport encounter. Keep detention/release authority on the server.
+3. Provide visibly different character choices and residents, including masculine and feminine presentations, while retaining skeletal motion and Low assets.
+4. Add original fraction-building and circuit-solving courses. Learner-controlled objects must express the actual answer, and successful learning must cause the corresponding construction or power effect. Keep authored tasks and server grading authoritative; no typing game or generated lessons.
+5. Validate saved progress, course access, encounter motion and learning effects through Node/browser regressions with real local model inference; record actual captures and results here.
+
+## Verification completed locally
+
+Build/typechecking, formatting and `git diff --check` pass. The final Node suite reports **133 passes, zero failures and one optional external PostgreSQL skip** (134 total). The original collision/budget/continuous-normal test remains intact; the new renderer contract checks rounded face winding against Babylon’s standard box. Transport paths also pass at both edges of course entrances, and the final cell position is canonical even under variable frame timing. Puzzle validation rejects malformed gate objects without coercion.
+
+All **36 browser journey names have passing results** across the initial full suite and final focused reruns, using the pinned real local `tev1:0.8b` runtime. The initial full suite had 35 passes and an ambiguous character-flow selector caused by several identically named tutor templates. Subsequent checks explicitly select the maintained children’s catalogue and handle a valid pilot-only final city block. The seven other affected rendering/game flows pass; the final police arrival/release and bridge-capture reruns pass separately. The machine-readable [verification report](../../evidence/reports/city-learning-verification.json) retains every run’s actual results. This is software-browser validation, including a 390 × 844 phone viewport; physical phone performance and child learning outcomes were not measured.
+
+Verified behavior includes:
+
+- Free character choice survives email verification, reload, wardrobe changes and course entry without changing points. City residents have distinct heads, hair and silhouettes. Peer rendering carries the account’s chosen profile.
+- Every tested publication gets a district house. The browser publishes seven additional courses, finds their houses across blocks and walks to an actual entrance. The map/navigation share physical coordinates; filtering the finder does not rearrange the city.
+- Actual skeletal officer motion, a navy uniform without cloth-palette substitution, both seated passengers, moving vehicle transport and permanent interior detention pass. Paths go around course walls and through the station doorway. The officer leaves the cell before its door closes. Break protection, free course release and appeals remain intact.
+- A physical beam can be picked directly in 3D. Paused unfinished work resumes on its original delivery, accepted pieces are audited, and partial missions cannot award a completed-level reward. The learner walks on the verified bridge. Both new courses also restore exact earned constructions after completion and reload.
+- Rounded objects now use exterior face winding; their illuminated surfaces render correctly rather than exposing inward faces. Captures wait for completed rendering after panel resizing. Actual images show the officer, patrol car, station interior and fraction crossing.
+
+## Final implementation
+
+Four free selectable character profiles and a uniformed officer derive from the verified Low explorer. Original heads/hair, standing residents, portraits and transport poses retain its 25-joint body rig. Asset provenance and rebuild commands are in `docs/assets/ASSETS.md`. Each city block loads at most six published courses plus the maintained pilot. The separate children’s finder exposes all five maintained age-band courses.
+
+Fraction Bridge (ages 8–12) and Circuit Rescue (ages 10–14) each contain two levels, four original missions, four mapped fresh retries, reading and optional drawing practice. The server checks actual beam/relay evidence; a plain answer cannot submit a playable task. Correct independent learning builds the crossing, powers the lighthouse or opens a maintenance hatch. Earned construction is saved on progress; unfinished work uses delivery-scoped drafts. Movement, equipment, assisted answers and repeated completions cannot create mastery or duplicate rewards. Tutor Studio offers both authored course starters. No inference credential is required for local Ollama.
+
+Captures: [bridge](../../evidence/screenshots/city-learning-fraction-bridge.png), [officer](../../evidence/screenshots/city-learning-uniformed-officer.png), [transport](../../evidence/screenshots/city-learning-police-transport.png), [station](../../evidence/screenshots/city-learning-station-cell.png).
+
+## Publication and continuation
+
+Feature branch: `feat/learning-city-experiences`, based on `433311a3c19f0c0a78f9093e7d60fd572b61b1d8`. The source is ready for publication. Git transport accepts a push dry run, and GitHub API access has recovered after transient HTTP 401 responses. Update this paragraph with the actual commit, push and review result.
+
+These changes have **not been deployed**. The preceding release’s unresolved VPS promotion/access boundary remains in `TEV1_HANDOFF.md`. Do not request repeated manual VPS logs or claim local verification establishes a live release. After source review, use the existing CI-approved deployment procedure and exact-release public acceptance. Further course work can turn the older question-based starters into more spatial missions, using these two playable examples; richer steering/boarding animation and physical-device performance remain useful subsequent polish.

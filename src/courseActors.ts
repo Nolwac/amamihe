@@ -9,6 +9,7 @@ import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import { PBRMaterial } from "@babylonjs/core/Materials/PBR/pbrMaterial";
 import { Color3 } from "@babylonjs/core/Maths/math.color";
 import { Quaternion, Vector3 } from "@babylonjs/core/Maths/math.vector";
+import { character, characterAsset, type CharacterId } from "../shared/avatars";
 import "@babylonjs/loaders/glTF/2.0/glTFLoader";
 import "@babylonjs/loaders/glTF/2.0/Extensions/KHR_materials_ior";
 import "@babylonjs/loaders/glTF/2.0/Extensions/KHR_materials_specular";
@@ -18,6 +19,7 @@ export type HumanPose = {
   time: number;
   mode:
     | "idle"
+    | "walk"
     | "run"
     | "jump"
     | "slide"
@@ -47,11 +49,9 @@ export async function loadCourseHumans(
   scene: Scene,
   outfit: string,
   withOpponent: boolean,
+  avatar: CharacterId = "amani",
 ) {
-  const source = await LoadAssetContainerAsync(
-    "/assets/explorer-adventure-low.glb",
-    scene,
-  );
+  const source = await LoadAssetContainerAsync(characterAsset(avatar), scene);
   if (scene.isDisposed) {
     source.dispose();
     throw new Error("Scene was released while the character loaded.");
@@ -74,7 +74,15 @@ export async function loadCourseHumans(
       { doNotInstantiate: true },
     );
     const root = new TransformNode(name, scene);
-    root.scaling.setAll(1.65);
+    root.scaling.setAll(
+      character(
+        name === "course-explorer"
+          ? avatar
+          : avatar === "kofi"
+            ? "nia"
+            : "kofi",
+      ).height,
+    );
     instances.rootNodes.forEach((node) => (node.parent = root));
     const converted = new Map<PBRMaterial, StandardMaterial>();
     for (const mesh of root.getChildMeshes()) {
@@ -190,23 +198,25 @@ export async function loadCourseHumans(
         pose = next;
         gloves.forEach((glove) => glove.setEnabled(next.mode === "fight"));
         const clipName =
-          next.mode === "run"
-            ? "Run"
-            : next.mode === "jump"
-              ? "Jump"
-              : next.mode === "slide"
-                ? "Slide"
-                : next.mode === "work"
-                  ? "Build"
-                  : next.mode === "caught"
-                    ? "Hit"
-                    : next.mode === "fight"
-                      ? next.strike > 0.02
-                        ? "Jab"
-                        : next.recoil > 0.02
-                          ? "Hit"
-                          : "Guard"
-                      : "Idle";
+          next.mode === "walk"
+            ? "Walk"
+            : next.mode === "run"
+              ? "Run"
+              : next.mode === "jump"
+                ? "Jump"
+                : next.mode === "slide"
+                  ? "Slide"
+                  : next.mode === "work"
+                    ? "Build"
+                    : next.mode === "caught"
+                      ? "Hit"
+                      : next.mode === "fight"
+                        ? next.strike > 0.02
+                          ? "Jab"
+                          : next.recoil > 0.02
+                            ? "Hit"
+                            : "Guard"
+                        : "Idle";
         const desired = clip(clipName);
         const loop = ["Run", "Walk", "Idle", "Guard", "Build"].includes(
           clipName,
@@ -223,15 +233,17 @@ export async function loadCourseHumans(
         }
         if (current) {
           current.speedRatio =
-            next.mode === "run"
-              ? next.reducedMotion
-                ? 0.65
-                : Math.max(0.75, Math.min(1.8, next.speed / 4.6))
-              : next.mode === "jump"
-                ? 1 / 1.4
-                : next.mode === "slide"
-                  ? 1 / 1.3
-                  : 1;
+            next.mode === "walk"
+              ? Math.max(0.7, Math.min(1.6, next.speed / 2.4))
+              : next.mode === "run"
+                ? next.reducedMotion
+                  ? 0.65
+                  : Math.max(0.75, Math.min(1.8, next.speed / 4.6))
+                : next.mode === "jump"
+                  ? 1 / 1.4
+                  : next.mode === "slide"
+                    ? 1 / 1.3
+                    : 1;
           if (next.active && !current.isPlaying) current.play(loop);
           if (!next.active && current.isPlaying) current.pause();
         }
@@ -255,6 +267,7 @@ export async function loadCourseHumans(
         }
         return {
           position: root.position.asArray(),
+          animation: current?.name,
           rotation: root.rotation.asArray(),
           bones,
           materials: root
@@ -292,9 +305,23 @@ export async function loadCourseHumans(
     palette[outfit] || palette.terracotta,
     source,
   );
-  const opponent = withOpponent
-    ? human("course-opponent", "#597da7", source)
+  const opponentSource = withOpponent
+    ? await LoadAssetContainerAsync(
+        characterAsset(avatar === "kofi" ? "nia" : "kofi"),
+        scene,
+      )
     : undefined;
-  scene.onDisposeObservable.addOnce(() => source.dispose());
+  if (scene.isDisposed) {
+    source.dispose();
+    opponentSource?.dispose();
+    throw new Error("Scene was released while the opponent loaded.");
+  }
+  const opponent = opponentSource
+    ? human("course-opponent", "#597da7", opponentSource)
+    : undefined;
+  scene.onDisposeObservable.addOnce(() => {
+    source.dispose();
+    opponentSource?.dispose();
+  });
   return { player, opponent };
 }

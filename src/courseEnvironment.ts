@@ -24,6 +24,41 @@ export function createCourseEnvironment(
   theme: Theme,
   worldStyle?: WorldStyle,
 ) {
+  if (worldStyle === "fraction-bridge" || worldStyle === "circuit-yard") {
+    const mat = new StandardMaterial("mission-rest-ground", scene);
+    mat.diffuseColor = Color3.FromHexString("#d6c5a5");
+    mat.specularColor = Color3.Black();
+    const ground = MeshBuilder.CreateGround(
+      "mission-rest-ground",
+      { width: 24, height: 24 },
+      scene,
+    );
+    ground.material = mat;
+    ground.isPickable = false;
+    return {
+      productCount: () => 0,
+      snapshot: () =>
+        [] as {
+          id: string;
+          kind: Obstacle["kind"];
+          lane: Obstacle["lane"];
+          cleared: boolean;
+          position: [number, number, number];
+          colliders: {
+            min: [number, number, number];
+            max: [number, number, number];
+          }[];
+        }[],
+      update(
+        _distance: number,
+        _time: number,
+        _active: boolean,
+        _obstacles: Obstacle[],
+        _progress: number,
+        _strike: number,
+      ) {},
+    };
+  }
   const temple = theme === "temple-chase";
   const garden = worldStyle === "garden";
   const story = worldStyle === "story-trail";

@@ -1,5 +1,7 @@
 # Local tev1 decisions and deployment handoff
 
+New implementation work from 14 October 2026 is tracked in [Learning city and playable lessons](CITY_LEARNING_HANDOFF.md). The deployment observations below remain the recorded state of the preceding release.
+
 ## Current state — 13 October 2026, 23:52 UTC
 
 The implementation is merged into `main` through [PR #5](https://github.com/Nolwac/amamihe/pull/5), followed by three regression fixes. The last application revision is `9e2424d454aef54454d4a0b6c77022fce921eab6`. It replaces the former operational provider with private CPU-only Ollama 0.40.3 and `tev1:0.8b`. Implementation, complete regression verification, release packaging and CI approval are finished. **Successful production promotion is not verified.** Continue with deployment diagnosis rather than rebuilding the model integration.

@@ -180,6 +180,17 @@ app.get("/api/session", async (req, reply) => {
       : null,
   };
 });
+app.post<{ Body: { avatar: string } }>("/api/avatar", async (req, reply) => {
+  const p = await player(req);
+  if (!p)
+    return reply.code(401).send({ error: "Sign in to choose your character." });
+  const { CHARACTERS } = await import("../shared/avatars.js");
+  const avatar = req.body?.avatar;
+  if (!CHARACTERS.some((c) => c.id === avatar))
+    return reply.code(400).send({ error: "Choose an available character." });
+  await db.query("UPDATE players SET avatar=$2 WHERE id=$1", [p.id, avatar]);
+  return { player: { ...p, avatar } };
+});
 app.post<{ Body: { name: string; outfit: string } }>(
   "/api/session",
   async (req, reply) => {

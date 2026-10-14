@@ -10,6 +10,7 @@ export type Presence = {
   id: string;
   name: string;
   outfit: string;
+  avatar?: import("./avatars.js").CharacterId;
   x: number;
   z: number;
   heading: number;

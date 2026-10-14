@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS attempts (id TEXT PRIMARY KEY, player_id TEXT REFEREN
 CREATE TABLE IF NOT EXISTS chunks (attempt_id TEXT REFERENCES attempts(id), question_id TEXT NOT NULL, answer INTEGER NOT NULL, assisted BOOLEAN NOT NULL, elapsed_ms INTEGER NOT NULL, PRIMARY KEY(attempt_id, question_id));
 CREATE TABLE IF NOT EXISTS assistance (attempt_id TEXT REFERENCES attempts(id), question_id TEXT NOT NULL, PRIMARY KEY(attempt_id, question_id));`);
   await db.exec(
-    "ALTER TABLE attempts ADD COLUMN IF NOT EXISTS question_order JSONB; ALTER TABLE attempts ADD COLUMN IF NOT EXISTS decision_plan JSONB;",
+    "ALTER TABLE attempts ADD COLUMN IF NOT EXISTS question_order JSONB; ALTER TABLE attempts ADD COLUMN IF NOT EXISTS decision_plan JSONB; ALTER TABLE players ADD COLUMN IF NOT EXISTS avatar TEXT NOT NULL DEFAULT 'amani';",
   );
   await db.exec(`
 CREATE TABLE IF NOT EXISTS player_inventory (player_id TEXT REFERENCES players(id), gear_id TEXT NOT NULL, PRIMARY KEY(player_id,gear_id));
@@ -23,4 +23,7 @@ CREATE TABLE IF NOT EXISTS auth_challenges (id TEXT PRIMARY KEY, email TEXT NOT 
 CREATE INDEX IF NOT EXISTS auth_challenges_email ON auth_challenges(email,purpose);
 CREATE TABLE IF NOT EXISTS auth_rate_limits (key TEXT PRIMARY KEY, window_start TIMESTAMPTZ NOT NULL, last_request TIMESTAMPTZ NOT NULL, count INTEGER NOT NULL);
 `);
+  await db.exec(
+    "ALTER TABLE auth_challenges ADD COLUMN IF NOT EXISTS avatar TEXT;",
+  );
 }

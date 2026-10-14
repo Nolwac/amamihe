@@ -55,7 +55,7 @@ export function createSoftBox(
           const a = start + y * 6 + x;
           const face = [a, a + 1, a + 6, a + 1, a + 7, a + 6];
           indices.push(
-            ...(sign > 0
+            ...(sign < 0
               ? face
               : [face[0], face[2], face[1], face[3], face[5], face[4]]),
           );

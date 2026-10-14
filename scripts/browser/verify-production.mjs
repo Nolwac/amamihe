@@ -232,7 +232,7 @@ try {
     "maintained storytelling pilot is published with six levels, twelve tasks and a training notebook",
   );
   const childrenResponse = await context.request.get(
-    base + "/api/courses?audience=kids&limit=4",
+    base + "/api/courses?audience=kids&limit=8",
   );
   assert.equal(childrenResponse.status(), 200);
   const children = await childrenResponse.json();
@@ -242,7 +242,7 @@ try {
     KIDS_COURSES.map((course) => course.id).sort(),
     "The children’s finder must expose all maintained age bands.",
   );
-  for (const [index, course] of KIDS_COURSES.entries()) {
+  for (const course of KIDS_COURSES) {
     const response = await context.request.get(
       base + "/api/courses/" + course.id,
     );
@@ -264,10 +264,7 @@ try {
     );
     for (const level of published.definition.levels) {
       assert.equal(level.timeLimitSeconds, 0);
-      assert.equal(
-        level.worldStyle,
-        ["garden", "story-trail", "pattern-track"][index],
-      );
+      assert.equal(level.worldStyle, course.worldStyle);
       for (const question of [...level.questions, ...level.retryQuestions]) {
         for (const field of ["answer", "hint", "explanation", "rubric"])
           assert.equal(

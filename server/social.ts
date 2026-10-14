@@ -202,7 +202,7 @@ export function registerSocial(
     const t = await team(db, p);
     const pres = (
       await db.query(
-        "SELECT s.player_id AS id,p.name,p.outfit,s.room,s.x,s.z,s.heading,s.signal FROM social_presence s JOIN players p ON p.id=s.player_id WHERE s.room=(SELECT room FROM social_presence WHERE player_id=$1) AND s.player_id<>$1 AND last_seen>$2 AND NOT EXISTS(SELECT 1 FROM social_blocks b WHERE (b.player_id=$1 AND b.target_id=s.player_id) OR (b.target_id=$1 AND b.player_id=s.player_id)) LIMIT 7",
+        "SELECT s.player_id AS id,p.name,p.outfit,p.avatar,s.room,s.x,s.z,s.heading,s.signal FROM social_presence s JOIN players p ON p.id=s.player_id WHERE s.room=(SELECT room FROM social_presence WHERE player_id=$1) AND s.player_id<>$1 AND last_seen>$2 AND NOT EXISTS(SELECT 1 FROM social_blocks b WHERE (b.player_id=$1 AND b.target_id=s.player_id) OR (b.target_id=$1 AND b.player_id=s.player_id)) LIMIT 7",
         [p, now() - 20000],
       )
     ).rows;

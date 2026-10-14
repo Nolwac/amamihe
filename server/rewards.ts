@@ -14,6 +14,7 @@ export function registerRewards(
     return {
       points: player.points,
       outfit: player.outfit,
+      avatar: player.avatar,
       gear: GEAR,
       inventory: (
         await db.query<{ gear_id: string }>(

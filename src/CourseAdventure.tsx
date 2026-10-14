@@ -10,6 +10,14 @@ import { gameAudio } from "./gameAudio";
 import { lazy, Suspense, useEffect, useState, useRef, useMemo } from "react";
 import type { LearningProgress } from "../shared/course";
 import {
+  changeWorldEvidence,
+  emptyWorldEvidence,
+  worldTaskAnswer,
+  type WorldEvidence,
+  type WorldAction,
+} from "../shared/world-task";
+import WorldTaskControls from "./WorldTaskControls";
+import {
   advanceAdventureRuntime,
   type AdventureAction,
 } from "../shared/adventure-runtime";
@@ -34,6 +42,7 @@ export default function CourseAdventure({
   onClose,
   onPoints,
   outfit,
+  avatar = "amani",
   peers = [],
 }: {
   courseId: string;
@@ -41,6 +50,7 @@ export default function CourseAdventure({
   onClose: () => void;
   onPoints: () => void;
   outfit: string;
+  avatar?: import("../shared/avatars").CharacterId;
   peers?: Presence[];
 }) {
   const arrangingControls = useHudEditing();
@@ -68,6 +78,11 @@ export default function CourseAdventure({
     null,
   );
   const [answer, setAnswer] = useState<number | null>(null);
+  const [worldDraft, setWorldDraft] = useState<{
+    questionId: string;
+    evidence: WorldEvidence;
+  }>();
+  const [missionComplete, setMissionComplete] = useState(false);
   const [help, setHelp] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -94,9 +109,8 @@ export default function CourseAdventure({
   );
   const [clock, setClock] = useState(0);
   const [boost, setBoost] = useState(0);
-  const [sceneActivity, setSceneActivity] = useState<
-    { id: string; correct: boolean; independent: boolean } | undefined
-  >();
+  const [sceneActivity, setSceneActivity] =
+    useState<import("./CourseScene").SceneGame["activity"]>();
   const activitySerial = useRef(0);
   const [manualControls, setManualControls] = useState(false);
   const [taskOpen, setTaskOpen] = useState(false);
@@ -338,6 +352,24 @@ export default function CourseAdventure({
         try {
           const draft = JSON.parse(localStorage.getItem(draftKey) || "null");
           if (
+            p.question?.worldTask &&
+            draft?.questionId === p.question.id &&
+            draft.worldEvidence &&
+            (worldTaskAnswer(p.question.worldTask, draft.worldEvidence) !==
+              null ||
+              (draft.worldEvidence.kind === "fraction-bridge" &&
+                Array.isArray(draft.worldEvidence.pieces) &&
+                draft.worldEvidence.pieces.length === 0))
+          ) {
+            setWorldDraft({
+              questionId: p.question.id,
+              evidence: draft.worldEvidence,
+            });
+            setAnswer(
+              worldTaskAnswer(p.question.worldTask, draft.worldEvidence),
+            );
+          } else if (
+            !p.question?.worldTask &&
             draft?.questionId === p.question?.id &&
             Number.isInteger(draft.answer) &&
             draft.answer >= 0 &&
@@ -394,6 +426,40 @@ export default function CourseAdventure({
     }
   }
   const question = progress?.question;
+  const currentWorldEvidence = question?.worldTask
+    ? worldDraft?.questionId === question.id
+      ? worldDraft.evidence
+      : emptyWorldEvidence(question.worldTask)
+    : undefined;
+  const sceneQuestion =
+    display?.question ??
+    (progress?.finished ? progress.worldAchievement?.question : undefined);
+  const sceneEvidence = holdingScene
+    ? sceneActivity?.worldEvidence
+    : (currentWorldEvidence ??
+      (progress?.finished ? progress.worldAchievement?.evidence : undefined));
+  const earnedActivity =
+    sceneActivity ??
+    (progress?.finished && progress.worldAchievement
+      ? {
+          id: `saved:${progress.worldAchievement.question.id}`,
+          questionId: progress.worldAchievement.question.id,
+          correct: true,
+          independent: true,
+          worldTask: progress.worldAchievement.question.worldTask,
+          worldEvidence: progress.worldAchievement.evidence,
+        }
+      : undefined);
+  function worldAction(action: WorldAction) {
+    if (!question?.worldTask || !actionEnabled) return;
+    const evidence = changeWorldEvidence(
+      question.worldTask,
+      currentWorldEvidence,
+      action,
+    );
+    setWorldDraft({ questionId: question.id, evidence });
+    setAnswer(worldTaskAnswer(question.worldTask, evidence));
+  }
   const theme = display?.level?.theme || "workshop";
   const adventure = useMemo(() => {
     const saved = display?.game?.adventure;
@@ -438,12 +504,122 @@ export default function CourseAdventure({
     try {
       localStorage.setItem(
         draftKey,
-        JSON.stringify({ questionId: progress.question.id, answer }),
+        JSON.stringify({
+          questionId: progress.question.id,
+          answer,
+          worldEvidence: currentWorldEvidence,
+        }),
       );
     } catch {
       /* Storage is optional. */
     }
-  }, [answer, progress?.question?.id]);
+  }, [answer, worldDraft, progress?.question?.id]);
+  const submitting = useRef(false);
+  function continueMission() {
+    if (progress?.finished) {
+      onClose();
+      return;
+    }
+    setCelebration(false);
+    setMissionComplete(false);
+    setClearedScene(null);
+    setSceneActivity(undefined);
+    setBoost(0);
+    setStarted(Date.now());
+  }
+  async function submitTask() {
+    if (
+      submitting.current ||
+      !question ||
+      !progress ||
+      progress.game?.status !== "active" ||
+      answer === null
+    )
+      return;
+    submitting.current = true;
+    try {
+      const next = await request<LearningProgress>(
+        "/learning/" + courseId + "/answer",
+        {
+          questionId: question.id,
+          answer,
+          ...(question.worldTask
+            ? { worldEvidence: currentWorldEvidence }
+            : {}),
+          elapsedMs: Math.min(3600000, Math.max(0, Date.now() - started)),
+        },
+      );
+      const acceptedTask = next.game?.status !== "game-over";
+      if (acceptedTask && next.activity) {
+        activitySerial.current += 1;
+        setSceneActivity({
+          id: `${question.id}:${activitySerial.current}`,
+          correct: next.activity.correct,
+          independent: next.activity.independent,
+          questionId: question.id,
+          worldTask: question.worldTask,
+          worldEvidence: currentWorldEvidence,
+        });
+      }
+      const cleared =
+        next.levelId !== progress.levelId ||
+        next.completedLevelIds.length > progress.completedLevelIds.length ||
+        next.finished ||
+        next.assessment?.status === "pending";
+      const mission = Boolean(
+        question.worldTask &&
+        acceptedTask &&
+        next.activity?.independent &&
+        !cleared,
+      );
+      setMissionComplete(mission);
+      if (cleared || mission)
+        setClearedScene({
+          ...progress,
+          game: progress.game
+            ? {
+                ...progress.game,
+                status: "paused",
+                elapsedMs:
+                  next.activity?.adventure?.elapsedMs ??
+                  progress.game.elapsedMs,
+                adventure: next.activity?.adventure ?? progress.game.adventure,
+              }
+            : progress.game,
+          levelProgress: progress.levelProgress
+            ? {
+                ...progress.levelProgress,
+                cleared: cleared
+                  ? progress.levelProgress.total
+                  : (next.levelProgress?.cleared ??
+                    progress.levelProgress.cleared),
+              }
+            : progress.levelProgress,
+        });
+      setCelebration(cleared || mission);
+      setBoost(
+        acceptedTask && next.activity?.independent
+          ? Math.max(
+              0.3,
+              1 -
+                Math.min(
+                  1,
+                  next.activity.elapsedMs /
+                    Math.max(1000, progress.game?.budgetMs || 60000),
+                ),
+            )
+          : 0,
+      );
+      latest.current = next;
+      setProgress(next);
+      setAnswer(null);
+      setHelp("");
+      setStarted(Date.now());
+      onPoints();
+    } finally {
+      submitting.current = false;
+    }
+  }
   async function pauseForStudy() {
     if (latest.current?.game?.status === "active") await gameCommand("pause");
   }
@@ -476,6 +652,7 @@ export default function CourseAdventure({
     setAnswer(null);
     setHelp("");
     setCelebration(false);
+    setMissionComplete(false);
     setClearedScene(null);
     setSceneActivity(undefined);
     setSelectedResource(undefined);
@@ -629,6 +806,13 @@ export default function CourseAdventure({
         <div className="adventure-world">
           <Suspense fallback={<p>Loading 3D scenery…</p>}>
             <CourseScene
+              question={sceneQuestion}
+              worldEvidence={sceneEvidence}
+              onWorldAction={worldAction}
+              onWorldSubmit={() => {
+                if (holdingScene && !busy) continueMission();
+                else if (actionEnabled) void run(submitTask);
+              }}
               resources={display?.resources}
               selectedResource={selectedResource}
               onResource={openResource}
@@ -636,6 +820,7 @@ export default function CourseAdventure({
               theme={theme}
               worldStyle={display?.level?.worldStyle}
               outfit={outfit}
+              avatar={avatar}
               onReady={() => setSceneReady(true)}
               renderHeight={renderHeight}
               peers={holdingScene ? [] : peers}
@@ -678,7 +863,7 @@ export default function CourseAdventure({
                 elapsedMs: display?.game?.elapsedMs ?? 0,
                 run: display?.game?.run ?? 0,
                 adventure: display?.game?.adventure,
-                activity: sceneActivity,
+                activity: earnedActivity,
               }}
             />
           </Suspense>
@@ -976,11 +1161,15 @@ export default function CourseAdventure({
                   ? progress.replayMode === "level"
                     ? "Level replay complete"
                     : "Course checkpoints complete"
-                  : "Level cleared"}
+                  : missionComplete
+                    ? "Mission accepted"
+                    : "Level cleared"}
               </h2>
               <p>
-                {progress?.result?.label ||
-                  "Your independent responses have been recorded."}
+                {missionComplete
+                  ? "Your construction worked. Try it in the world, then continue to the next mission."
+                  : progress?.result?.label ||
+                    "Your independent responses have been recorded."}
               </p>
               <p className="learning-note">
                 {progress?.assessment?.provider === "historical-checkpoint"
@@ -990,7 +1179,7 @@ export default function CourseAdventure({
                   ? " · This checkpoint checks your answers against authored keys. Practise independently; points alone do not prove what you have learned."
                   : " · This checkpoint uses authored answer keys. It does not certify practical model training or mastery."}
               </p>
-              {progress?.assessment && (
+              {!missionComplete && progress?.assessment && (
                 <p>
                   {
                     progress.assessment.criteria.filter((c) => c.independent)
@@ -1001,7 +1190,9 @@ export default function CourseAdventure({
                   corrections recorded
                 </p>
               )}
-              <strong>+{progress?.result?.awardedPoints || 0} points</strong>
+              {!missionComplete && (
+                <strong>+{progress?.result?.awardedPoints || 0} points</strong>
+              )}
               {progress?.finished && (
                 <p className="earned-badge">
                   🏅 Checkpoint finisher badge earned · visit your wardrobe to
@@ -1023,20 +1214,7 @@ export default function CourseAdventure({
                   </button>
                 </>
               )}
-              <button
-                className="primary"
-                onClick={
-                  progress?.finished
-                    ? onClose
-                    : () => {
-                        setCelebration(false);
-                        setClearedScene(null);
-                        setSceneActivity(undefined);
-                        setBoost(0);
-                        setStarted(Date.now());
-                      }
-                }
-              >
+              <button className="primary" onClick={continueMission}>
                 {progress?.finished
                   ? progress.journey?.completed
                     ? "Course complete · back to Venture City"
@@ -1160,9 +1338,13 @@ export default function CourseAdventure({
               </div>
               <p className="gate-help">
                 {theme === "workshop"
-                  ? display?.level?.worldStyle === "garden"
-                    ? "Solve the garden challenges to grow new flowers. You can pause, sketch and ask your helper to read."
-                    : "Complete each authored task to build at your workstation and illuminate the next progress station."
+                  ? question.worldTask?.kind === "fraction-bridge"
+                    ? "Build the requested span from real beam lengths, test it, then cross your verified bridge. Pause to plan or read the field guide."
+                    : question.worldTask?.kind === "circuit"
+                      ? "Operate the relay switches to achieve the mission signal. Test your arrangement to restore the lighthouse or open the maintenance hatch."
+                      : display?.level?.worldStyle === "garden"
+                        ? "Solve the garden challenges to grow new flowers. You can pause, sketch and ask your helper to read."
+                        : "Complete each authored task to build at your workstation and illuminate the next progress station."
                   : theme === "wrestling"
                     ? "Use Strike or F to practice punches. Independent answers power attacks and weaken your opponent."
                     : theme === "racing"
@@ -1171,20 +1353,29 @@ export default function CourseAdventure({
                         ? "Follow the story clues through the woods. Guided navigation handles trail obstacles while you read."
                         : "Complete tasks to stay ahead of the guardian. Jump, slide and change lanes; guided navigation handles obstacles while you study."}
               </p>
-              <div className="answers">
-                {question.options.map((option, i) => (
-                  <button
-                    key={i}
-                    aria-pressed={answer === i}
-                    className={answer === i ? "chosen" : ""}
-                    onClick={() => setAnswer(i)}
-                    disabled={busy}
-                  >
-                    <span>{String.fromCharCode(65 + i)}</span>
-                    {option}
-                  </button>
-                ))}
-              </div>
+              {question.worldTask && currentWorldEvidence ? (
+                <WorldTaskControls
+                  task={question.worldTask}
+                  evidence={currentWorldEvidence}
+                  onAction={worldAction}
+                  disabled={!actionEnabled}
+                />
+              ) : (
+                <div className="answers">
+                  {question.options.map((option, i) => (
+                    <button
+                      key={i}
+                      aria-pressed={answer === i}
+                      className={answer === i ? "chosen" : ""}
+                      onClick={() => setAnswer(i)}
+                      disabled={busy}
+                    >
+                      <span>{String.fromCharCode(65 + i)}</span>
+                      {option}
+                    </button>
+                  ))}
+                </div>
+              )}
               {progress?.feedback && (
                 <p className="help-box">{progress.feedback}</p>
               )}
@@ -1217,83 +1408,7 @@ export default function CourseAdventure({
                     !progress?.game ||
                     progress.game.status !== "active"
                   }
-                  onClick={() =>
-                    run(async () => {
-                      const next = await request<LearningProgress>(
-                        "/learning/" + courseId + "/answer",
-                        {
-                          questionId: question.id,
-                          answer,
-                          elapsedMs: Math.min(
-                            3600000,
-                            Math.max(0, Date.now() - started),
-                          ),
-                        },
-                      );
-                      const acceptedTask = next.game?.status !== "game-over";
-                      if (acceptedTask && next.activity) {
-                        activitySerial.current += 1;
-                        setSceneActivity({
-                          id: `${question.id}:${activitySerial.current}`,
-                          correct: next.activity.correct,
-                          independent: next.activity.independent,
-                        });
-                      }
-                      const cleared =
-                        next.levelId !== progress!.levelId ||
-                        next.completedLevelIds.length >
-                          progress!.completedLevelIds.length ||
-                        next.finished ||
-                        next.assessment?.status === "pending";
-                      if (cleared) {
-                        const old = progress!;
-                        setClearedScene({
-                          ...old,
-                          game: old.game
-                            ? {
-                                ...old.game,
-                                status: "paused",
-                                elapsedMs:
-                                  next.activity?.adventure?.elapsedMs ??
-                                  old.game.elapsedMs,
-                                adventure:
-                                  next.activity?.adventure ??
-                                  old.game.adventure,
-                              }
-                            : old.game,
-                          levelProgress: old.levelProgress
-                            ? {
-                                ...old.levelProgress,
-                                cleared: old.levelProgress.total,
-                              }
-                            : old.levelProgress,
-                        });
-                      }
-                      setCelebration(cleared);
-                      setBoost(
-                        acceptedTask && next.activity?.independent
-                          ? Math.max(
-                              0.3,
-                              1 -
-                                Math.min(
-                                  1,
-                                  next.activity.elapsedMs /
-                                    Math.max(
-                                      1000,
-                                      progress!.game?.budgetMs || 60000,
-                                    ),
-                                ),
-                            )
-                          : 0,
-                      );
-                      latest.current = next;
-                      setProgress(next);
-                      setAnswer(null);
-                      setHelp("");
-                      setStarted(Date.now());
-                      onPoints();
-                    })
-                  }
+                  onClick={() => void run(submitTask)}
                 >
                   {busy ? "Saving…" : "Submit task"}
                 </button>

@@ -836,3 +836,42 @@ footer button {
     scroll-behavior: auto !important;
   }
 }
+.character-picker {
+  border: 0;
+  padding: 0;
+  margin: 14px 0;
+  min-width: 0;
+}
+.character-picker legend {
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.character-choices {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+}
+.character-choices button {
+  min-width: 0;
+  padding: 6px;
+  border-radius: 10px;
+  background: #183e3c;
+  color: #fff2d3;
+  border: 1px solid #769183;
+  display: grid;
+  gap: 3px;
+  cursor: pointer;
+}
+.character-choices button[aria-pressed="true"] {
+  border: 2px solid #f2c46c;
+  background: #24554d;
+}
+.character-choices img {
+  width: 100%;
+  max-height: 85px;
+  object-fit: contain;
+}
+.character-choices small {
+  font-size: 10px;
+  line-height: 1.3;
+}
