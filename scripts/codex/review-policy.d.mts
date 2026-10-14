@@ -1,4 +1,9 @@
 export function cleanText(value: unknown, limit?: number): string;
+export function trustedInlineRequest(
+  run: Record<string, any>,
+  comment: Record<string, any>,
+  repository: string,
+): number;
 export function diffLines(patch: unknown): Set<number>;
 export function validReview(value: unknown): {
   decision: "approve" | "request_changes";

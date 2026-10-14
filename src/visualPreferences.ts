@@ -31,6 +31,7 @@ export function useVisualPreference<K extends keyof VisualSettings>(
   const [value, update] = useState(() => saved(key, fallback));
   useEffect(() => {
     const sync = () => update(saved(key, fallback));
+    sync();
     window.addEventListener("storage", sync);
     window.addEventListener("amamihe-visual-change", sync);
     window.addEventListener("amamihe-study-change", sync);

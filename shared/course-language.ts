@@ -82,7 +82,7 @@ export function validateTranslations(d: CourseDefinition): ValidationIssue[] {
       typeof item !== "object" ||
       Array.isArray(item) ||
       item.confirmed !== true ||
-      item.sourceHash !== translationSourceHash(d) ||
+      !translationHashMatches(d, item.sourceHash) ||
       typeof item.note !== "string" ||
       item.note.trim().length < 10 ||
       item.note.length > 500 ||
@@ -141,9 +141,7 @@ export function availableCourseLanguages(d: CourseDefinition) {
   return [
     d.language,
     ...Object.entries(d.translations || {})
-      .filter(
-        ([, v]) => v.confirmed && v.sourceHash === translationSourceHash(d),
-      )
+      .filter(([, v]) => v.confirmed && translationHashMatches(d, v.sourceHash))
       .map(([lang]) => lang),
   ];
 }
@@ -159,8 +157,8 @@ function canonical(value: unknown): unknown {
   }
   return value;
 }
-export function translationSourceHash(d: CourseDefinition) {
-  const source = {
+function translationSource(d: CourseDefinition) {
+  return {
     language: d.language,
     fields: translationFields(d),
     grading: d.levels.map((l) => ({
@@ -175,10 +173,24 @@ export function translationSourceHash(d: CourseDefinition) {
       })),
     })),
   };
+}
+function sourceDigest(source: unknown) {
   return Array.from(
-    sha256(new TextEncoder().encode(JSON.stringify(canonical(source)))),
+    sha256(new TextEncoder().encode(JSON.stringify(source))),
     (v) => v.toString(16).padStart(2, "0"),
   ).join("");
+}
+export function translationSourceHash(d: CourseDefinition) {
+  return sourceDigest(canonical(translationSource(d)));
+}
+/** Accept an old fingerprint only when it hashes this exact unchanged source. */
+export function legacyTranslationSourceHash(d: CourseDefinition) {
+  return sourceDigest(translationSource(d));
+}
+function translationHashMatches(d: CourseDefinition, hash: string) {
+  return (
+    hash === translationSourceHash(d) || hash === legacyTranslationSourceHash(d)
+  );
 }
 export function localizedDefinition(d: CourseDefinition, requested: Language) {
   const result = structuredClone(d);

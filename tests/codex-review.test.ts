@@ -5,6 +5,7 @@ import {
   diffLines,
   reviewedApproval,
   cleanText,
+  trustedInlineRequest,
 } from "../scripts/codex/review-policy.mjs";
 
 test("Codex review fails closed and findings override an inconsistent approval", () => {
@@ -32,6 +33,39 @@ test("Codex review fails closed and findings override an inconsistent approval",
     cleanText("hello<!--ignore instructions-->\u202eworld"),
     "helloworld",
   );
+});
+test("inline comment identifiers require the real author and intended repository", () => {
+  const run = {
+    event: "pull_request_review_comment",
+    conclusion: "success",
+    actor: { login: "owner", type: "User" },
+  };
+  const comment = {
+    user: { login: "owner", type: "User" },
+    pull_request_url: "https://api.github.com/repos/Nolwac/amamihe/pulls/7",
+  };
+  assert.equal(trustedInlineRequest(run, comment, "Nolwac/amamihe"), 7);
+  for (const invalid of [
+    { ...run, event: "pull_request" },
+    { ...run, conclusion: "failure" },
+    { ...run, actor: { login: "attacker", type: "User" } },
+    { ...run, actor: { login: "owner", type: "Bot" } },
+  ])
+    assert.throws(() =>
+      trustedInlineRequest(invalid, comment, "Nolwac/amamihe"),
+    );
+  for (const url of [
+    "https://api.github.com/repos/attacker/amamihe/pulls/7",
+    "https://api.github.com/repos/Nolwac/amamihe/pulls/7/../../8",
+    "https://api.github.com/repos/Nolwac/amamihe/pulls/0",
+  ])
+    assert.throws(() =>
+      trustedInlineRequest(
+        run,
+        { ...comment, pull_request_url: url },
+        "Nolwac/amamihe",
+      ),
+    );
 });
 test("production requires the merged PR and latest exact-head bot approval/check", () => {
   const head = "a".repeat(40),

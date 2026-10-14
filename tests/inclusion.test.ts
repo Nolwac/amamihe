@@ -11,6 +11,7 @@ import { validateCourse } from "../shared/course.js";
 import {
   localizedDefinition,
   translationSourceHash,
+  availableCourseLanguages,
 } from "../shared/course-language.js";
 import {
   localizeCoursePayload,
@@ -274,4 +275,36 @@ test("translation fingerprints tolerate PostgreSQL JSON object ordering without 
   const changed = structuredClone(d);
   changed.levels[0].questions[0].options.reverse();
   assert.notEqual(translationSourceHash(d), translationSourceHash(changed));
+});
+
+test("a stored pre-canonical translation remains valid only for its unchanged source", () => {
+  const stored = JSON.parse(
+    JSON.stringify(
+      kidsCourses().find((c) => c.id === "amamihe-number-garden")!.definition,
+    ),
+  );
+  // Fingerprint recorded by the pre-canonical implementation, before upgrade.
+  stored.translations = { fr: stored.translations.fr };
+  stored.translations.fr.sourceHash =
+    "f801782b737bb1db1f164efdf665c4822679aef4be393b9c64a72539cb455f45";
+  assert.notEqual(
+    stored.translations.fr.sourceHash,
+    translationSourceHash(stored),
+  );
+  assert.deepEqual(validateCourse(stored), []);
+  assert.deepEqual(availableCourseLanguages(stored), ["en", "fr"]);
+  assert.equal(localizedDefinition(stored, "fr").language, "fr");
+  assert.equal(
+    localizedDefinition(
+      compatibleMaintainedLanguages("amamihe-number-garden", stored),
+      "fr",
+    ).language,
+    "fr",
+  );
+  stored.levels[0].questions[0].answer = 0;
+  assert.ok(
+    validateCourse(stored).some((i) => i.path.startsWith("translations")),
+  );
+  assert.deepEqual(availableCourseLanguages(stored), ["en"]);
+  assert.equal(localizedDefinition(stored, "fr").language, "en");
 });

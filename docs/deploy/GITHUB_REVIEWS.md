@@ -8,7 +8,11 @@ review` check must pass. Never bypass a rejected review or deploy direct pushes.
 `@codex` comments, including inline review replies, from write collaborators. It
 uses the repository's `OPENAI_API_KEY` secret. The key is never checked into Git,
 copied to the VPS, or passed to the feedback job. Codex runs read-only, with sudo
-removed, as the final step of its job. Trusted base-workflow scripts collect and
+removed, as the final step of its job. An unprivileged inline-comment receiver captures only a comment ID; the
+default-main workflow re-fetches its actual author/body from GitHub and checks
+the originating actor and repository before authorization. Reviewer helpers
+come from a pinned current-main revision (the initial maintainer bootstrap is
+explicitly pinned separately). Trusted base-workflow scripts collect and
 publish data; PR code is inspected without installing or executing it. Hidden
 comment text is stripped, review sizes are bounded, incomplete/invalid results
 block approval, and changed PR heads cannot reuse old approval. Review findings

@@ -192,6 +192,16 @@ test("voice navigation, version-pinned translations and public offline readings 
   });
   await page.keyboard.press("Escape");
   await openAdventurePanels(page);
+  const graphics = page.getByLabel("Adventure graphics", { exact: true });
+  await expect(graphics).toHaveValue("0");
+  await page
+    .getByRole("button", { name: "Access & language", exact: true })
+    .click();
+  await page.getByLabel("Save mobile data", { exact: true }).check();
+  await expect(graphics).toHaveValue("144");
+  await page.getByLabel("Save mobile data", { exact: true }).uncheck();
+  await expect(graphics).toHaveValue("0");
+  await page.keyboard.press("Escape");
   await page
     .getByLabel("Adventure graphics", { exact: true })
     .selectOption("720");
@@ -239,6 +249,10 @@ test("voice navigation, version-pinned translations and public offline readings 
       .toBe(lang);
   }
   await page.locator(".access-panel select").first().selectOption("en");
+  await page.getByLabel("Save mobile data", { exact: true }).check();
+  await expect(graphics).toHaveValue("720");
+  await page.getByLabel("Save mobile data", { exact: true }).uncheck();
+  await expect(graphics).toHaveValue("720");
   await command("write My own counting explanation");
   await page.keyboard.press("Escape");
   await expect(

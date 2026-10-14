@@ -5,8 +5,9 @@ on:
     types: [opened, synchronize, reopened, ready_for_review]
   issue_comment:
     types: [created]
-  pull_request_review_comment:
-    types: [created]
+  workflow_run:
+    workflows: [Codex inline review request]
+    types: [completed]
   workflow_call:
     inputs:
       pr_number:
@@ -27,15 +28,17 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: codex-review-${{ inputs.pr_number || github.event.pull_request.number || github.event.issue.number || github.run_id }}
+  group: codex-review-${{ inputs.pr_number || github.event.pull_request.number || github.event.issue.number || github.event.workflow_run.pull_requests[0].number || github.run_id }}
   cancel-in-progress: false
 jobs:
   prepare:
+    if: github.event.comment.user.type != 'Bot' && (github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.actor.type != 'Bot'))
     runs-on: ubuntu-latest
     permissions:
       contents: read
       pull-requests: read
       checks: write
+      actions: read
     outputs:
       number: ${{ steps.context.outputs.number }}
       head: ${{ steps.context.outputs.head }}
@@ -48,8 +51,14 @@ jobs:
       - name: Select trusted workflow source
         id: trust
         env:
-          TRUSTED_REF: ${{ inputs.trusted_ref || github.workflow_sha }}
+          TRUSTED_REF: ${{ inputs.trusted_ref }}
+          GH_TOKEN: ${{ github.token }}
         run: |
+          # Review-comment events use the PR merge ref. Never take helper code
+          # from that ref; normal reviews pin the current main revision instead.
+          if [[ -z "$TRUSTED_REF" ]]; then
+            TRUSTED_REF=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq '.object.sha')
+          fi
           [[ "$TRUSTED_REF" =~ ^[0-9a-f]{40}$ ]]
           printf 'ref=%s\n' "$TRUSTED_REF" >> "$GITHUB_OUTPUT"
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -59,6 +68,14 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: "24"
+      - name: Retrieve inline-comment identifier from the unprivileged receiver
+        if: github.event_name == 'workflow_run'
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: codex-inline-request
+          path: inline-request
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ github.token }}
       - name: Authorize requester and collect bounded review data
         id: context
         run: node scripts/codex/review-github.mjs prepare

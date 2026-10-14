@@ -7,6 +7,26 @@ export function cleanText(value, limit = 12000) {
     )
     .slice(0, limit);
 }
+export function trustedInlineRequest(run, comment, repository) {
+  const prefix = `https://api.github.com/repos/${repository}/pulls/`;
+  const url = String(comment?.pull_request_url || "");
+  const number = Number(url.slice(prefix.length));
+  if (
+    run?.event !== "pull_request_review_comment" ||
+    run.conclusion !== "success" ||
+    run.actor?.type === "Bot" ||
+    comment?.user?.type === "Bot" ||
+    run.actor?.login !== comment?.user?.login ||
+    !url.startsWith(prefix) ||
+    !Number.isSafeInteger(number) ||
+    number < 1 ||
+    !/^\d+$/.test(url.slice(prefix.length))
+  )
+    throw new Error(
+      "Inline request does not match its authenticated GitHub actor and repository.",
+    );
+  return number;
+}
 export function validReview(value) {
   if (
     !value ||
