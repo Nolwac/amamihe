@@ -267,7 +267,7 @@ on_exit() {
   if ((status != 0)) && [[ $switched == true ]]; then
     if [[ -n $previous_image ]]; then
       printf 'Deployment failed; restoring only the previous Amamihe application image.\n' >&2
-      if compose "$previous_release" "$previous_image" up -d --no-build --no-deps --wait --wait-timeout 120 app; then
+      if compose "$previous_release" "$previous_image" up -d --no-build --no-deps --wait --wait-timeout 420 app; then
         printf 'Previous application restored. Database records were preserved.\n' >&2
       else
         printf 'Application rollback failed; inspect only the Amamihe project. Database was not restored or removed.\n' >&2
@@ -303,9 +303,9 @@ else
 fi
 
 switched=true
-compose "$release" "$image_id" up -d --no-build --no-deps --wait --wait-timeout 120 app
+compose "$release" "$image_id" up -d --no-build --no-deps --wait --wait-timeout 420 app
 curl --noproxy 127.0.0.1 --fail --silent --show-error --max-time 10 "http://127.0.0.1:$port/api/health" | \
-  python3 -c 'import json,sys; h=json.load(sys.stdin); sys.exit(0 if h.get("ok") and h.get("storage")=="PostgreSQL" else 1)'
+  python3 -c 'import json,sys; h=json.load(sys.stdin); model_ready=h.get("classifier")=="ollama:tev1:0.8b" and h.get("decisionService",{}).get("ready") is True; sys.exit(0 if h.get("ok") and h.get("storage")=="PostgreSQL" and h.get("release")==sys.argv[1] and (model_ready or sys.argv[2]=="true") else 1)' "$commit" "$rollback_only"
 python3 - "$state_file" "$release" "$image_id" "$manifest_hash" "$config_hash" "$port" "$commit" <<'PY'
 import datetime,json,os,pathlib,sys,tempfile
 p=pathlib.Path(sys.argv[1]);previous=json.loads(p.read_text())['current'] if p.exists() else None

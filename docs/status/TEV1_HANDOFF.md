@@ -1,6 +1,12 @@
 # Local tev1 decisions and deployment handoff
 
-## Current state — 13 October 2026, 23:52 UTC
+## Current continuation — 14 October 2026
+
+Desktop Tailscale SSH access is working. Recovery identified a missing current rollback package and then CPU model startup exceeding the old health budget. The package was reproduced with its original checksum, and a failed promotion safely restored the older application. The startup fix sets the bundled runner to two threads, requires actual model readiness and exact release identity, and gives promotion/rollback a seven-minute wait with a five-minute startup grace. An offline container using the exact updated daemon source completed real inference in **12.209 seconds** within the production CPU/memory/filesystem limits; a separate two-thread experiment took 9.020 seconds. Build/typecheck, Bash syntax and both Compose configurations passed. Production still serves the older release until this correction passes CI and promotion.
+
+The continuation log below records recovery details. Next: publish this fix through the normal CI gate, deliberately install the reviewed host helper, promote the approved revision, then run the public desktop/mobile acceptance checker. Keep the existing passing model regression evidence and all production records intact.
+
+## Historical state — 13 October 2026, 23:52 UTC
 
 The implementation is merged into `main` through [PR #5](https://github.com/Nolwac/amamihe/pull/5), followed by three regression fixes. The last application revision is `9e2424d454aef54454d4a0b6c77022fce921eab6`. It replaces the former operational provider with private CPU-only Ollama 0.40.3 and `tev1:0.8b`. Implementation, complete regression verification, release packaging and CI approval are finished. **Successful production promotion is not verified.** Continue with deployment diagnosis rather than rebuilding the model integration.
 
@@ -75,3 +81,13 @@ Reusable installation/start instructions were saved to the cloud configuration d
 The upstream model card reports 63.5% mean accuracy over general public decision datasets for the 0.8B model. That is not measured educational classification accuracy. Tutor-reviewed pedagogy, language calibration, prompt-injection behavior, physical learner-device performance, and production concurrency remain separate evaluation work. Inference is local to the VPS; the browser still renders its own world and downloads no model weights.
 
 Sources: [Ollama model card](https://ollama.com/library/tev1), [Together AI project](https://github.com/togethercomputer/tev1).
+
+## Continuation — 14 October 2026
+
+The desktop workspace pulled `main` at `433311a3c19f0c0a78f9093e7d60fd572b61b1d8`; the approved deployment reference matches. Authorized desktop Tailscale SSH works. The latest workflow (`38487226083`) passed the release gates but requires renewed public acceptance.
+
+The installed deployment service fails before promotion because `shared/releases.json` references the current release directory `releases/3eab1e9f5d6a1acd1a15b9fb721fef0517df8003`, which is absent. The current app and PostgreSQL are healthy, and public health still reports that older release and historical classifier. Both new tev1 release archives are present. This observation supersedes the unresolved cloud-access blocker; it does not explain who removed the historical release directories.
+
+Recovery is in progress: preserve the private deployment state and database, recover a rollback package from the retained current image and its exact source templates, retain all integrity checks, then promote the CI-approved revision. No model regressions need rebuilding for this diagnosis. Public acceptance and the final recovery result remain pending.
+
+The rollback package was reconstructed from the retained image and the exact historical checkout. Its manifest reproduced the original `30e3e19b791e3112b641a9858588f76d2b63939994bb71cd418513159b7b8ed8` checksum, so no integrity exception was needed. A private logical database backup passed archive validation. The next promotion reached app startup but failed health at approximately 98 seconds while the CPU model was still warming; the helper successfully restored the previous app. The observed second blocker is the app startup/readiness budget, not a service-wide 20-minute timeout. Startup correction and renewed acceptance are in progress; the timer is temporarily stopped during controlled recovery.

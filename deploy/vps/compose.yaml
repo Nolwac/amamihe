@@ -73,11 +73,11 @@ services:
         - CMD
         - node
         - -e
-        - "fetch('http://127.0.0.1:3000/api/health').then(async r => { const h = await r.json(); process.exit(r.ok && h.ok ? 0 : 1); }).catch(() => process.exit(1))"
+        - "fetch('http://127.0.0.1:3000/api/health').then(async r => { const h = await r.json(); process.exit(r.ok && h.ok && h.classifier === 'ollama:tev1:0.8b' && h.decisionService?.ready === true ? 0 : 1); }).catch(() => process.exit(1))"
       interval: 30s
       timeout: 5s
       retries: 3
-      start_period: 30s
+      start_period: 5m
     user: "1000:1000"
     read_only: true
     tmpfs:

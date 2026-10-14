@@ -35,6 +35,10 @@ export async function startLocalModel(): Promise<() => void> {
         OLLAMA_NUM_PARALLEL: "1",
         OLLAMA_MAX_LOADED_MODELS: "1",
         OLLAMA_KEEP_ALIVE: "30m",
+        // The packaged app has two CPU cores. Host-wide auto-detection can
+        // oversubscribe its quota and keep cold model warm-up from completing.
+        // llama-server also uses this count for batch work unless overridden.
+        LLAMA_ARG_THREADS: "2",
       },
       stdio: ["ignore", "inherit", "inherit"],
     });
