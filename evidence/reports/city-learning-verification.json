@@ -1,8 +1,8 @@
 {
-  "checkedAt": "2026-10-14T03:23:32.124613+00:00",
+  "checkedAt": "2026-10-14T03:36:01.993508+00:00",
   "branch": "feat/learning-city-experiences",
   "baseCommit": "433311a3c19f0c0a78f9093e7d60fd572b61b1d8",
-  "sourceSnapshotSha256": "ab0f017395f5d0fbfefbc5cd68c9aef5df84fd3e92b7f42ac029c4f6b0c24a69",
+  "sourceSnapshotSha256": "7fd46d171a36bbd9ab257983c4f19a35fb79b97f7be4b81f57579274889dccbe",
   "buildAndTypecheck": "passed",
   "formatCheck": "passed",
   "node": {
@@ -252,6 +252,27 @@
             "passed": true
           }
         ]
+      },
+      {
+        "run": "Rebuilt connected necks in profile and full police rendering",
+        "stats": {
+          "startTime": "2026-10-14T03:32:22.239Z",
+          "duration": 71800.856,
+          "expected": 2,
+          "skipped": 0,
+          "unexpected": 0,
+          "flaky": 0
+        },
+        "cases": [
+          {
+            "title": "free character selection persists through verification, wardrobe changes, and course entry",
+            "passed": true
+          },
+          {
+            "title": "detention controls expose a free course release and an auditable appeal",
+            "passed": true
+          }
+        ]
       }
     ]
   },
@@ -281,5 +302,10 @@
       "capture": "Actual browser scene; original PNG, no image edits."
     }
   ],
-  "productionDeploymentVerified": false
+  "productionDeploymentVerified": false,
+  "assetChecks": {
+    "passed": 20,
+    "failed": 0,
+    "scope": "Rebuilt character weights, rig bounds, provenance, walking/transport clips and retained adventure avatar contract."
+  }
 }

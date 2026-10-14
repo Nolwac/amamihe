@@ -82,7 +82,15 @@ for profile, new_head, skin, shoulder, hairstyle in profiles:
                 p.x *= shoulder
                 v.co = inverse @ p
         width = .089 if profile == "nia" else .110 if profile == "tayo" else .103
-        ellipsoid(profile + "-neck", (0,.012,1.36), (.045,.041,.079), skin_material, "Neck")
+        neck = ellipsoid(profile + "-neck", (0,.012,1.40), (.049,.044,.15), skin_material, "Neck")
+        # Connect the collar to the moving jaw instead of moving the whole neck
+        # rigidly with its lower joint. The overlap stays inside head and shirt.
+        head_group = neck.vertex_groups.new(name="mixamorig:Head")
+        neck_group = neck.vertex_groups.get("mixamorig:Neck")
+        for vertex in neck.data.vertices:
+            head_weight = max(0, min(1, (vertex.co.z + neck.location.z - 1.32) / .22))
+            neck_group.add([vertex.index], 1 - head_weight, "REPLACE")
+            head_group.add([vertex.index], head_weight, "REPLACE")
         ellipsoid(profile + "-face", (0, -.003, 1.51), (width, .088, .132), skin_material)
         ellipsoid(profile + "-jaw", (0, -.007, 1.435), (width * (.62 if profile=="nia" else .87), .075, .052), skin_material)
         for side in [-1, 1]:
