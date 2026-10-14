@@ -309,5 +309,22 @@
     "scope": "Rebuilt character weights, rig bounds, provenance, walking/transport clips and retained adventure avatar contract."
   },
   "implementationCommit": "f8c1846324702933371399d4d9abf3c354162296",
-  "pullRequest": "https://github.com/Nolwac/amamihe/pull/6"
+  "pullRequest": "https://github.com/Nolwac/amamihe/pull/6",
+  "modelArtifact": {
+    "manifestPath": "scripts/models/tev1-0.8b.manifest",
+    "manifestSha256": "8d11b3146b7f3f4f4d5e9a64665ab2bdaf8b46e4ec42a5880b60a716ae50e3fb",
+    "provenance": "Exact upstream manifest bytes retained from the previously verified local model store; unchanged expected release digest.",
+    "download": "All six official immutable blobs freshly downloaded; exact SHA256, sizes and original model capabilities verified.",
+    "inference": "Isolated Ollama 0.40.3 daemon using the fresh model store; actual classification and level/category/question decisions passed.",
+    "focusedTests": {
+      "total": 8,
+      "passed": 8,
+      "failed": 0,
+      "skipped": 0
+    },
+    "formatTypecheckPythonSyntax": "passed",
+    "remotePreFixRun": "https://github.com/Nolwac/amamihe/actions/runs/38507730471",
+    "remotePreFixResult": "All four shards stopped before tests because the upstream mutable model tag changed; checksum guard correctly rejected it.",
+    "remoteFollowUp": "Rerun CI from the PR head with the reviewed manifest; local verification does not establish remote success."
+  }
 }

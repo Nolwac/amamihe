@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""Fetch Ollama's official tev1:0.8b manifest/blobs with TLS and SHA256 checks.
+"""Fetch the reviewed tev1:0.8b blobs with TLS and SHA256 checks.
 
 Uses the configured HTTP proxy, including in managed build environments where
-the native transfer client cannot follow its blob download route.
+the native transfer client cannot follow its blob download route. The upstream
+tag is mutable; retain the exact reviewed manifest and request immutable blobs.
 """
 import hashlib
 import json
@@ -16,12 +17,12 @@ REGISTRY = "https://registry.ollama.ai/v2/library/tev1"
 
 
 def pull(destination: Path):
-    with urllib.request.urlopen(REGISTRY + "/manifests/0.8b", timeout=60) as response:
-        raw = response.read(65537)
+    with Path(__file__).with_name("tev1-0.8b.manifest").open("rb") as source:
+        raw = source.read(65537)
     if len(raw) > 65536:
         raise ValueError("Model manifest exceeds its budget.")
     if hashlib.sha256(raw).hexdigest() != "8d11b3146b7f3f4f4d5e9a64665ab2bdaf8b46e4ec42a5880b60a716ae50e3fb":
-        raise ValueError("The tev1 tag changed; review its new manifest before updating this release.")
+        raise ValueError("The reviewed tev1 manifest changed; verify its provenance before updating this release.")
     manifest = json.loads(raw)
     items = [manifest["config"], *manifest["layers"]]
     if not 2 <= len(items) <= 16:
