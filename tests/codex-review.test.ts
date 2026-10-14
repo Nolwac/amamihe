@@ -6,6 +6,8 @@ import {
   reviewedApproval,
   cleanText,
   trustedInlineRequest,
+  inlineReplyTarget,
+  reviewNeedsCheck,
 } from "../scripts/codex/review-policy.mjs";
 
 test("Codex review fails closed and findings override an inconsistent approval", () => {
@@ -68,6 +70,12 @@ test("inline comment identifiers require the real author and intended repository
     );
 });
 test("production requires the merged PR and latest exact-head bot approval/check", () => {
+  assert.equal(reviewNeedsCheck({ state: "open", merged_at: null }), true);
+  assert.equal(
+    reviewNeedsCheck({ state: "closed", merged_at: "2026-10-14" }),
+    true,
+  );
+  assert.equal(reviewNeedsCheck({ state: "closed", merged_at: null }), false);
   const head = "a".repeat(40),
     commit = "b".repeat(40);
   const pr = {
@@ -126,9 +134,29 @@ test("production requires the merged PR and latest exact-head bot approval/check
     reviewedApproval(
       pr,
       [approved],
+      [passed, { ...passed, id: 3, conclusion: "failure" }],
+      commit,
+    ),
+    false,
+  );
+  assert.equal(
+    reviewedApproval(
+      pr,
+      [approved],
       [{ ...passed, app: { slug: "untrusted-app" } }],
       commit,
     ),
     false,
   );
+});
+test("an inline follow-up replies to the root finding while keeping its triggering identity", () => {
+  assert.equal(inlineReplyTarget({ id: 12 }), 12);
+  const followUp = {
+    id: 19,
+    in_reply_to_id: 12,
+    body: "@codex explain this fix",
+  };
+  assert.equal(inlineReplyTarget(followUp), 12);
+  assert.equal(followUp.id, 19);
+  assert.throws(() => inlineReplyTarget({ id: 19, in_reply_to_id: "../20" }));
 });

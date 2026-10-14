@@ -304,6 +304,14 @@ test("voice navigation, version-pinned translations and public offline readings 
     )
     .toBe("active");
   await command("answer 2");
+  let answerRequests = 0;
+  page.on("request", (request) => {
+    if (
+      request.method() === "POST" &&
+      request.url().endsWith("/api/learning/amamihe-number-garden/answer")
+    )
+      answerRequests++;
+  });
   await command("submit answer");
   const after = await (await context.request.get("/api/account/export")).json();
   expect(after.data.course_chunks).toEqual(before.data.course_chunks);
@@ -312,10 +320,10 @@ test("voice navigation, version-pinned translations and public offline readings 
   );
   await command("answer 1");
   await command("confirm");
-  expect(
-    (await (await context.request.get("/api/account/export")).json()).data
-      .course_chunks,
-  ).toEqual(before.data.course_chunks);
+  await expect(page.locator(".access-feedback")).toContainText(
+    "Nothing is waiting for confirmation",
+  );
+  expect(answerRequests).toBe(0);
   await command("submit answer");
   const submitted = page.waitForResponse(
     (r) =>
@@ -324,6 +332,7 @@ test("voice navigation, version-pinned translations and public offline readings 
   );
   await command("confirm");
   expect((await submitted).ok()).toBe(true);
+  expect(answerRequests).toBe(1);
   const recorded = (
     await (await context.request.get("/api/account/export")).json()
   ).data.course_chunks;

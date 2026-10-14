@@ -27,6 +27,15 @@ export function trustedInlineRequest(run, comment, repository) {
     );
   return number;
 }
+export function inlineReplyTarget(comment) {
+  const id = comment?.in_reply_to_id ?? comment?.id;
+  if (!Number.isSafeInteger(id) || id < 1)
+    throw new Error("Invalid inline reply target.");
+  return id;
+}
+export function reviewNeedsCheck(pr) {
+  return pr.state === "open" || Boolean(pr.merged_at);
+}
 export function validReview(value) {
   if (
     !value ||

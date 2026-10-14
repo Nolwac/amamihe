@@ -44,6 +44,7 @@ jobs:
       head: ${{ steps.context.outputs.head }}
       check: ${{ steps.context.outputs.check }}
       comment: ${{ steps.context.outputs.comment }}
+      comment_root: ${{ steps.context.outputs.comment_root }}
       comment_type: ${{ steps.context.outputs.comment_type }}
       skip: ${{ steps.context.outputs.skip }}
       trusted_ref: ${{ steps.trust.outputs.ref }}
@@ -154,6 +155,7 @@ jobs:
           REVIEW_HEAD: ${{ needs.prepare.outputs.head }}
           REVIEW_CHECK: ${{ needs.prepare.outputs.check }}
           REVIEW_COMMENT: ${{ needs.prepare.outputs.comment }}
+          REVIEW_COMMENT_ROOT: ${{ needs.prepare.outputs.comment_root }}
           REVIEW_COMMENT_TYPE: ${{ needs.prepare.outputs.comment_type }}
           REVIEW_JOB_RESULT: ${{ needs.review.result }}
           REVIEW_RESULT: ${{ needs.review.outputs.result }}

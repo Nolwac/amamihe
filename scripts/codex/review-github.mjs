@@ -7,6 +7,8 @@ import {
   diffLines,
   reviewedApproval,
   trustedInlineRequest,
+  inlineReplyTarget,
+  reviewNeedsCheck,
 } from "./review-policy.mjs";
 
 const repository = process.env.GITHUB_REPOSITORY;
@@ -108,7 +110,7 @@ if (mode === "prepare") {
     } else {
       await output("number", prNumber);
       await output("head", pr.head.sha);
-      if (pr.state === "open") {
+      if (reviewNeedsCheck(pr)) {
         const check = await api("check-runs", "POST", {
           name: "Codex review",
           head_sha: pr.head.sha,
@@ -158,6 +160,12 @@ if (mode === "prepare") {
       await output("number", prNumber);
       await output("head", pr.head.sha);
       await output("comment", event.comment?.id || "");
+      await output(
+        "comment_root",
+        eventName === "pull_request_review_comment"
+          ? inlineReplyTarget(event.comment)
+          : "",
+      );
       await output("comment_type", eventName || "");
       await writeFile(
         join(process.env.RUNNER_TEMP, "codex-prompt.md"),
@@ -211,6 +219,21 @@ if (mode === "prepare") {
       body,
       comments,
     });
+  }
+  if (process.env.REVIEW_COMMENT) {
+    const commentId = number(process.env.REVIEW_COMMENT);
+    const reply = `<!-- amamihe-codex-reply:${commentId}:${head} -->\n${cleanText(review.reply || review.summary, 8000)}`;
+    if (process.env.REVIEW_COMMENT_TYPE === "pull_request_review_comment")
+      await api(
+        `pulls/${prNumber}/comments/${number(process.env.REVIEW_COMMENT_ROOT)}/replies`,
+        "POST",
+        {
+          body: reply,
+        },
+      );
+    else await api(`issues/${prNumber}/comments`, "POST", { body: reply });
+  }
+  if (reviewNeedsCheck(pr))
     await api(`check-runs/${number(process.env.REVIEW_CHECK)}`, "PATCH", {
       status: "completed",
       conclusion: review.decision === "approve" ? "success" : "failure",
@@ -223,17 +246,7 @@ if (mode === "prepare") {
       },
       details_url: `https://github.com/${repository}/actions/runs/${process.env.GITHUB_RUN_ID}`,
     });
-  }
-  if (process.env.REVIEW_COMMENT) {
-    const commentId = number(process.env.REVIEW_COMMENT);
-    const reply = `<!-- amamihe-codex-reply:${commentId}:${head} -->\n${cleanText(review.reply || review.summary, 8000)}`;
-    if (process.env.REVIEW_COMMENT_TYPE === "pull_request_review_comment")
-      await api(`pulls/${prNumber}/comments/${commentId}/replies`, "POST", {
-        body: reply,
-      });
-    else await api(`issues/${prNumber}/comments`, "POST", { body: reply });
-  }
-  if (pr.state === "open" && review.decision !== "approve")
+  if (reviewNeedsCheck(pr) && review.decision !== "approve")
     process.exitCode = 1;
 } else if (mode === "gate") {
   const commit = process.env.GITHUB_SHA;

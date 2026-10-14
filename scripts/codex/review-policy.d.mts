@@ -1,4 +1,9 @@
 export function cleanText(value: unknown, limit?: number): string;
+export function inlineReplyTarget(comment: Record<string, any>): number;
+export function reviewNeedsCheck(pr: {
+  state: string;
+  merged_at?: string | null;
+}): boolean;
 export function trustedInlineRequest(
   run: Record<string, any>,
   comment: Record<string, any>,

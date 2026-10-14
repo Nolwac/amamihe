@@ -19,8 +19,10 @@ block approval, and changed PR heads cannot reuse old approval. Review findings
 override an inconsistent model approval. API failures must be corrected and the
 review rerun; they never count as approval.
 
-The publisher records an APPROVE or REQUEST_CHANGES review and a check on the
-exact PR head. A fresh review makes the check pending, so an older result cannot
+The publisher records an APPROVE or REQUEST_CHANGES review for open PRs and an
+exact-head check for open or merged PRs. Inline follow-ups reply to the root
+comment; their actual triggering comment remains the review context. A fresh
+review makes the check pending, so an older result cannot
 authorize deployment while review is running. Deployment additionally requires
 the current main commit to come from a merged PR with the latest successful
 Codex check and exact-head bot approval, plus all existing tests, immutable
