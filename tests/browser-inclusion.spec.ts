@@ -360,8 +360,13 @@ test("voice navigation, version-pinned translations and public offline readings 
       exact: true,
     })
     .click();
-  await expect(page.locator(".offline-study pre").first()).toContainText(
-    "Count",
+  const savedReading = saved[0].definition.resources[0];
+  await expect(page.locator(".offline-study pre").first()).toHaveText(
+    savedReading.content,
+  );
+  await expect(page.locator(".offline-study a").first()).toHaveAttribute(
+    "href",
+    savedReading.source,
   );
   await page.reload();
   await expect(page.getByLabel("Published course adventure")).toHaveCount(0);
@@ -374,7 +379,13 @@ test("voice navigation, version-pinned translations and public offline readings 
       exact: true,
     })
     .click();
-  await expect(page.locator(".offline-study pre").first()).toBeVisible();
+  await expect(page.locator(".offline-study pre").first()).toHaveText(
+    savedReading.content,
+  );
+  await expect(page.locator(".offline-study a").first()).toHaveAttribute(
+    "href",
+    savedReading.source,
+  );
   await context.setOffline(false);
   expect(errors).toEqual([]);
 });
