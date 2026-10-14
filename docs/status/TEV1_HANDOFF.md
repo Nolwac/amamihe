@@ -31,7 +31,7 @@ The learning camp presents the selected category and lets learners visit it. All
 
 The immutable application image includes the checksum-verified CPU runtime and all manifest-verified model blobs. No first-start model download is needed. An owned daemon listens only on container loopback. Small Ollama manifest indexes and its ephemeral local configuration use `/tmp`; model blobs remain immutable. CPU runtime GPU libraries are excluded. The API and inference container has a 3 GiB/two-core limit, while database TLS, private email configuration and the existing release gate remain in place.
 
-Development requires the actual model and a running local Ollama service. `scripts/models/install-ollama.sh` pins the official runtime checksum; `pull-tev1.py` fetches official registry blobs through configured proxies, verifies every SHA256, and refuses a changed model tag. The native pull failed on the managed cloud's direct blob route; the verified proxy-aware downloader installed the same official model manifest. No TLS bypass or network-policy change was used.
+Development requires the actual model and a running local Ollama service. `scripts/models/install-ollama.sh` pins the official runtime checksum; `pull-tev1.py` uses the preserved public `tev1-0.8b.manifest`, requires its original SHA256, and fetches every official registry blob by digest through configured proxies with full size/hash verification. It never follows the mutable upstream tag. The native pull failed on the managed cloud's direct blob route; the verified proxy-aware downloader installed the same official model manifest. No TLS bypass or network-policy change was used.
 
 ## Completed verification at the application revision
 
@@ -82,6 +82,8 @@ The upstream model card reports 63.5% mean accuracy over general public decision
 
 Sources: [Ollama model card](https://ollama.com/library/tev1), [Together AI project](https://github.com/togethercomputer/tev1).
 
+The bundled `llama-server --help` confirms `LLAMA_ARG_THREADS`; the [upstream thread argument](https://github.com/ggml-org/llama.cpp/blob/master/common/arg.cpp) documents the same option. No model parameters, manifest identity or weight blobs changed for the CPU thread correction.
+
 ## Continuation — 14 October 2026
 
 The desktop workspace pulled `main` at `433311a3c19f0c0a78f9093e7d60fd572b61b1d8`; the approved deployment reference matches. Authorized desktop Tailscale SSH works. The latest workflow (`38487226083`) passed the release gates but requires renewed public acceptance.
@@ -91,3 +93,5 @@ The installed deployment service fails before promotion because `shared/releases
 Recovery is in progress: preserve the private deployment state and database, recover a rollback package from the retained current image and its exact source templates, retain all integrity checks, then promote the CI-approved revision. No model regressions need rebuilding for this diagnosis. Public acceptance and the final recovery result remain pending.
 
 The rollback package was reconstructed from the retained image and the exact historical checkout. Its manifest reproduced the original `30e3e19b791e3112b641a9858588f76d2b63939994bb71cd418513159b7b8ed8` checksum, so no integrity exception was needed. A private logical database backup passed archive validation. The next promotion reached app startup but failed health at approximately 98 seconds while the CPU model was still warming; the helper successfully restored the previous app. The observed second blocker is the app startup/readiness budget, not a service-wide 20-minute timeout. Startup correction and renewed acceptance are in progress; the timer is temporarily stopped during controlled recovery.
+
+The first correction workflow (`38560340664`, source `9ffbe77`) passed syntax, Compose, format and build checks but stopped when the upstream model tag changed. Its registry digest lookup no longer serves the old manifest. The original public manifest was recovered from the retained immutable release and verified against the unchanged pinned SHA256; all its original blobs downloaded again from the official registry and passed complete size/hash checks. The downloader now uses those preserved manifest bytes instead of a mutable tag. The selected model remains unchanged. Tests reject modified manifest bytes before network access or destination writes; production promotion still requires the new CI approval.

@@ -40,6 +40,8 @@ The current application image bundles CPU-only Ollama 0.40.3 and the verified te
 
 The application image stamps its release identity from an explicit build argument or the detached checkout HEAD. Only `.git/HEAD` enters the build context; Git configuration, credentials, and history are excluded, and no Git files enter the runtime image.
 
+The public model manifest is preserved byte-for-byte at `scripts/models/tev1-0.8b.manifest` with Git text conversion disabled. Its SHA256 is checked before any model download; each referenced blob still comes from the official registry and must match its recorded size and SHA256. Moving upstream tags cannot silently change deployed weights. Updating the selected model requires a separate reviewed manifest/provider change and real inference verification.
+
 ## Social moderation configuration
 
 The optional private server setting `SOCIAL_MODERATOR_IDS` contains comma-separated verified player IDs permitted to review reports and mute preset messages. Keep this role assignment in the existing private application environment file; never expose it through `VITE_*`. With no assigned IDs, learner reporting/blocking still works, but moderator controls remain unavailable. Assign and test operational moderation before opening social participation to an unrestricted pilot. This release does not modify the host environment or assign an account automatically.

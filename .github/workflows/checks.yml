@@ -36,6 +36,9 @@ jobs:
       - run: npm ci
       - run: npm run format:check
       - run: npm run build
+      - name: Verify preserved model manifest integrity
+        if: matrix.shard == 1
+        run: python3 tests/test_model_download.py
       - name: Install local CPU decision runtime and verified model
         run: |
           bash scripts/models/install-ollama.sh "$RUNNER_TEMP/ollama"
