@@ -106,21 +106,25 @@ test("detention controls expose a free course release and an auditable appeal", 
     });
   const legA = await stride();
   await expect.poll(stride, { timeout: 10000 }).not.toEqual(legA);
-  await expect(city).toHaveAttribute("data-arrest-phase", "restrained", {
-    timeout: 20000,
-  });
-  await page.screenshot({ path: "test-results/uniformed-officer-escort.png" });
-  await expect(city).toHaveAttribute("data-arrest-phase", "transport", {
-    timeout: 30000,
-  });
+  await expect
+    .poll(() => city.getAttribute("data-arrest-phase"), {
+      timeout: 20000,
+      intervals: [100],
+    })
+    .toBe("restrained");
+  // GPU readback can outlast a moving phase on software WebGL. Observe the
+  // real actors first; take the retained capture at the stable station endpoint.
+  await expect
+    .poll(() => city.getAttribute("data-arrest-phase"), {
+      timeout: 30000,
+      intervals: [100],
+    })
+    .toBe("transport");
   const seated = JSON.parse(
     (await city.getAttribute("data-arrest-actors")) || "{}",
   );
   expect(seated.learnerSeated).toBe(true);
   expect(seated.officerSeated).toBe(true);
-  await page.screenshot({
-    path: "test-results/learning-police-car-transport.png",
-  });
   await expect(
     page.locator("canvas[data-arrest-phase='detained']"),
   ).toBeVisible({ timeout: 45000 });

@@ -378,5 +378,38 @@
     ],
     "buildTypecheckFormatDiff": "passed",
     "remoteFollowUp": "Inspect the latest PR-head workflow; local corrections do not relabel the earlier remote failures."
+  },
+  "renderObservationFollowUp": {
+    "remoteRun": "https://github.com/Nolwac/amamihe/actions/runs/38535540467",
+    "remoteCommit": "24f9d3ccd521b61aa244455d927b5c529196b387",
+    "remoteNode": {
+      "total": 137,
+      "passed": 136,
+      "failed": 0,
+      "skipped": 1
+    },
+    "remotePassingBrowserShards": [
+      1,
+      3
+    ],
+    "policeObservationFailure": "Expected transient transport phase after waiting for an earlier screenshot; actual scene had already reached detained.",
+    "correction": "Observe actual restrained and seated transport phases at 100 ms polling intervals before image readback; capture the stable detention endpoint.",
+    "assertionsRetained": [
+      "skeletal gait",
+      "actual uniform materials",
+      "restrained phase",
+      "seated learner and officer",
+      "station interior",
+      "canonical cell position",
+      "appeal",
+      "free release course"
+    ],
+    "localBrowser": {
+      "total": 1,
+      "passed": 1,
+      "failed": 0,
+      "durationSeconds": 37.0
+    },
+    "remoteFollowUp": "Require the latest PR-head workflow to pass; this records the earlier failure without relabeling it."
   }
 }
