@@ -2,9 +2,13 @@
 
 ## Current continuation — 14 October 2026
 
-Desktop Tailscale SSH access is working. Recovery identified a missing current rollback package and then CPU model startup exceeding the old health budget. The package was reproduced with its original checksum, and a failed promotion safely restored the older application. The startup fix sets the bundled runner to two threads, requires actual model readiness and exact release identity, and gives promotion/rollback a seven-minute wait with a five-minute startup grace. An offline container using the exact updated daemon source completed real inference in **12.209 seconds** within the production CPU/memory/filesystem limits; a separate two-thread experiment took 9.020 seconds. Build/typecheck, Bash syntax and both Compose configurations passed. Production still serves the older release until this correction passes CI and promotion.
+**Production recovery is verified at application revision `d01d5cdc733cbf6144fb2128a3da981775d7f576`.** [Workflow `38561943937`](https://github.com/Nolwac/amamihe/actions/runs/38561943937) passed every job, including public acceptance. The VPS deployment service returned success; public health reports that revision, PostgreSQL, `ollama:tev1:0.8b`, actual typed inference ready and the original pinned model digest. The deployment timer is active. Desktop Tailscale SSH access is working.
 
-The continuation log below records recovery details. Next: publish this fix through the normal CI gate, deliberately install the reviewed host helper, promote the approved revision, then run the public desktop/mobile acceptance checker. Keep the existing passing model regression evidence and all production records intact.
+Recovery reproduced the missing current rollback package with its original checksum, corrected two-core model startup by setting two worker threads, and preserved the original public model manifest after its upstream tag changed. Promotion requires actual model readiness and exact release identity, with a five-minute startup grace and seven-minute promotion/rollback wait. CI cold inference completed in **4.194 seconds** in the final immutable image; VPS isolated trials took 9.020 and 12.209 seconds. These are individual cold-start checks, not a concurrency benchmark.
+
+All 31 real-model browser journeys, 114 Node checks and two manifest-integrity checks passed; the optional external-PostgreSQL Node check remains skipped. Public desktop/mobile acceptance also passed locally with no account creation, signup mail or learner-data submissions. [Public evidence](../../evidence/reports/tev1-production-recovery-2026-10-14.json), [phone capture](../../evidence/screenshots/tev1-production-phone-2026-10-14.png), and [desktop capture](../../evidence/screenshots/tev1-production-desktop-2026-10-14.png) record the actual accepted release.
+
+The measured VPS promotion took approximately 16 minutes, including 8.5 minutes packaging the bundled image. The operational follow-up skips importing an already-present **exact immutable image ID** after full archive validation; metadata checks remain mandatory. The public checker now allows 30 minutes for the five-minute poll plus a bounded 20-minute service run, with a 40-minute workflow job budget. The VPS service timeout itself remains 20 minutes. This follow-up and the acceptance notes advance `main` through the normal pipeline; inspect the latest approved/main references and public revision instead of treating the application evidence SHA as the permanent deployment target.
 
 ## Historical state — 13 October 2026, 23:52 UTC
 
@@ -50,7 +54,7 @@ The approximately 1.30 GB application image started its own model and its API re
 - `79435668a388b3c3c3238e2d3d9c1ccb3b59fe52` raises the phone chase camera as the guardian closes, preserving foot visibility. Browser CI uses four isolated shards; aggregate `verify` remains the release gate. No journeys or assertions were removed.
 - `9e2424d454aef54454d4a0b6c77022fce921eab6` gives full phone/studio journeys a five-minute budget and actual model responses a 90-second budget. Phone DOM interaction waits remain 15 seconds. This corrects cold CPU inference timeouts without substituting responses or weakening progression checks.
 
-## VPS observations and access blocker
+## Historical VPS observations and cloud access blocker
 
 The deployment installation is `/home/agents/amamihe-deploy/{bin,source,releases,shared}`. User units are [amamihe-deploy.service](../../deploy/contabo/amamihe-deploy.service) and [amamihe-deploy.timer](../../deploy/contabo/amamihe-deploy.timer); see [deployment operations](../../deploy/contabo/README.md). The trusted scripts in `bin/` are installed separately; changing repository copies does not update them automatically.
 
@@ -62,15 +66,15 @@ This cloud session has `vpn_configured: true`, but its TCP domain/CIDR grants ar
 
 GitHub authenticated access resumed and successfully restarted failed-job verification. No new token was required. A separate attempt to inspect CI credential names was denied by integration permissions; no credential values were accessed. There is no established CI path for running commands on the VPS.
 
-## Resume from here
+## Continue from here
 
-1. Read the current workflow result, `main`, `deploy/verified-main` and public health. This documentation commit triggers a new workflow, so the original application SHA is not automatically the current deployment target. Do not rerun passing model regressions merely to monitor deployment.
-2. Establish authorized VPS command access. Once available, inspect the installed user unit/overrides, service journal and only the Amamihe builder/releases/app. Identify whether Docker import, packaging, the service time limit, app health or rollback prevented promotion before choosing a fix. Do not ask the user to repeatedly relay logs.
-3. Preserve private `shared/` configuration, PostgreSQL data/TLS, email settings, learner checkpoints and unrelated host services. Avoid global Docker pruning, database recreation or replacing reviewed host scripts implicitly. If the installed service actually timed out, adjust only its own limit based on the observed stage and retain the existing release checks.
-4. Promote the current CI-approved revision through the reviewed deployment helper. Require `/api/health` to report that exact revision, PostgreSQL, `classifier: "ollama:tev1:0.8b"`, `decisionService.ready: true` and the pinned model digest. Require the matching client bundle and the read-only desktop/mobile checks in `scripts/browser/verify-production.mjs`. Do not create synthetic production accounts or send signup emails for smoke checks.
-5. Record actual public acceptance before describing the model integration as deployed. Pedagogical calibration and physical-device evaluation below remain separate work.
+1. Read the latest workflow, `main`, `deploy/verified-main` and public health. Keep deployment revision identity separate from the accepted application evidence above. Do not rerun passing model regressions merely to monitor deployment.
+2. Use the working authorized desktop SSH path for host operations. Inspect only the Amamihe service/builder/releases when diagnosis is needed. Trusted scripts in `bin/` require deliberate reviewed installation; Git updates do not replace them.
+3. Preserve private `shared/` configuration, PostgreSQL data/TLS, email settings, learner checkpoints and unrelated host services. Retain both current/previous packages referenced by `shared/releases.json`. Avoid global Docker pruning, database recreation or bypassing release validation.
+4. After future changes, require the exact approved revision, PostgreSQL, actual tev1 readiness, pinned model digest and matching client bundle, then run the read-only public desktop/mobile checker. No synthetic production signups or learner-evidence submissions are needed for that check.
+5. Continue the remaining pedagogical, physical-device and concurrency evaluation below. The recovered deployment does not establish those separate acceptance outcomes.
 
-## Cloud development state
+## Historical cloud development state
 
 The verified native runtime is at `/workspace/.tools/ollama-v0.40.3`; the model store is `/workspace/.cache/amamihe-ollama`. The current-session development API used port 3004, disposable data under `/tmp/amamihe-tev1-development-data`, and test-only email delivery. Process IDs, `/tmp` reports and open connections are temporary; verify readiness and restart owned services after environment restoration.
 
@@ -95,3 +99,5 @@ Recovery is in progress: preserve the private deployment state and database, rec
 The rollback package was reconstructed from the retained image and the exact historical checkout. Its manifest reproduced the original `30e3e19b791e3112b641a9858588f76d2b63939994bb71cd418513159b7b8ed8` checksum, so no integrity exception was needed. A private logical database backup passed archive validation. The next promotion reached app startup but failed health at approximately 98 seconds while the CPU model was still warming; the helper successfully restored the previous app. The observed second blocker is the app startup/readiness budget, not a service-wide 20-minute timeout. Startup correction and renewed acceptance are in progress; the timer is temporarily stopped during controlled recovery.
 
 The first correction workflow (`38560340664`, source `9ffbe77`) passed syntax, Compose, format and build checks but stopped when the upstream model tag changed. Its registry digest lookup no longer serves the old manifest. The original public manifest was recovered from the retained immutable release and verified against the unchanged pinned SHA256; all its original blobs downloaded again from the official registry and passed complete size/hash checks. The downloader now uses those preserved manifest bytes instead of a mutable tag. The selected model remains unchanged. Tests reject modified manifest bytes before network access or destination writes; production promotion still requires the new CI approval.
+
+Correction revision `d01d5cdc733cbf6144fb2128a3da981775d7f576` passed all four real-model browser shards (8/8/8/7 journeys), 114 Node checks with one optional external-PostgreSQL skip, and two preserved-manifest integrity checks in workflow `38561943937`. The packaged-runtime cold-start step also passed before immutable release packaging. The reviewed host helper is installed; six classic/OCI integrity guard fixtures passed. At this checkpoint, approval/public promotion is still pending.

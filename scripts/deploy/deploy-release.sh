@@ -284,7 +284,9 @@ trap 'exit 130' INT
 trap 'exit 143' TERM
 trap 'exit 129' HUP
 
-dk image load --input "$release/image.tar.gz" >/dev/null
+# The source builder already imports its immutable image. Archive validation
+# above remains mandatory; import only when this exact ID is absent locally.
+dk image inspect "$image_id" >/dev/null 2>&1 || dk image load --input "$release/image.tar.gz" >/dev/null
 loaded=$(dk image inspect "$image_id" --format '{{.Id}}|{{.Architecture}}|{{.Os}}')
 [[ $loaded == "$image_id|$image_arch|linux" ]] || fail 'Loaded image does not match the immutable release.'
 if [[ -n $previous_image ]]; then

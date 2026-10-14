@@ -1,0 +1,50 @@
+{
+  "commit": "d01d5cdc733cbf6144fb2128a3da981775d7f576",
+  "clientEntry": "/assets/index-D_NUtBzA.js",
+  "health": {
+    "ok": true,
+    "storage": "PostgreSQL",
+    "classifier": "ollama:tev1:0.8b",
+    "decisionService": {
+      "mode": "ollama",
+      "ready": true,
+      "model": "tev1:0.8b",
+      "modelDigest": "sha256:8d11b3146b7f3f4f4d5e9a64665ab2bdaf8b46e4ec42a5880b60a716ae50e3fb",
+      "reason": "Local tev1 typed inference verified; no API key is required."
+    },
+    "release": "d01d5cdc733cbf6144fb2128a3da981775d7f576",
+    "features": {
+      "courseStudio": true,
+      "courseVersions": true,
+      "learningAssessment": true,
+      "playableThemes": true,
+      "physicalAdventure": true,
+      "gameAudio": true,
+      "cosmeticRewards": true,
+      "adaptiveResources": true,
+      "practiceEnvironments": true,
+      "reviewScheduling": true,
+      "sharedWorld": true,
+      "teamBattles": true,
+      "authorizedBillboards": true,
+      "learningPolice": true,
+      "worldOperations": true
+    }
+  },
+  "verifiedAt": "2026-10-14T12:45:23.641Z",
+  "checks": [
+    "public bounded action avatar with seven skeletal gameplay clips",
+    "local tev1:0.8b typed inference ready with the exact verified model manifest",
+    "exact promoted revision and client bundle",
+    "verified TLS, HTTPS redirect and HSTS",
+    "private studio requires authentication",
+    "published course catalogue responds",
+    "maintained storytelling pilot is published with six levels, twelve tasks and a training notebook",
+    "three maintained children’s games: age bands, bounded finder, two levels/four challenges/fresh retries, untimed compatible worlds and private grading fields",
+    "public audio gesture, actual waveform and mute",
+    "live 1280px browser: rigged 3D avatar, account gate, aligned layout, no page errors",
+    "live 390px browser: rigged 3D avatar, account gate, aligned layout, no page errors"
+  ],
+  "passed": true,
+  "boundaries": "Public, read-only production smoke. Full authenticated authoring/learner flows run against isolated storage in the verify job; no synthetic signup emails are sent to production."
+}

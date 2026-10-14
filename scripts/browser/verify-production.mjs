@@ -29,8 +29,8 @@ const entry =
   index.match(/src="(\/assets\/index-[^\"]+\.js)"/)?.[1];
 assert.ok(entry, "Build the expected client before checking production.");
 const waitMs = Math.min(
-  20 * 60_000,
-  Math.max(0, Number(process.env.DEPLOY_WAIT_MS || 20 * 60_000)),
+  30 * 60_000,
+  Math.max(0, Number(process.env.DEPLOY_WAIT_MS || 30 * 60_000)),
 );
 const deadline = Date.now() + waitMs;
 let health;
