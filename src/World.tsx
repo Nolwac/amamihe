@@ -14,6 +14,7 @@ import {
   type PoliceTransport,
 } from "../shared/police-transport";
 import { configureCameraControls } from "./cameraControls";
+import { cameraRelativeMovement } from "../shared/movement";
 import { createBillboards } from "./billboards";
 import { gameAudio } from "./gameAudio";
 import { useBillboards, type Billboard } from "./billboardPresence";
@@ -1808,6 +1809,11 @@ export default function World({
         if (keys.has("s") || keys.has("arrowdown")) dz -= 1;
         if (keys.has("a") || keys.has("arrowleft")) dx -= 1;
         if (keys.has("d") || keys.has("arrowright")) dx += 1;
+        // Manual controls follow the live orbit, including its inertial coast.
+        // Route waypoints below already use world coordinates.
+        const manual = cameraRelativeMovement(dx, dz, camera.alpha);
+        dx = manual.x;
+        dz = manual.z;
         if (!arrested && mode === "world" && avatarReady) {
           if (destinationKey !== navigation.current.destination) {
             destinationKey = navigation.current.destination;
@@ -1946,6 +1952,15 @@ export default function World({
           frames = 0;
         }
         canvas.current?.setAttribute("data-avatar-ready", String(avatarReady));
+        if (mode === "world")
+          canvas.current?.setAttribute(
+            "data-movement-frame",
+            JSON.stringify({
+              x: player.root.position.x,
+              z: player.root.position.z,
+              alpha: camera.alpha,
+            }),
+          );
         canvas.current?.setAttribute(
           "data-render-ms",
           String(Math.round(performance.now() - renderStart)),

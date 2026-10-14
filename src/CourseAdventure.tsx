@@ -851,7 +851,11 @@ export default function CourseAdventure({
     }
     if (command.kind === "submit" || command.kind === "confirm") {
       if (!question || answer === null || !actionEnabled) {
-        respond(t("This command is not available in the current place."));
+        respond(
+          progress?.game?.status === "paused"
+            ? t("Resume section")
+            : t("This command is not available in the current place."),
+        );
         return true;
       }
       const identity = {

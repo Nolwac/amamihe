@@ -42,7 +42,6 @@ jobs:
       check: ${{ steps.context.outputs.check }}
       comment: ${{ steps.context.outputs.comment }}
       comment_type: ${{ steps.context.outputs.comment_type }}
-      prompt: ${{ steps.context.outputs.prompt }}
       skip: ${{ steps.context.outputs.skip }}
       trusted_ref: ${{ steps.trust.outputs.ref }}
     steps:
@@ -66,6 +65,14 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ inputs.pr_number }}
+      - name: Transfer private review input between jobs
+        if: steps.context.outputs.skip == 'false'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: codex-review-input-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/codex-prompt.md
+          retention-days: 1
+          if-no-files-found: error
   review:
     needs: prepare
     if: needs.prepare.outputs.skip == 'false'
@@ -87,6 +94,10 @@ jobs:
           path: candidate
           fetch-depth: 0
           persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: codex-review-input-${{ github.run_id }}-${{ github.run_attempt }}
+          path: review-input
       # Last step: no project installation/execution, writes, network tools or
       # write-capable GitHub token in the model job. Credentials stay in the proxy.
       - name: Review exact head with Codex exec
@@ -97,7 +108,7 @@ jobs:
           sandbox: read-only
           safety-strategy: drop-sudo
           effort: medium
-          prompt: ${{ needs.prepare.outputs.prompt }}
+          prompt-file: review-input/codex-prompt.md
           codex-args: '["--ephemeral", "--cd", "candidate", "--output-schema", "${{ github.workspace }}/trusted/.github/codex/review.schema.json", "-c", "project_doc_max_bytes=0", "-c", "shell_environment_policy.inherit=\"none\""]'
   publish:
     needs: [prepare, review]
@@ -116,7 +127,7 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: "24"
-      - name: Publish review and reply without API credentials
+      - name: Publish review and reply without OpenAI credentials
         run: node scripts/codex/review-github.mjs publish
         env:
           GH_TOKEN: ${{ github.token }}

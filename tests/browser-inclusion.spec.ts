@@ -4,6 +4,62 @@ import { openAdventurePanels, openCityMenu } from "./game-ui-helpers";
 import { UI_TRANSLATIONS } from "../shared/ui-language";
 import { LANGUAGES } from "../shared/inclusion";
 
+test("walking follows a panned camera with keyboard and screen buttons", async ({
+  page,
+  context,
+}) => {
+  await createAccount(context.request, "Camera explorer");
+  await page.setViewportSize({ width: 600, height: 900 });
+  await page.goto("/");
+  const canvas = page.locator("canvas");
+  await expect(canvas).toHaveAttribute("data-avatar-ready", "true", {
+    timeout: 60000,
+  });
+  async function frame(): Promise<{ x: number; z: number; alpha: number }> {
+    return JSON.parse((await canvas.getAttribute("data-movement-frame"))!);
+  }
+  const initial = await frame();
+  const size = page.viewportSize()!;
+  // Real pointer orbit, with no direct camera mutation.
+  for (let swipe = 0; swipe < 4; swipe++) {
+    await page.mouse.move(size.width * 0.65, size.height * 0.48);
+    await page.mouse.down();
+    await page.mouse.move(size.width * 0.25, size.height * 0.48, { steps: 10 });
+    await page.mouse.up();
+    await page.waitForTimeout(700);
+    if (Math.abs((await frame()).alpha - initial.alpha) > 0.65) break;
+  }
+  await expect
+    .poll(async () => Math.abs((await frame()).alpha - initial.alpha))
+    .toBeGreaterThan(0.65);
+  await page.waitForTimeout(1000);
+  for (const input of ["keyboard", "button"] as const) {
+    const before = await frame();
+    if (input === "keyboard") await page.keyboard.down("w");
+    else {
+      const bounds = await page
+        .getByRole("button", { name: "Walk Up", exact: true })
+        .boundingBox();
+      await page.mouse.move(
+        bounds!.x + bounds!.width / 2,
+        bounds!.y + bounds!.height / 2,
+      );
+      await page.mouse.down();
+    }
+    await page.waitForTimeout(450);
+    if (input === "keyboard") await page.keyboard.up("w");
+    else await page.mouse.up();
+    const after = await frame();
+    const dx = after.x - before.x,
+      dz = after.z - before.z;
+    const distance = Math.hypot(dx, dz);
+    expect(distance).toBeGreaterThan(0.15);
+    const alignment =
+      (dx * -Math.cos(before.alpha) + dz * -Math.sin(before.alpha)) / distance;
+    expect(alignment).toBeGreaterThan(0.9);
+  }
+});
+
 test("city graphics persist and accessibility settings do not obstruct the city menu", async ({
   page,
   context,
@@ -206,6 +262,29 @@ test("voice navigation, version-pinned translations and public offline readings 
   await page
     .getByRole("button", { name: "Access & language", exact: true })
     .click();
+  // Opening accessibility settings pauses the timed game. Resume explicitly
+  // before checking the separate answer/submit/confirm sequence.
+  await expect
+    .poll(
+      async () =>
+        (
+          await (
+            await context.request.get("/api/learning/amamihe-number-garden")
+          ).json()
+        ).game.status,
+    )
+    .toBe("paused");
+  await command("start");
+  await expect
+    .poll(
+      async () =>
+        (
+          await (
+            await context.request.get("/api/learning/amamihe-number-garden")
+          ).json()
+        ).game.status,
+    )
+    .toBe("active");
   await command("answer 2");
   await command("submit answer");
   const after = await (await context.request.get("/api/account/export")).json();

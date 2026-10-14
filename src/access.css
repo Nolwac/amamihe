@@ -1,7 +1,7 @@
 .access-launcher {
   position: fixed;
   inset-inline-end: 14px;
-  bottom: 14px;
+  bottom: max(76px, calc(env(safe-area-inset-bottom) + 76px));
   z-index: 450;
   padding: 10px 14px;
   border: 1px solid #ffd678;
@@ -19,7 +19,7 @@
 }
 .narration-player {
   position: fixed;
-  bottom: 64px;
+  bottom: max(130px, calc(env(safe-area-inset-bottom) + 130px));
   inset-inline-end: 14px;
   z-index: 650;
   width: min(310px, calc(100vw - 28px));
@@ -199,7 +199,6 @@ html[data-access-motion="true"] * {
 @media (max-width: 600px) {
   .access-launcher {
     font-size: 12px;
-    bottom: max(8px, env(safe-area-inset-bottom));
   }
   .access-panel {
     padding: 16px;
