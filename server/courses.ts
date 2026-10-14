@@ -916,6 +916,15 @@ export function registerCourses(
     async (req) => {
       const p = await player(req);
       const body = object(req.body);
+      const { translations: _variants, ...source } = object(body.definition);
+      if (
+        Buffer.byteLength(JSON.stringify({ ...body, definition: source })) >
+        262144
+      )
+        throw new CourseError(
+          "The authored source lesson exceeds its size limit.",
+          413,
+        );
       const definition = draftDefinition(body.definition);
       return db.transaction(async (tx) => {
         const row = await ownedDraft(tx, param(req), p.id, true);

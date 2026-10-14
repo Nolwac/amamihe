@@ -2,7 +2,9 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import Fastify from "fastify";
 import cookie from "@fastify/cookie";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { openDatabase } from "../server/db.js";
@@ -284,6 +286,30 @@ test("installed CPU narrator generates a bounded MP3 with only actual supported 
   );
   assert.ok(mp3.byteLength > 1000 && mp3.byteLength < 1_500_000);
   assert.ok(mp3.subarray(0, 3).toString() === "ID3" || mp3[0] === 0xff);
+  const directory = await mkdtemp(path.join(tmpdir(), "amamihe-native-audio-"));
+  try {
+    const input = path.join(directory, "speech.mp3");
+    await writeFile(input, mp3);
+    const decoded = await promisify(execFile)(
+      process.env.FFMPEG_BIN || "ffmpeg",
+      ["-v", "error", "-i", input, "-ac", "1", "-f", "s16le", "pipe:1"],
+      {
+        encoding: "buffer",
+        timeout: 5000,
+        maxBuffer: 1_000_000,
+        env: { PATH: process.env.PATH },
+      },
+    );
+    let peak = 0;
+    for (let i = 0; i + 1 < decoded.stdout.length; i += 2)
+      peak = Math.max(peak, Math.abs(decoded.stdout.readInt16LE(i)));
+    assert.ok(
+      decoded.stdout.length > 16000 && peak > 100,
+      "Native narration must decode to actual non-silent audio.",
+    );
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
   await assert.rejects(provider.synthesize("Hello", "en", Infinity));
   await assert.rejects(provider.synthesize("x".repeat(8001), "en", 1));
 });

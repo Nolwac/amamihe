@@ -129,6 +129,22 @@ test("voice navigation, version-pinned translations and public offline readings 
   await expect(
     page.getByLabel("Practice explanation", { exact: true }),
   ).toHaveValue("My own counting explanation");
+  await page
+    .getByRole("button", { name: "Access & language", exact: true })
+    .click();
+  await command("untimed");
+  await command("start");
+  await expect
+    .poll(
+      async () =>
+        (
+          await (
+            await context.request.get("/api/learning/amamihe-number-garden")
+          ).json()
+        ).game.status,
+    )
+    .toBe("active");
+  await page.keyboard.press("Escape");
   const before = await (
     await context.request.get("/api/account/export")
   ).json();
@@ -139,6 +155,28 @@ test("voice navigation, version-pinned translations and public offline readings 
   await command("submit answer");
   const after = await (await context.request.get("/api/account/export")).json();
   expect(after.data.course_chunks).toEqual(before.data.course_chunks);
+  await expect(page.locator(".access-feedback")).toContainText(
+    "Confirm before submitting",
+  );
+  await command("answer 1");
+  await command("confirm");
+  expect(
+    (await (await context.request.get("/api/account/export")).json()).data
+      .course_chunks,
+  ).toEqual(before.data.course_chunks);
+  await command("submit answer");
+  const submitted = page.waitForResponse(
+    (r) =>
+      r.url().endsWith("/api/learning/amamihe-number-garden/answer") &&
+      r.request().method() === "POST",
+  );
+  await command("confirm");
+  expect((await submitted).ok()).toBe(true);
+  const recorded = (
+    await (await context.request.get("/api/account/export")).json()
+  ).data.course_chunks;
+  expect(recorded.length).toBe(before.data.course_chunks.length + 1);
+  expect(recorded.at(-1).assisted).toBe(false);
   const keys = await page.evaluate(async () =>
     (
       await Promise.all(

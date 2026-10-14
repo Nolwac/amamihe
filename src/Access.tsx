@@ -376,7 +376,14 @@ function AccessControls() {
       handled: false,
       respond: (text, lang) => {
         last.current = text;
-        announce(text, lang, spoken);
+        announce(
+          text,
+          lang,
+          spoken ||
+            ["read", "where", "nearby", "next", "previous"].includes(
+              command.kind,
+            ),
+        );
       },
     };
     for (const handler of [...commandHandlers].sort(
