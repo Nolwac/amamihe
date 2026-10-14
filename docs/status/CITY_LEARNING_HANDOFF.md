@@ -2,7 +2,7 @@
 
 ## All-branch reconciliation — 14 October 2026
 
-The desktop audit found that production correctly served `8d039bc51c8c6fb32281ce93b64c23817b2fb7fd`, but PR #6 at `c2a30b01a11280ff31fa48e5b49d57c7e5b0a635` was still outside `main`. The user requires every remote branch to be reconciled before claiming all changes are deployed. Integration is in progress; the branch's final [CI run](https://github.com/Nolwac/amamihe/actions/runs/38537105792) passed 136 Node checks and all 36 real-model browser journeys, with one optional external-PostgreSQL skip.
+The desktop audit found that production correctly served `8d039bc51c8c6fb32281ce93b64c23817b2fb7fd`, but PR #6 at `c2a30b01a11280ff31fa48e5b49d57c7e5b0a635` was still outside `main`. The user requires every remote branch to be reconciled before claiming all changes are deployed. Integration is complete in `b3fc38e`, followed by reconciliation of the superseded deployment history in `38bfc33`. Every audited remote head is now an ancestor of the combined source. The branch's final [CI run](https://github.com/Nolwac/amamihe/actions/runs/38537105792) passed 136 Node checks and all 36 real-model browser journeys, with one optional external-PostgreSQL skip.
 
 The combined source preserves the production recovery: two-thread owned model startup, exact readiness and release checks, packaged cold-inference verification, archive integrity and retained rollback packages, and the 30-minute public deployment wait. The independently preserved model manifests are byte-identical. Integration uses the bounded manifest read and both provenance test suites; their checks still reject altered bytes before network access or destination creation. The current recovery handoff remains intact.
 
@@ -10,17 +10,19 @@ GitHub production approval now enumerates every published branch and requires ea
 
 | Remote branch | Audited head | Reconciliation |
 | --- | --- | --- |
-| `feat/learning-city-experiences` | `c2a30b0` | Integrating playable missions, characters, course houses and police transport. |
+| `feat/learning-city-experiences` | `c2a30b0` | Merged playable missions, characters, course houses and police transport in `b3fc38e`. |
 | `feat/local-tev1-decisions` | `fb1d7e3` | Already an ancestor of `main`; actual local inference is deployed. |
 | `fix/physical-adventure-audio` | `abc3a7f` | Already an ancestor of `main`. |
 | `fix/immersive-learning-recovery` | `abb352a` | Already an ancestor of `main`. |
 | `fix/mobile-controls-kids-world` | `c5ca880` | Already an ancestor of `main`. |
-| `deploy/contabo` | `59ae13e` | Superseded proposal; reconcile its history while retaining the installed, tested pipeline. |
+| `deploy/contabo` | `59ae13e` | Superseded proposal; history merged in `38bfc33` while retaining the installed, tested pipeline. |
 | `deploy/verified-main` | `8d039bc` | CI approval pointer; advance only through successful main verification. |
 
 The older Contabo proposal downloads GitHub artifacts after a fully successful workflow and introduces a dedicated Cloudflare Tunnel. Current production instead uses a VPS-only read-only SSH key, an approval reference published before public verification, bounded local builds, the reviewed release validator and a systemd timer. The pre-public approval avoids a circular wait for deployment acceptance. Existing Caddy and Cloudflare already provide isolated public HTTPS, certificate renewal, HTTP restriction and HSTS. Build-context restrictions and non-root runtime protection also exist in the current Dockerfile. Reapplying the obsolete transport/tunnel would replace a working system without adding an unmet requirement. Record that branch as superseded rather than restore its old runtime implementation.
 
 After the combined source passes CI, promote it through the normal approved-reference pipeline and require matching live server/client revision, PostgreSQL, the exact ready model, all five maintained children's courses and actual desktop/phone browser acceptance. Keep credentials, existing accounts/progress and unrelated VPS services intact. Until that acceptance completes, the deployed revision above remains the live baseline. Historical implementation observations below are retained as dated evidence.
+
+The combined source passes local build/typechecking, formatting with Windows line-ending handling, 28 focused asset/gameplay/provenance checks and both Python integrity checks. A fresh private database backup passed archive validation before the additive avatar migration; record counts, deployment state and existing container start times were also preserved for post-promotion comparison. The public checker now verifies the exact hashes of all new character/portrait/resident/officer assets and the two physical puzzle types without creating accounts or submitting learner work. The matching main [workflow run](https://github.com/Nolwac/amamihe/actions/workflows/checks.yml?query=branch%3Amain) records complete regression results, packaged cold inference, branch reconciliation, release approval and exact public desktop/phone acceptance; its production evidence artifact records the accepted revision. Do not interpret the earlier branch-only CI or the historical “not deployed” notes below as that final acceptance.
 
 ## Work started — 14 October 2026
 
