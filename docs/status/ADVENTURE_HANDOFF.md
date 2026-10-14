@@ -1,6 +1,6 @@
 # Adventure and Audio Implementation Handoff
 
-Current continuation: [Local tev1 decisions and deployment handoff](TEV1_HANDOFF.md) records the merged model integration, final regression results and unresolved VPS promotion/access blocker. The adventure results below remain a historical milestone.
+Current implementation: [Learning city and playable lessons](CITY_LEARNING_HANDOFF.md) records the next city, police, character and learning-game improvements. [Local tev1 decisions and deployment handoff](TEV1_HANDOFF.md) records the preceding model integration and unresolved VPS promotion/access blocker. The adventure results below remain a historical milestone.
 
 ## Implemented
 

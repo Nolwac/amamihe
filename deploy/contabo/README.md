@@ -1,5 +1,7 @@
 # Live Contabo deployment
 
+Production approval now checks every published GitHub branch against the verified `main` revision. A branch with commits outside that history blocks approval until its work is integrated or its superseded history is explicitly reconciled. Before claiming all changes are deployed, refresh the branch inventory again and require every head to be an ancestor of current `main`, a successful matching workflow and exact public server/client acceptance. Open work must be stated explicitly; a successful deployment of `main` alone is insufficient evidence that all branch changes are live.
+
 Game: https://amamihe.online. The app and PostgreSQL run in the isolated `amamihe` Compose project. The app binds only `127.0.0.1:13001`; the database publishes no host port. Existing Caddy serves this hostname with DNS-validated automatic certificates. Cloudflare proxies the apex A record, uses Full (Strict), and redirects HTTP to HTTPS. Caddy adds HSTS; direct-origin HTTP receives the existing terminal HTTPS-required response.
 
 Installation: `/home/agents/amamihe-deploy/{bin,source,releases,shared}`. The shared directory is outside Git, mode 0700. Database credentials, the private PostgreSQL CA, and a read-only GitHub SSH deploy key stay there. The existing Cloudflare credential stays in its original private Caddy environment file. No production secret is required in GitHub Actions.

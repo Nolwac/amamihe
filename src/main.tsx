@@ -35,6 +35,13 @@ const ReviewDesk = lazy(() => import("./ReviewDesk"));
 const WardrobeShop = lazy(() => import("./WardrobeShop"));
 const CourseScene = lazy(() => import("./CourseScene"));
 import type { CourseSummary, PublishedCourse } from "../shared/course";
+import { characterId, type CharacterId } from "../shared/avatars";
+import {
+  CITY_DISTRICT_SIZE,
+  cityHouses,
+  cityExtent,
+  CITY_STATION,
+} from "../shared/city-layout";
 import { STORYTELLING_COURSE_ID, KIDS_COURSES } from "../shared/catalogue";
 import "./courses.css";
 import { AccountGate, AccountControls, type Player } from "./AccountGate";
@@ -152,6 +159,11 @@ function App() {
   const [pilot, setPilot] = useState<PublishedCourse | null>(null);
   const [pilotError, setPilotError] = useState("");
   const [courses, setCourses] = useState<CourseSummary[]>([]);
+  const [cityCourses, setCityCourses] = useState<CourseSummary[]>([]);
+  const [cityOffset, setCityOffset] = useState(0);
+  const [cityTotal, setCityTotal] = useState(0);
+  const [cityDestination, setCityDestination] = useState<string | null>(null);
+  const [avatar, setAvatar] = useState<CharacterId>("amani");
   const [childrenOnly, setChildrenOnly] = useState(false);
   const [catalogueOffset, setCatalogueOffset] = useState(0);
   const [catalogueTotal, setCatalogueTotal] = useState(0);
@@ -192,7 +204,25 @@ function App() {
   useEffect(() => {
     let alive = true;
     api<{ courses: CourseSummary[]; total: number }>(
-      `/courses?limit=4&offset=${catalogueOffset}${childrenOnly ? "&audience=kids" : ""}`,
+      `/courses?limit=${CITY_DISTRICT_SIZE}&offset=${cityOffset}`,
+    )
+      .then((data) => {
+        if (alive) {
+          setCityCourses(data.courses);
+          setCityTotal(data.total);
+        }
+      })
+      .catch((e) => {
+        if (alive) setError(e.message);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [cityOffset, catalogueRevision]);
+  useEffect(() => {
+    let alive = true;
+    api<{ courses: CourseSummary[]; total: number }>(
+      `/courses?limit=8&offset=${catalogueOffset}${childrenOnly ? "&audience=kids" : ""}`,
     )
       .then((data) => {
         if (alive) {
@@ -274,6 +304,13 @@ function App() {
       alive = false;
     };
   }, [house]);
+  const mapHouses = cityHouses([
+    { id: STORYTELLING_COURSE_ID, title: "Model Makers" },
+    ...cityCourses,
+  ]);
+  const mapBounds = cityExtent(mapHouses);
+  const mapScale = 100 / (mapBounds.maxZ - mapBounds.minZ);
+  const mapZ = (z: number) => 110 - (z - mapBounds.minZ) * mapScale;
   const publishedHouse =
     house === "MODEL MAKERS" && pilot
       ? {
@@ -286,12 +323,15 @@ function App() {
         }
       : portalDoor && house === "course:" + portalDoor.id
         ? portalDoor
-        : courses.find((course) => house === "course:" + course.id);
+        : [...cityCourses, ...courses].find(
+            (course) => house === "course:" + course.id,
+          );
   const refreshPoints = () =>
     api<{ player: Player }>("/session")
       .then((s) => {
         setPlayer(s.player);
         setOutfit(s.player.outfit);
+        setAvatar(characterId(s.player.avatar));
       })
       .catch((e) => setError(e.message));
   useEffect(() => {
@@ -303,7 +343,10 @@ function App() {
       .then((d) => {
         setPlayer(d.player);
         setResult(d.result);
-        if (d.player) setOutfit(d.player.outfit);
+        if (d.player) {
+          setOutfit(d.player.outfit);
+          setAvatar(characterId(d.player.avatar));
+        }
         if (d.active) {
           setAttempt(d.active);
           setIndex(d.active.answered);
@@ -485,51 +528,47 @@ function App() {
               <svg viewBox="0 0 120 120" aria-hidden="true">
                 <defs>
                   <clipPath id="map-clip">
-                    <circle cx="60" cy="60" r="55" />
+                    <rect x="5" y="5" width="110" height="110" rx="12" />
                   </clipPath>
                 </defs>
                 <g clipPath="url(#map-clip)">
                   <rect width="120" height="120" fill="#657a71" />
                   <path
-                    d="M55-10v140M-10 77h140"
+                    d="M48-10v140M-10 50h140"
                     stroke="#aa9c7d"
                     strokeWidth="21"
                   />
                   <path
-                    d="M55-10v140M-10 77h140"
+                    d="M48-10v140M-10 50h140"
                     stroke="#d4bfa1"
                     strokeWidth="12"
                   />
-                  {[
-                    [22, 64, 18, 26, "#bb7050"],
-                    [80, 55, 20, 27, "#667f92"],
-                    [39, 23, 30, 23, "#37877d"],
-                    [15, 22, 18, 29, "#cea357"],
-                    [85, 23, 19, 24, "#915e69"],
-                  ].map(([x, y, w, h, c], i) => (
+                  {mapHouses.map((h) => (
                     <rect
-                      key={i}
-                      x={x}
-                      y={y}
-                      width={w}
-                      height={h}
+                      key={h.id}
+                      x={60 + (h.x - h.width / 2) * 3}
+                      y={mapZ(h.z + 4)}
+                      width={h.width * 3}
+                      height={8 * mapScale}
                       rx="2"
-                      fill={String(c)}
+                      fill="#37877d"
                       stroke="#ddcbb3"
-                      strokeWidth="1"
-                    />
+                    >
+                      <title>{h.title}</title>
+                    </rect>
                   ))}
-                  {[
-                    [12, 90],
-                    [92, 92],
-                    [14, 10],
-                    [100, 40],
-                    [80, 14],
-                  ].map(([cx, cy], i) => (
-                    <circle key={i} cx={cx} cy={cy} r="7" fill="#3c6854" />
-                  ))}
+                  <rect
+                    x={60 + (CITY_STATION.x - 5) * 3}
+                    y={mapZ(CITY_STATION.z + 6)}
+                    width="30"
+                    height={12 * mapScale}
+                    rx="2"
+                    fill="#315b86"
+                  >
+                    <title>Learning Police station</title>
+                  </rect>
                   <g
-                    transform={`translate(${55 + stats.x * 3},${98 - (stats.z + 5) * 3}) rotate(${(stats.heading * 180) / Math.PI})`}
+                    transform={`translate(${60 + stats.x * 3},${mapZ(stats.z)}) rotate(${(stats.heading * 180) / Math.PI})`}
                   >
                     <path
                       d="M0-7 5 6 0 3-5 6Z"
@@ -571,7 +610,7 @@ function App() {
         <div className="player-chip" data-hud-obstacle="profile">
           <img
             className="mini-avatar"
-            src="/assets/explorer-portrait.png"
+            src={`/assets/character-${avatar}-portrait.png`}
             alt="Your explorer avatar"
           />
           <div>
@@ -662,12 +701,23 @@ function App() {
               }
             >
               <World
-                key={courses
+                key={cityCourses
                   .map((course) => course.id + ":" + course.version)
                   .join("|")}
                 enforcementStatus={policy.state?.status}
                 detentionId={policy.state?.detentionId}
-                courses={courses.map(({ id, title }) => ({ id, title }))}
+                courses={cityCourses.map(({ id, title }) => ({ id, title }))}
+                avatar={avatar}
+                destination={cityDestination}
+                onNavigationEnd={(id, arrived) => {
+                  setCityDestination(null);
+                  if (arrived && id !== "police-station")
+                    setHouse(
+                      id === STORYTELLING_COURSE_ID
+                        ? "MODEL MAKERS"
+                        : "course:" + id,
+                    );
+                }}
                 paused={Boolean(
                   player &&
                   (house ||
@@ -730,6 +780,57 @@ function App() {
               )}
             </div>
           </FloatingControl>
+          {player && !courseId && !studio && (
+            <FloatingControl id="city-block" label="city districts">
+              <details className="city-district-control">
+                <summary aria-label="City districts">⌂</summary>
+                <nav aria-label="City course districts">
+                  <p>
+                    Block {Math.floor(cityOffset / CITY_DISTRICT_SIZE) + 1} ·{" "}
+                    {cityTotal} published houses
+                  </p>
+                  <button
+                    disabled={
+                      cityOffset === 0 || policy.state?.status === "arrested"
+                    }
+                    onClick={() =>
+                      setCityOffset(
+                        Math.max(0, cityOffset - CITY_DISTRICT_SIZE),
+                      )
+                    }
+                  >
+                    Previous city block
+                  </button>
+                  <button
+                    disabled={
+                      cityOffset + CITY_DISTRICT_SIZE >= cityTotal ||
+                      policy.state?.status === "arrested"
+                    }
+                    onClick={() =>
+                      setCityOffset(cityOffset + CITY_DISTRICT_SIZE)
+                    }
+                  >
+                    Next city block
+                  </button>
+                  <button
+                    disabled={policy.state?.status === "arrested"}
+                    onClick={() => setCityDestination("police-station")}
+                  >
+                    Walk to Learning Police station
+                  </button>
+                  {cityCourses.map((c) => (
+                    <button
+                      key={c.id}
+                      disabled={policy.state?.status === "arrested"}
+                      onClick={() => setCityDestination(c.id)}
+                    >
+                      Walk to {c.title}
+                    </button>
+                  ))}
+                </nav>
+              </details>
+            </FloatingControl>
+          )}
           <FloatingControl id="status" label="rendering status">
             <div className="scene-bottom">
               <span>
@@ -1035,7 +1136,7 @@ function App() {
               className="course-secondary"
               disabled={catalogueOffset === 0}
               onClick={() =>
-                setCatalogueOffset(Math.max(0, catalogueOffset - 4))
+                setCatalogueOffset(Math.max(0, catalogueOffset - 8))
               }
             >
               Previous district
@@ -1043,12 +1144,12 @@ function App() {
             <span>
               {catalogueTotal === 0
                 ? "0 houses"
-                : `${catalogueOffset + 1}–${Math.min(catalogueOffset + 4, catalogueTotal)} of ${catalogueTotal} houses`}
+                : `${catalogueOffset + 1}–${Math.min(catalogueOffset + 8, catalogueTotal)} of ${catalogueTotal} houses`}
             </span>
             <button
               className="course-secondary"
-              disabled={catalogueOffset + 4 >= catalogueTotal}
-              onClick={() => setCatalogueOffset(catalogueOffset + 4)}
+              disabled={catalogueOffset + 8 >= catalogueTotal}
+              onClick={() => setCatalogueOffset(catalogueOffset + 8)}
             >
               Next district
             </button>
@@ -1184,6 +1285,7 @@ function App() {
             courseId={courseId}
             playerId={player.id}
             outfit={outfit}
+            avatar={avatar}
             peers={social.joined ? social.state.presence : []}
             onClose={() => {
               localStorage.removeItem("amamihe-active-course:" + player.id);
@@ -1237,6 +1339,8 @@ function App() {
           <AccountGate
             loading={loading}
             outfit={outfit}
+            avatar={avatar}
+            onAvatar={setAvatar}
             onOutfit={setOutfit}
             onAuthenticated={() => window.location.reload()}
           />

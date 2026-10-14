@@ -23,9 +23,11 @@ class ModelManifestIntegrity(unittest.TestCase):
         for tampered in (raw + b"\n", raw.replace(b"811843424", b"811843425")):
             with self.subTest(), tempfile.TemporaryDirectory() as temporary:
                 destination = Path(temporary) / "models"
-                with patch.object(Path, "read_bytes", return_value=tampered), \
+                script = Path(temporary) / "pull-tev1.py"
+                script.with_name("tev1-0.8b.manifest").write_bytes(tampered)
+                with patch.object(download, "__file__", str(script)), \
                         patch.object(download.urllib.request, "urlopen") as network:
-                    with self.assertRaisesRegex(ValueError, "verified release"):
+                    with self.assertRaisesRegex(ValueError, "reviewed tev1 manifest changed"):
                         download.pull(destination)
                     network.assert_not_called()
                     self.assertFalse(destination.exists())

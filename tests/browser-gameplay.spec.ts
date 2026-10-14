@@ -6,7 +6,7 @@ test("playable themes, step Game Over, badge and cosmetic purchase survive reloa
   page,
   context,
 }) => {
-  test.setTimeout(180000);
+  test.setTimeout(300000);
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
   await page.setViewportSize({ width: 1440, height: 900 });
@@ -142,9 +142,16 @@ test("playable themes, step Game Over, badge and cosmetic purchase survive reloa
     await page
       .getByRole("button", { name: q.options[q.answer], exact: false })
       .click();
+    const assessment = page.waitForResponse(
+      (response) =>
+        response.url().endsWith(`/api/learning/${draft.id}/answer`) &&
+        response.request().method() === "POST",
+      { timeout: 90000 },
+    );
     await page
       .getByRole("button", { name: "Submit task", exact: true })
       .click();
+    expect((await assessment).ok()).toBe(true);
     if (i < 3)
       await page
         .getByRole("button", { name: "Continue adventure", exact: true })

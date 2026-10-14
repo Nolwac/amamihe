@@ -1,0 +1,415 @@
+{
+  "checkedAt": "2026-10-14T03:36:01.993508+00:00",
+  "branch": "feat/learning-city-experiences",
+  "baseCommit": "433311a3c19f0c0a78f9093e7d60fd572b61b1d8",
+  "sourceSnapshotSha256": "7fd46d171a36bbd9ab257983c4f19a35fb79b97f7be4b81f57579274889dccbe",
+  "buildAndTypecheck": "passed",
+  "formatCheck": "passed",
+  "node": {
+    "total": 134,
+    "passed": 133,
+    "failed": 0,
+    "skipped": 1,
+    "skip": "Optional external PostgreSQL integration without a disposable TEST_DATABASE_URL."
+  },
+  "browser": {
+    "uniqueJourneys": 36,
+    "journeysWithPassingResults": 36,
+    "method": "Initial full suite plus final focused reruns. Historical failures remain recorded, not relabeled.",
+    "runs": [
+      {
+        "run": "initial full suite",
+        "stats": {
+          "startTime": "2026-10-14T02:30:10.458Z",
+          "duration": 658743.478,
+          "expected": 35,
+          "skipped": 0,
+          "unexpected": 1,
+          "flaky": 0
+        },
+        "cases": [
+          {
+            "title": "all adventure themes animate real limb poses and task-driven scene encounters",
+            "passed": true
+          },
+          {
+            "title": "manual actions queued before pause cannot leak into the resumed run",
+            "passed": true
+          },
+          {
+            "title": "phone manual controls cause actual jump, obstacle Game Over and a checkpoint-preserving retry",
+            "passed": true
+          },
+          {
+            "title": "authentication gates gameplay and password/email-code login restores the same progress",
+            "passed": true
+          },
+          {
+            "title": "billboard submission stays pending and the world renders a bounded approved-list fixture",
+            "passed": true
+          },
+          {
+            "title": "free character selection persists through verification, wardrobe changes, and course entry",
+            "passed": false
+          },
+          {
+            "title": "every publication gets a district house and a learner can walk to a distant course entrance",
+            "passed": true
+          },
+          {
+            "title": "world bridge controls preserve unfinished work and verified construction on return",
+            "passed": true
+          },
+          {
+            "title": "evaluation checks WCAG controls and private local reports at 390px",
+            "passed": true
+          },
+          {
+            "title": "evaluation checks WCAG controls and private local reports at 1440px",
+            "passed": true
+          },
+          {
+            "title": "playable themes, step Game Over, badge and cosmetic purchase survive reload",
+            "passed": true
+          },
+          {
+            "title": "phone adventure restores the paused draft and exposes world study and practice through collapsed icons",
+            "passed": true
+          },
+          {
+            "title": "phone controls do not overlap, touch dragging persists, panels fit, and reset and rotation recover",
+            "passed": true
+          },
+          {
+            "title": "Fraction Bridge publishes an age-specific 3D world and completes four challenges",
+            "passed": true
+          },
+          {
+            "title": "Circuit Rescue publishes an age-specific 3D world and completes four challenges",
+            "passed": true
+          },
+          {
+            "title": "Number Garden publishes an age-specific 3D world and completes four challenges",
+            "passed": true
+          },
+          {
+            "title": "Story Trail publishes an age-specific 3D world and completes four challenges",
+            "passed": true
+          },
+          {
+            "title": "Pattern Racers publishes an age-specific 3D world and completes four challenges",
+            "passed": true
+          },
+          {
+            "title": "Model Makers enters the published six-level pilot, saves practice and a notebook, and resumes to completion",
+            "passed": true
+          },
+          {
+            "title": "phone Model Makers entrance opens the actual pilot rather than the foundations checkpoint",
+            "passed": true
+          },
+          {
+            "title": "3D search portals preview a published doorstep and preserve enrollment on return",
+            "passed": true
+          },
+          {
+            "title": "isolated practice runs, stops runaway code, records drawings and keeps game progress",
+            "passed": true
+          },
+          {
+            "title": "art cache recovers interrupted/offline downloads without caching private data",
+            "passed": true
+          },
+          {
+            "title": "authored recall encounters resume, mark help, and keep early practice separate from scheduled recall",
+            "passed": true
+          },
+          {
+            "title": "two browsers share real 3D avatars, course rooms and a consented team battle without granting mastery",
+            "passed": true
+          },
+          {
+            "title": "tutor publishes an authored 3D course and a separate learner resumes and clears its versioned checkpoints",
+            "passed": true
+          },
+          {
+            "title": "mobile studio supports keyboard editing, theme preview, and actionable publication errors without horizontal overflow",
+            "passed": true
+          },
+          {
+            "title": "drafts remain owner-only, stale edits conflict, and public versions exclude grading fields",
+            "passed": true
+          },
+          {
+            "title": "authored server practice check ignores client output and freezes its receipt",
+            "passed": true
+          },
+          {
+            "title": "Learning Police NPC and protected breaks work without changing progress",
+            "passed": true
+          },
+          {
+            "title": "detention controls expose a free course release and an auditable appeal",
+            "passed": true
+          },
+          {
+            "title": "3D browser journey: verified account, recorded chunks, clearance, classification, persistence and idempotency",
+            "passed": true
+          },
+          {
+            "title": "mobile browser and touch controls, assistance tracking, and incomplete boundary rejection",
+            "passed": true
+          },
+          {
+            "title": "player isolation and cross-origin mutation guard",
+            "passed": true
+          },
+          {
+            "title": "in-progress responses survive a browser refresh",
+            "passed": true
+          },
+          {
+            "title": "rigged avatars load and the HUD remains aligned at desktop, tablet, and phone widths",
+            "passed": true
+          }
+        ]
+      },
+      {
+        "run": "final rendering and affected flows",
+        "stats": {
+          "startTime": "2026-10-14T02:58:10.364Z",
+          "duration": 204024.627,
+          "expected": 7,
+          "skipped": 0,
+          "unexpected": 1,
+          "flaky": 0
+        },
+        "cases": [
+          {
+            "title": "all adventure themes animate real limb poses and task-driven scene encounters",
+            "passed": true
+          },
+          {
+            "title": "free character selection persists through verification, wardrobe changes, and course entry",
+            "passed": true
+          },
+          {
+            "title": "every publication gets a district house and a learner can walk to a distant course entrance",
+            "passed": true
+          },
+          {
+            "title": "world bridge controls preserve unfinished work and verified construction on return",
+            "passed": true
+          },
+          {
+            "title": "Fraction Bridge publishes an age-specific 3D world and completes four challenges",
+            "passed": true
+          },
+          {
+            "title": "Circuit Rescue publishes an age-specific 3D world and completes four challenges",
+            "passed": true
+          },
+          {
+            "title": "Learning Police NPC and protected breaks work without changing progress",
+            "passed": true
+          },
+          {
+            "title": "detention controls expose a free course release and an auditable appeal",
+            "passed": false
+          }
+        ]
+      },
+      {
+        "run": "final police arrival and release",
+        "stats": {
+          "startTime": "2026-10-14T03:19:45.579Z",
+          "duration": 57004.706000000006,
+          "expected": 1,
+          "skipped": 0,
+          "unexpected": 0,
+          "flaky": 0
+        },
+        "cases": [
+          {
+            "title": "detention controls expose a free course release and an auditable appeal",
+            "passed": true
+          }
+        ]
+      },
+      {
+        "run": "final bridge capture",
+        "stats": {
+          "startTime": "2026-10-14T03:09:51.193Z",
+          "duration": 28271.478000000003,
+          "expected": 1,
+          "skipped": 0,
+          "unexpected": 0,
+          "flaky": 0
+        },
+        "cases": [
+          {
+            "title": "world bridge controls preserve unfinished work and verified construction on return",
+            "passed": true
+          }
+        ]
+      },
+      {
+        "run": "Rebuilt connected necks in profile and full police rendering",
+        "stats": {
+          "startTime": "2026-10-14T03:32:22.239Z",
+          "duration": 71800.856,
+          "expected": 2,
+          "skipped": 0,
+          "unexpected": 0,
+          "flaky": 0
+        },
+        "cases": [
+          {
+            "title": "free character selection persists through verification, wardrobe changes, and course entry",
+            "passed": true
+          },
+          {
+            "title": "detention controls expose a free course release and an auditable appeal",
+            "passed": true
+          }
+        ]
+      }
+    ]
+  },
+  "rendering": {
+    "browser": "Chromium with software WebGL",
+    "viewports": [
+      "1280x720 desktop",
+      "390x844 emulated phone"
+    ],
+    "physicalDeviceTested": false
+  },
+  "screenshots": [
+    {
+      "path": "evidence/screenshots/city-learning-fraction-bridge.png",
+      "capture": "Actual browser scene; original PNG, no image edits."
+    },
+    {
+      "path": "evidence/screenshots/city-learning-uniformed-officer.png",
+      "capture": "Actual browser scene; original PNG, no image edits."
+    },
+    {
+      "path": "evidence/screenshots/city-learning-police-transport.png",
+      "capture": "Actual browser scene; original PNG, no image edits."
+    },
+    {
+      "path": "evidence/screenshots/city-learning-station-cell.png",
+      "capture": "Actual browser scene; original PNG, no image edits."
+    }
+  ],
+  "productionDeploymentVerified": false,
+  "assetChecks": {
+    "passed": 20,
+    "failed": 0,
+    "scope": "Rebuilt character weights, rig bounds, provenance, walking/transport clips and retained adventure avatar contract."
+  },
+  "implementationCommit": "f8c1846324702933371399d4d9abf3c354162296",
+  "pullRequest": "https://github.com/Nolwac/amamihe/pull/6",
+  "modelArtifact": {
+    "manifestPath": "scripts/models/tev1-0.8b.manifest",
+    "manifestSha256": "8d11b3146b7f3f4f4d5e9a64665ab2bdaf8b46e4ec42a5880b60a716ae50e3fb",
+    "provenance": "Exact upstream manifest bytes retained from the previously verified local model store; unchanged expected release digest.",
+    "download": "All six official immutable blobs freshly downloaded; exact SHA256, sizes and original model capabilities verified.",
+    "inference": "Isolated Ollama 0.40.3 daemon using the fresh model store; actual classification and level/category/question decisions passed.",
+    "focusedTests": {
+      "total": 8,
+      "passed": 8,
+      "failed": 0,
+      "skipped": 0
+    },
+    "formatTypecheckPythonSyntax": "passed",
+    "remotePreFixRun": "https://github.com/Nolwac/amamihe/actions/runs/38507730471",
+    "remotePreFixResult": "All four shards stopped before tests because the upstream mutable model tag changed; checksum guard correctly rejected it.",
+    "remoteFollowUp": "Rerun CI from the PR head with the reviewed manifest; local verification does not establish remote success."
+  },
+  "timingFollowUp": {
+    "checkedAt": "2026-10-14T08:29:30.272000+00:00",
+    "remoteRun": "https://github.com/Nolwac/amamihe/actions/runs/38533350185",
+    "remoteCommit": "ca811256e5ced535d626db3fc40fdf3971509e53",
+    "remoteNode": {
+      "total": 136,
+      "passed": 135,
+      "failed": 0,
+      "skipped": 1
+    },
+    "remoteBrowser": {
+      "total": 36,
+      "passed": 33,
+      "failed": 3
+    },
+    "diagnosis": [
+      "Police transport consumed at most 0.25 seconds per rendered frame, slowing its approach on a roughly 1 FPS software renderer.",
+      "Character enrollment and final badge checks used five-second assertions before actual CPU inference requests had completed; recorded UI remained pending."
+    ],
+    "correction": "Bounded elapsed-time transport with small movement steps; wait for real enrollment/assessment HTTP responses before UI assertions.",
+    "localTransportTests": {
+      "total": 5,
+      "passed": 5,
+      "failed": 0,
+      "frameRates": [
+        1,
+        3,
+        10,
+        60
+      ]
+    },
+    "localBrowserSetupAttempt": "Two tests could not connect to the stopped disposable API. Restarted with fresh disposable data and verified API/model readiness before rerunning.",
+    "localBrowser": [
+      {
+        "journey": "free character selection persists through verification, wardrobe changes, and course entry",
+        "result": "passed",
+        "durationSeconds": 14.2
+      },
+      {
+        "journey": "detention controls expose a free course release and an auditable appeal",
+        "result": "passed",
+        "durationSeconds": 37.9
+      },
+      {
+        "journey": "playable themes, step Game Over, badge and cosmetic purchase survive reload",
+        "result": "passed",
+        "duration": "about one minute"
+      }
+    ],
+    "buildTypecheckFormatDiff": "passed",
+    "remoteFollowUp": "Inspect the latest PR-head workflow; local corrections do not relabel the earlier remote failures."
+  },
+  "renderObservationFollowUp": {
+    "remoteRun": "https://github.com/Nolwac/amamihe/actions/runs/38535540467",
+    "remoteCommit": "24f9d3ccd521b61aa244455d927b5c529196b387",
+    "remoteNode": {
+      "total": 137,
+      "passed": 136,
+      "failed": 0,
+      "skipped": 1
+    },
+    "remotePassingBrowserShards": [
+      1,
+      3
+    ],
+    "policeObservationFailure": "Expected transient transport phase after waiting for an earlier screenshot; actual scene had already reached detained.",
+    "correction": "Observe actual restrained and seated transport phases at 100 ms polling intervals before image readback; capture the stable detention endpoint.",
+    "assertionsRetained": [
+      "skeletal gait",
+      "actual uniform materials",
+      "restrained phase",
+      "seated learner and officer",
+      "station interior",
+      "canonical cell position",
+      "appeal",
+      "free release course"
+    ],
+    "localBrowser": {
+      "total": 1,
+      "passed": 1,
+      "failed": 0,
+      "durationSeconds": 37.0
+    },
+    "remoteFollowUp": "Require the latest PR-head workflow to pass; this records the earlier failure without relabeling it."
+  }
+}

@@ -197,9 +197,23 @@ for (const { id, definition } of kidsCourses())
         .locator(".adventure-header-actions")
         .getByRole("button", { name: /Start section|Resume section/ });
       if (await play.isVisible()) await play.click();
-      await page
-        .getByRole("button", { name: q.options[q.answer], exact: false })
-        .click();
+      if (q.worldTask?.kind === "fraction-bridge") {
+        for (let i = 0; i < q.answer + 1; i++)
+          await page
+            .getByRole("button", { name: "Add 1/8 beam", exact: true })
+            .click();
+      } else if (q.worldTask?.kind === "circuit") {
+        for (const i of [0, 1])
+          if (q.worldTask.initial[i] !== Boolean(q.answer & (1 << i)))
+            await page
+              .getByRole("button", {
+                name: new RegExp(`Relay ${i === 0 ? "A" : "B"}:`),
+              })
+              .click();
+      } else
+        await page
+          .getByRole("button", { name: q.options[q.answer], exact: false })
+          .click();
       const before = progress.completedLevelIds.length;
       const answered = page.waitForResponse((r) =>
         r.url().endsWith(`/api/learning/${id}/answer`),
@@ -211,7 +225,10 @@ for (const { id, definition } of kidsCourses())
       expect(response.ok()).toBe(true);
       progress = await response.json();
       count++;
-      if (!progress.finished && progress.completedLevelIds.length > before) {
+      if (
+        !progress.finished &&
+        (q.worldTask || progress.completedLevelIds.length > before)
+      ) {
         await page
           .getByRole("button", { name: "Continue adventure", exact: true })
           .click();
@@ -222,4 +239,36 @@ for (const { id, definition } of kidsCourses())
     expect(progress.points).toBe(20);
     expect(errors).toEqual([]);
     await page.screenshot({ path: `test-results/${id}-completed.png` });
+    if (progress.worldAchievement) {
+      await page
+        .getByRole("button", { name: "Return to city", exact: true })
+        .click();
+      await page.reload();
+      await openCityMenu(page);
+      await page
+        .getByRole("button", { name: "Children’s games", exact: true })
+        .click();
+      await page
+        .getByRole("button", {
+          name: "Resume " + definition.title,
+          exact: true,
+        })
+        .click();
+      await expect(canvas).toHaveAttribute("data-avatar-ready", "true", {
+        timeout: 30000,
+      });
+      await expect(canvas).toHaveAttribute(
+        "data-world-task",
+        progress.worldAchievement.evidence.kind,
+      );
+      await expect(canvas).toHaveAttribute(
+        "data-world-evidence",
+        JSON.stringify(progress.worldAchievement.evidence),
+      );
+      const restored: LearningProgress = await (
+        await context.request.get(`/api/learning/${id}`)
+      ).json();
+      expect(restored.points).toBe(20);
+      expect(restored.worldAchievement).toEqual(progress.worldAchievement);
+    }
   });

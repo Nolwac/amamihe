@@ -134,6 +134,20 @@ jobs:
         run: |
           main=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq '.object.sha')
           if [ "$main" != "$GITHUB_SHA" ]; then exit 0; fi
+          branches=$(gh api --paginate "repos/$GITHUB_REPOSITORY/branches?per_page=100" \
+            --jq '.[] | [.name, .commit.sha] | @tsv')
+          test -n "$branches"
+          while IFS=$'\t' read -r branch head; do
+            [[ $head =~ ^[0-9a-f]{40}$ ]]
+            relation=$(gh api "repos/$GITHUB_REPOSITORY/compare/$head...$GITHUB_SHA" --jq '.status')
+            case "$relation" in
+              identical|ahead) printf 'Reconciled branch: %s (%s)\n' "$branch" "$head" ;;
+              *) printf '::error::Branch %s has commits outside the verified main revision\n' "$branch"; exit 1 ;;
+            esac
+          done <<< "$branches"
+          # Recheck after the audit: approval must still target current main.
+          main=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq '.object.sha')
+          if [ "$main" != "$GITHUB_SHA" ]; then exit 0; fi
           if gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/deploy/verified-main" >/dev/null 2>&1; then
             gh api --method PATCH "repos/$GITHUB_REPOSITORY/git/refs/heads/deploy/verified-main" \
               -f sha="$GITHUB_SHA" -F force=true

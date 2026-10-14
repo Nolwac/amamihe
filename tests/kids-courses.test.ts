@@ -24,7 +24,7 @@ test("children's worlds publish idempotently and complete independently without 
     await publishKidsCourses(db);
     assert.equal(
       (await db.query("SELECT * FROM course_versions")).rows.length,
-      3,
+      kidsCourses().length,
     );
     let message = "";
     const auth = new Authentication(
@@ -51,7 +51,7 @@ test("children's worlds publish idempotently and complete independently without 
     const childCatalogue = (
       await app.inject("/api/courses?audience=kids")
     ).json();
-    assert.equal(childCatalogue.total, 3);
+    assert.equal(childCatalogue.total, kidsCourses().length);
     assert.ok(
       childCatalogue.courses.every((c: { id: string }) =>
         kidsCourses().some((k) => k.id === c.id),
@@ -92,12 +92,74 @@ test("children's worlds publish idempotently and complete independently without 
           questionId: p.question!.id,
           assist: true,
         });
+        if (q.worldTask) {
+          const rejected = await app.inject({
+            method: "POST",
+            url: `/api/learning/${id}/answer`,
+            headers: { cookie: `amamihe=${session.token}` },
+            payload: {
+              questionId: p.question!.id,
+              answer: q.answer,
+              elapsedMs: 1000,
+            },
+          });
+          assert.equal(
+            rejected.statusCode,
+            400,
+            "A plain option cannot submit a physical learning challenge.",
+          );
+          const incompatible = await app.inject({
+            method: "POST",
+            url: `/api/learning/${id}/answer`,
+            headers: { cookie: `amamihe=${session.token}` },
+            payload: {
+              questionId: p.question!.id,
+              answer: q.answer,
+              elapsedMs: 1000,
+              worldEvidence: {
+                kind: "circuit",
+                switches: [false, false],
+                pieces: [8],
+              },
+            },
+          });
+          assert.equal(incompatible.statusCode, 400);
+        }
         p = await post(`/api/learning/${id}/answer`, {
           questionId: p.question!.id,
           answer: q.answer,
+          ...(q.worldTask
+            ? {
+                worldEvidence:
+                  q.worldTask.kind === "fraction-bridge"
+                    ? {
+                        kind: "fraction-bridge",
+                        pieces: Array(q.answer + 1).fill(1),
+                      }
+                    : {
+                        kind: "circuit",
+                        switches: [
+                          Boolean(q.answer & 1),
+                          Boolean(q.answer & 2),
+                        ],
+                      },
+              }
+            : {}),
           elapsedMs: 1000,
         });
         answers++;
+      }
+      if (definition.levels[0].questions[0].worldTask) {
+        assert.ok(p.worldAchievement?.question.worldTask);
+        assert.equal("answer" in p.worldAchievement!.question, false);
+        const rows = (
+          await db.query(
+            "SELECT world_evidence FROM course_chunks WHERE course_id=$1 ORDER BY created_at",
+            [id],
+          )
+        ).rows;
+        assert.equal(rows.length, 4);
+        assert.ok(rows.every((row) => row.world_evidence));
       }
       assert.equal(p.finished, true);
       assert.equal(answers, 4);

@@ -797,7 +797,9 @@ export default function TutorStudio({
     setDirty(false);
     return saved;
   };
-  const create = (template: "blank" | "storytelling") => {
+  const create = (
+    template: "blank" | "storytelling" | "fraction-bridge" | "circuit-rescue",
+  ) => {
     if (!canLeave()) return;
     void perform(async () => {
       const created = await request<CourseDraft>("", "POST", { template });
@@ -1150,6 +1152,12 @@ export default function TutorStudio({
             <div className="studio-starter-art">
               ✦<span>1M</span>
             </div>
+            <button disabled={busy} onClick={() => create("fraction-bridge")}>
+              Start Fraction Bridge ↗
+            </button>
+            <button disabled={busy} onClick={() => create("circuit-rescue")}>
+              Start Circuit Rescue ↗
+            </button>
             <h3>Build a small storytelling model</h3>
             <p>
               A tutor-authored path from text preparation to training and

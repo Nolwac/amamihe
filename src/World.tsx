@@ -1,4 +1,18 @@
 import { createSoftBox } from "./softGeometry";
+import { character, characterAsset, type CharacterId } from "../shared/avatars";
+import {
+  cityHouses,
+  cityPath,
+  walkCity,
+  CITY_STATION,
+} from "../shared/city-layout";
+import { STORYTELLING_COURSE_ID } from "../shared/catalogue";
+import { createPoliceScene } from "./policeScene";
+import {
+  createPoliceTransport,
+  advancePoliceTransport,
+  type PoliceTransport,
+} from "../shared/police-transport";
 import { configureCameraControls } from "./cameraControls";
 import { createBillboards } from "./billboards";
 import { gameAudio } from "./gameAudio";
@@ -42,8 +56,11 @@ type Props = {
   enforcementStatus?: string;
   detentionId?: string;
   outfit: string;
+  avatar?: CharacterId;
   quality: string;
   courses?: { id: string; title: string }[];
+  destination?: string | null;
+  onNavigationEnd?: (id: string, arrived: boolean) => void;
   onHouse: (name: string) => void;
   onReady: (stats: {
     fps: number;
@@ -64,8 +81,11 @@ export default function World({
   enforcementStatus,
   detentionId,
   outfit,
+  avatar = "amani",
   quality,
   courses = [],
+  destination,
+  onNavigationEnd,
   onHouse,
   onReady,
   onAdvertisement,
@@ -77,6 +97,8 @@ export default function World({
     statsCb = useRef(onReady),
     pausedRef = useRef(paused);
   const enforcement = useRef({ status: enforcementStatus, id: detentionId });
+  const navigation = useRef({ destination, onNavigationEnd });
+  navigation.current = { destination, onNavigationEnd };
   enforcement.current = { status: enforcementStatus, id: detentionId };
   const ads = useBillboards();
   const adRef = useRef(ads);
@@ -92,6 +114,10 @@ export default function World({
   useEffect(() => {
     let disposed = false;
     let release = () => {};
+    const houses = cityHouses([
+      { id: STORYTELLING_COURSE_ID, title: "Build a Small Language Model" },
+      ...courses,
+    ]);
     // Room changes must not depend on rendering: a directory can pause the
     // city as soon as it mounts after a learner leaves a course.
     if (mode === "world")
@@ -105,8 +131,10 @@ export default function World({
     canvas.current!.dataset.sceneQuality = quality;
     canvas.current!.dataset.geometryStyle = "soft-bevels";
     canvas.current!.dataset.courseHouses = JSON.stringify(
-      courses.map((course) => course.id),
+      houses.map((course) => course.id),
     );
+    canvas.current!.dataset.character = avatar;
+    canvas.current!.dataset.cityHouseLocations = JSON.stringify(houses);
     canvas.current!.dataset.avatarReady = "false";
     canvas.current!.dataset.avatarAnimation = "Loading";
     canvas.current!.dataset.avatarBones = "0";
@@ -517,9 +545,9 @@ export default function World({
       }
       if (mode === "world") {
         box("land", 0, -0.3, 20, 130, 0.6, 160, mat("ground", "#b7ac78"));
-        box("street-foundation", 0, 0.015, 25, 12, 0.1, 100, stone);
-        box("sidewalk-left", -8.2, 0.12, 25, 4.4, 0.25, 100, stone);
-        box("sidewalk-right", 8.2, 0.12, 25, 4.4, 0.25, 100, stone);
+        box("street-foundation", 0, 0.015, 25, 12, 0.1, 140, stone);
+        box("sidewalk-left", -8.2, 0.12, 25, 4.4, 0.25, 140, stone);
+        box("sidewalk-right", 8.2, 0.12, 25, 4.4, 0.25, 140, stone);
         const pavingTexture = new Texture(asset("world/limestone.webp"), scene);
         pavingTexture.uScale = 6;
         pavingTexture.vScale = 50;
@@ -529,7 +557,7 @@ export default function World({
         path.diffuseColor = Color3.White();
         const pavement = MeshBuilder.CreateGround(
           "limestone-street",
-          { width: 12, height: 100 },
+          { width: 12, height: 140 },
           scene,
         );
         pavement.position.set(0, 0.073, 25);
@@ -860,69 +888,25 @@ export default function World({
             }
           }
         }
-        await building(
-          "ModelMakers",
-          1,
-          15,
-          10.5,
-          12,
-          teal,
-          "MODEL MAKERS",
-          ["Build a Small", "Language Model"],
-          "Enter Course  →",
-        );
-        await building(
-          "Design",
-          -8.7,
-          4,
-          7,
-          9,
-          clay,
-          courses[0] ? "course:" + courses[0].id : "DESIGN STUDIO",
-          courses[0]
-            ? [courses[0].title.slice(0, 22), courses[0].title.slice(22, 44)]
-            : ["Creative", "Design"],
-          courses[0] ? "Enter Course →" : "Turn ideas into impact",
-        );
-        await building(
-          "Code",
-          9,
-          6,
-          7,
-          10,
-          stone,
-          courses[1] ? "course:" + courses[1].id : "CODE WORKSHOP",
-          courses[1]
-            ? [courses[1].title.slice(0, 22), courses[1].title.slice(22, 44)]
-            : ["Data", "Skills"],
-          courses[1] ? "Enter Course →" : "Analyze · solve · create",
-        );
-        await building(
-          "Ideas",
-          -10,
-          20,
-          7,
-          12,
-          ochre,
-          courses[2] ? "course:" + courses[2].id : "IDEA LAB",
-          courses[2]
-            ? [courses[2].title.slice(0, 22), courses[2].title.slice(22, 44)]
-            : ["IDEA LAB"],
-          courses[2] ? "Enter Course →" : "IMAGINE • CREATE",
-        );
-        await building(
-          "Energy",
-          11,
-          24,
-          7,
-          10,
-          clay,
-          courses[3] ? "course:" + courses[3].id : "CLEAN ENERGY",
-          courses[3]
-            ? [courses[3].title.slice(0, 22), courses[3].title.slice(22, 44)]
-            : ["CLEAN ENERGY"],
-          courses[3] ? "Enter Course →" : "BUILD A BETTER WORLD",
-        );
+        for (const house of houses) {
+          const title =
+            house.title.length > 24
+              ? [house.title.slice(0, 24), house.title.slice(24, 48)]
+              : [house.title];
+          await building(
+            house.pilot ? "ModelMakers" : "house-" + house.id,
+            house.x,
+            house.z,
+            house.width,
+            house.pilot ? 12 : 9,
+            house.pilot
+              ? teal
+              : [clay, stone, ochre][houses.indexOf(house) % 3],
+            house.pilot ? "MODEL MAKERS" : "course:" + house.id,
+            title,
+            "Enter Course →",
+          );
+        }
         if (disposed) return;
         function foliage(
           name: string,
@@ -1171,19 +1155,24 @@ export default function World({
       const residents: { root: TransformNode; animations: AnimationGroup[] }[] =
         [];
       let moving = false;
-      function animate(groups: AnimationGroup[], walking: boolean) {
-        groups.forEach((g) => g.stop());
+      const playing = new WeakMap<AnimationGroup[], AnimationGroup>();
+      function animate(groups: AnimationGroup[], walking: boolean | string) {
+        const name =
+          typeof walking === "string" ? walking : walking ? "Walk" : "Idle";
         const selected = groups.find((g) =>
-          g.name.toLowerCase().includes(walking ? "walk" : "idle"),
+          g.name.toLowerCase().endsWith(name.toLowerCase()),
         );
-        selected?.start(true, 1);
+        if (selected && playing.get(groups) !== selected) {
+          playing.get(groups)?.stop();
+          selected.start(true, 1);
+          playing.set(groups, selected);
+        }
         if (selected?.name.startsWith("explorer-"))
           canvas.current?.setAttribute("data-avatar-animation", selected.name);
+        if (selected?.name.startsWith("learning-police-"))
+          canvas.current?.setAttribute("data-police-animation", selected.name);
       }
-      LoadAssetContainerAsync(
-        asset(quality === "low" ? "explorer-low.glb" : "explorer.glb"),
-        scene,
-      )
+      LoadAssetContainerAsync(characterAsset(avatar), scene)
         .then(async (container) => {
           if (disposed) {
             container.dispose();
@@ -1234,13 +1223,19 @@ export default function World({
               for (const m of mats)
                 if (m instanceof PBRMaterial) {
                   m.environmentIntensity = 0.55;
-                  if (m.name.includes("Explorer_Jacket")) {
+                  if (
+                    m.name.includes("Explorer_Jacket") &&
+                    id !== "learning-police"
+                  ) {
                     m.albedoColor = Color3.FromHexString(
                       backpack ? "#ffffff" : color,
                     );
                     m.albedoTexture = backpack ? playerFabric : fabricTexture;
                   }
-                  if (m.name.includes("Explorer_Trousers"))
+                  if (
+                    m.name.includes("Explorer_Trousers") &&
+                    id !== "learning-police"
+                  )
                     m.albedoColor = Color3.FromHexString(
                       backpack ? "#bb873b" : "#315c54",
                     );
@@ -1299,86 +1294,107 @@ export default function World({
                   : outfit === "gold"
                     ? "#ffd273"
                     : "#ffa783",
-            1.65,
+            character(avatar).height,
             true,
           );
           avatarLoaded = true;
           if (mode === "world") {
-            const explorerResident =
-              quality === "low"
-                ? await LoadAssetContainerAsync(
-                    asset("explorer-resident-low.glb"),
-                    scene,
-                  )
-                : container;
+            const officerAsset = await LoadAssetContainerAsync(
+              "/assets/character-officer.glb",
+              scene,
+            );
             if (disposed) {
-              if (explorerResident !== container) explorerResident.dispose();
+              officerAsset.dispose();
               return;
             }
-            for (const [i, x, z, heading, color] of [
-              [0, -3.4, -2.1, 0.9, "#316eb1"],
-              [3, 1.8, 10, Math.PI, "#f1d3a3"],
+            const officerRoot = new TransformNode(
+              "learning-police-officer",
+              scene,
+            );
+            officerRoot.position.set(-3.4, 0, -2.1);
+            residents.push({
+              root: officerRoot,
+              animations: create(
+                "learning-police",
+                officerRoot,
+                "#193c57",
+                1.7,
+                false,
+                officerAsset,
+              ),
+            });
+            canvas.current!.dataset.policeMaterials = JSON.stringify(
+              officerRoot
+                .getChildMeshes()
+                .map((mesh) => {
+                  const material = mesh.material;
+                  return material instanceof PBRMaterial
+                    ? {
+                        name: material.name,
+                        color: material.albedoColor.asArray(),
+                        texture: Boolean(material.albedoTexture),
+                      }
+                    : material instanceof StandardMaterial
+                      ? {
+                          name: material.name,
+                          color: material.diffuseColor.asArray(),
+                          texture: Boolean(material.diffuseTexture),
+                        }
+                      : null;
+                })
+                .filter(Boolean),
+            );
+            const badgeLabel = label(
+              "learning-police",
+              0,
+              3.3,
+              0,
+              1.8,
+              0.4,
+              ["LEARNING POLICE"],
+              "#19374d",
+            );
+            badgeLabel.parent = officerRoot;
+            badgeLabel.billboardMode = Mesh.BILLBOARDMODE_ALL;
+            canvas.current?.setAttribute("data-police-ready", "true");
+            canvas.current?.setAttribute(
+              "data-police-uniform",
+              "navy-cap-badge-belt",
+            );
+            scene.onDisposeObservable.addOnce(() => officerAsset.dispose());
+            for (const [id, x, z, heading] of [
+              ["kofi", -2.6, -1.2, -0.9],
+              ["nia", 3.8, 4.6, 2.7],
+              ["tayo", 1.8, 10, Math.PI],
             ] as const) {
-              const root = new TransformNode("resident-" + i, scene);
+              const source = await LoadAssetContainerAsync(
+                `/assets/character-${id}-resident.glb`,
+                scene,
+              );
+              if (disposed) {
+                source.dispose();
+                return;
+              }
+              const root = new TransformNode("resident-" + id, scene);
               root.position.set(x, 0, z);
               root.rotation.y = heading;
               const animations = create(
-                "resident-" + i,
+                "resident-" + id,
                 root,
-                color,
-                i % 2 ? 1.56 : 1.6,
+                id === "nia" ? "#b76544" : "#e3d0a1",
+                character(id).height,
                 false,
-                explorerResident,
+                source,
               );
               residents.push({ root, animations });
-              if (i === 0) {
-                label(
-                  "learning-police",
-                  x,
-                  3.3,
-                  z,
-                  1.8,
-                  0.4,
-                  ["LEARNING POLICE"],
-                  "#19374d",
-                );
-                canvas.current?.setAttribute("data-police-ready", "true");
-              }
               contact(x, z, 0.45);
+              scene.onDisposeObservable.addOnce(() => source.dispose());
             }
-            LoadAssetContainerAsync(
-              asset(quality === "low" ? "resident-low.glb" : "resident.glb"),
-              scene,
-            )
-              .then((residentAsset) => {
-                if (disposed) {
-                  residentAsset.dispose();
-                  return;
-                }
-                for (const [i, x, z, heading, color] of [
-                  [1, -2.6, -1.2, -0.9, "#f0d6ad"],
-                  [2, 3.8, 4.6, 2.7, "#b76544"],
-                ] as const) {
-                  const root = new TransformNode("resident-" + i, scene);
-                  root.position.set(x, 0, z);
-                  root.rotation.y = heading;
-                  const animations = create(
-                    "resident-" + i,
-                    root,
-                    color,
-                    i === 1 ? 1.68 : 1.58,
-                    false,
-                    residentAsset,
-                  );
-                  residents.push({ root, animations });
-                  contact(x, z, 0.45);
-                }
-                canvas.current?.setAttribute("data-residents-ready", "true");
-                shadowMap.resetRefreshCounter();
-              })
-              .catch((err) => {
-                if (!disposed) console.error("Unable to load residents", err);
-              });
+            canvas.current?.setAttribute("data-residents-ready", "true");
+            canvas.current?.setAttribute(
+              "data-resident-characters",
+              JSON.stringify(["kofi", "nia", "tayo"]),
+            );
           }
           shadowMap.resetRefreshCounter();
         })
@@ -1543,13 +1559,13 @@ export default function World({
         }
         m.freeze();
       }
-      let arrestKey: string | undefined,
-        arrestTime = 0;
-      let arrestOrigin: Vector3 | undefined;
+      let arrestKey: string | undefined;
+      let transport: PoliceTransport | undefined;
+      const police = mode === "world" ? createPoliceScene(scene) : undefined;
       const cuffs = [-1, 1].map((side) => {
         const cuff = MeshBuilder.CreateTorus(
           "learner-restraint-" + side,
-          { diameter: 0.16, thickness: 0.03, tessellation: 12 },
+          { diameter: 0.16, thickness: 0.03, tessellation: 16 },
           scene,
         );
         cuff.parent = player.root;
@@ -1557,24 +1573,13 @@ export default function World({
         cuff.rotation.x = Math.PI / 2;
         cuff.material = mat("restraint-metal-" + side, "#a8c0cf");
         cuff.setEnabled(false);
+        cuff.isPickable = false;
         return cuff;
       });
-      const releaseArea = new TransformNode(
-        "learning-police-release-area",
-        scene,
-      );
-      for (let i = 0; i < 6; i++) {
-        const bar = MeshBuilder.CreateCylinder(
-          "release-area-bar-" + i,
-          { diameter: 0.06, height: 2.7, tessellation: 8 },
-          scene,
-        );
-        bar.position.set(-4.3 + i * 0.45, 1.35, -6.8);
-        bar.parent = releaseArea;
-        bar.material = mat("release-bar-metal-" + i, "#48697c");
-      }
-      releaseArea.setEnabled(false);
+      let attachedCuffs = false;
       const keys = new Set<string>();
+      let destinationKey: string | null | undefined;
+      let cityRoute: { x: number; z: number }[] = [];
       const updateWalking = () => {
         const horizontal =
           Number(keys.has("d") || keys.has("arrowright")) -
@@ -1598,6 +1603,15 @@ export default function World({
           e.target instanceof HTMLSelectElement
         )
           return;
+        if (
+          cityRoute.length &&
+          /^(w|a|s|d|arrowup|arrowdown|arrowleft|arrowright)$/i.test(e.key)
+        ) {
+          cityRoute = [];
+          if (destinationKey)
+            navigation.current.onNavigationEnd?.(destinationKey, false);
+          destinationKey = null;
+        }
         keys.add(e.key.toLowerCase());
         updateWalking();
         if (e.key.startsWith("Arrow")) e.preventDefault();
@@ -1649,73 +1663,137 @@ export default function World({
           audioSceneActive = true;
         }
         if (quality === "low" && now - last < 100) return;
-        const dt = Math.min((now - last) / 1000, 0.1);
+        const frameElapsed = last ? Math.max(0, (now - last) / 1000) : 0;
+        const dt = Math.min(frameElapsed, 0.25);
         last = now;
-        if (arrested && avatarReady && residents[0]) {
+        if (arrested && avatarReady && residents[0] && police) {
           const officer = residents[0];
-          if (arrestKey !== enforcement.current.id) {
+          if (!transport || arrestKey !== enforcement.current.id) {
             arrestKey = enforcement.current.id;
-            arrestTime = 0;
-            arrestOrigin = player.root.position.clone();
+            transport = createPoliceTransport(player.root.position);
+            try {
+              const saved = JSON.parse(
+                sessionStorage.getItem(
+                  "amamihe-detention-scene:" + arrestKey,
+                ) || "null",
+              );
+              if (saved?.phase === "detained")
+                transport = {
+                  ...transport,
+                  phase: "detained",
+                  learner: { ...CITY_STATION.cell },
+                  officer: {
+                    x: CITY_STATION.cell.x - 0.75,
+                    z: CITY_STATION.z + 2,
+                  },
+                  vehicle: { ...CITY_STATION.parking },
+                  cuffs: true,
+                  learnerPose: "restrained",
+                  officerPose: "idle",
+                  officerSeated: false,
+                  enteredStation: true,
+                };
+            } catch {
+              /* Presentation storage is optional; server detention remains authoritative. */
+            }
             keys.clear();
           }
-          arrestTime += dt;
-          const origin = arrestOrigin!,
-            destination = new Vector3(-3.2, 0, -8);
-          if (arrestTime < 2.5) {
-            const target = origin.add(new Vector3(-0.85, 0, 0));
-            officer.root.position = Vector3.Lerp(
-              officer.root.position,
-              target,
-              Math.min(1, dt * 2),
-            );
-            officer.root.rotation.y = Math.atan2(
-              origin.x - officer.root.position.x,
-              origin.z - officer.root.position.z,
-            );
-            animate(officer.animations, true);
-          } else if (arrestTime < 4) {
-            animate(officer.animations, false);
-            animate(player.animations, false);
-          } else {
-            const t = Math.min(1, (arrestTime - 4) / 4);
-            const smooth = t * t * (3 - 2 * t);
-            player.root.position = Vector3.Lerp(origin, destination, smooth);
-            officer.root.position = player.root.position.add(
-              new Vector3(-0.85, 0, 0),
-            );
-            const heading = Math.atan2(
-              destination.x - origin.x,
-              destination.z - origin.z,
-            );
-            player.root.rotation.y = heading;
-            officer.root.rotation.y = heading;
-            animate(player.animations, t < 1);
-            animate(officer.animations, t < 1);
+          const previous = transport!.phase;
+          transport = advancePoliceTransport(transport!, frameElapsed, houses);
+          police.update(transport);
+          player.root.position.copyFrom(
+            transport.learnerSeated
+              ? police.seat(false)
+              : new Vector3(transport.learner.x, 0, transport.learner.z),
+          );
+          officer.root.position.copyFrom(
+            transport.officerSeated
+              ? police.seat(true)
+              : new Vector3(transport.officer.x, 0, transport.officer.z),
+          );
+          player.root.rotation.y = transport.learnerSeated
+            ? transport.heading
+            : transport.learnerHeading;
+          officer.root.rotation.y = transport.officerSeated
+            ? transport.heading
+            : transport.officerHeading;
+          const clip = (pose: string) =>
+            pose === "walk-restrained"
+              ? "WalkRestrained"
+              : pose[0].toUpperCase() + pose.slice(1);
+          animate(player.animations, clip(transport.learnerPose));
+          animate(officer.animations, clip(transport.officerPose));
+          if (!attachedCuffs) {
+            const hands = player.root
+              .getChildTransformNodes()
+              .filter((n) => /mixamorig:(Left|Right)Hand$/.test(n.name));
+            if (hands.length === 2) {
+              cuffs.forEach((c, i) => {
+                c.parent = hands[i];
+                c.scaling.setAll(65);
+                c.position.set(0, 1, 0);
+              });
+              attachedCuffs = true;
+            }
           }
-          cuffs.forEach((c) => c.setEnabled(arrestTime >= 2.5));
-          releaseArea.setEnabled(arrestTime >= 4);
-          canvas.current!.dataset.arrestPhase =
-            arrestTime < 2.5
-              ? "approach"
-              : arrestTime < 4
-                ? "restrained"
-                : arrestTime < 8
-                  ? "escort"
-                  : "detained";
+          cuffs.forEach((c) => c.setEnabled(transport!.cuffs));
+          if (previous !== transport.phase)
+            try {
+              sessionStorage.setItem(
+                "amamihe-detention-scene:" + arrestKey,
+                JSON.stringify({ phase: transport.phase }),
+              );
+            } catch {
+              /* Optional device storage. */
+            }
+          canvas.current!.dataset.arrestPhase = transport.phase;
           canvas.current!.dataset.arrestActors = JSON.stringify({
             learner: player.root.position.asArray(),
             officer: officer.root.position.asArray(),
-            cuffs: arrestTime >= 2.5,
+            cuffs: transport.cuffs,
+            learnerSeated: transport.learnerSeated,
+            officerSeated: transport.officerSeated,
+            officerClip: playing.get(officer.animations)?.name,
+            officerBones: officer.root
+              .getChildTransformNodes()
+              .filter((n) =>
+                /mixamorig:(LeftLeg|RightLeg|LeftFoot)$/.test(n.name),
+              )
+              .map((n) => ({
+                name: n.name,
+                matrix: Array.from(n.computeWorldMatrix(true).asArray()),
+              })),
           });
+          if (
+            transport.phase === "transport" ||
+            transport.phase === "boarding"
+          ) {
+            camera.radius = 12;
+            camera.beta = 1.15;
+          }
+          if (transport.phase === "detained") {
+            camera.alpha = Math.PI / 2 - 0.16;
+            camera.beta = 1.15;
+            camera.radius = 6.5;
+          }
         } else if (arrestKey) {
           cuffs.forEach((c) => c.setEnabled(false));
-          releaseArea.setEnabled(false);
           animate(player.animations, false);
           animate(residents[0].animations, false);
-          if (arrestOrigin) player.root.position.copyFrom(arrestOrigin);
+          player.root.position.set(
+            CITY_STATION.door.x,
+            0,
+            CITY_STATION.door.z + 1,
+          );
           residents[0].root.position.set(-3.4, 0, -2.1);
+          try {
+            sessionStorage.removeItem("amamihe-detention-scene:" + arrestKey);
+          } catch {
+            /* Optional device storage. */
+          }
           arrestKey = undefined;
+          transport = undefined;
+          police?.update(undefined);
           canvas.current!.dataset.arrestPhase = "released";
         }
         let dx = 0,
@@ -1724,36 +1802,77 @@ export default function World({
         if (keys.has("s") || keys.has("arrowdown")) dz -= 1;
         if (keys.has("a") || keys.has("arrowleft")) dx -= 1;
         if (keys.has("d") || keys.has("arrowright")) dx += 1;
+        if (!arrested && mode === "world" && avatarReady) {
+          if (destinationKey !== navigation.current.destination) {
+            destinationKey = navigation.current.destination;
+            const h = houses.find((h) => h.id === destinationKey);
+            const target =
+              destinationKey === "police-station"
+                ? { x: CITY_STATION.door.x, z: CITY_STATION.door.z + 1 }
+                : h
+                  ? { x: h.x, z: h.z - 5 }
+                  : undefined;
+            cityRoute = target
+              ? cityPath(player.root.position, target, houses)
+              : [];
+            if (destinationKey && !cityRoute.length)
+              navigation.current.onNavigationEnd?.(destinationKey, false);
+          }
+          if (cityRoute.length) {
+            const point = cityRoute[0],
+              distance = Math.hypot(
+                point.x - player.root.position.x,
+                point.z - player.root.position.z,
+              );
+            if (distance < 0.15) {
+              cityRoute.shift();
+              if (!cityRoute.length && destinationKey)
+                navigation.current.onNavigationEnd?.(destinationKey, true);
+            } else {
+              dx = (point.x - player.root.position.x) / distance;
+              dz = (point.z - player.root.position.z) / distance;
+            }
+          }
+          canvas.current!.dataset.cityNavigation = JSON.stringify({
+            destination: destinationKey,
+            remaining: cityRoute.length,
+          });
+        }
         if (arrested) {
           dx = 0;
           dz = 0;
         }
         if (dx || dz) {
-          if (mode === "world") player.root.position.x += dx * dt * 3;
-          if (mode === "world") player.root.position.z += dz * dt * 3;
+          if (mode === "world") {
+            const length = Math.hypot(dx, dz);
+            const next = walkCity(
+              player.root.position,
+              {
+                x: player.root.position.x + (dx / length) * dt * 3,
+                z: player.root.position.z + (dz / length) * dt * 3,
+              },
+              houses,
+            );
+            player.root.position.x = next.x;
+            player.root.position.z = next.z;
+          }
           if (mode === "world") player.root.rotation.y = Math.atan2(dx, dz);
         }
         const shouldMove =
           mode === "world" &&
-          (arrested ? arrestTime >= 4 && arrestTime < 8 : Boolean(dx || dz));
+          (arrested
+            ? transport?.learnerPose === "walk-restrained"
+            : Boolean(dx || dz));
         if (mode === "world")
           gameAudio.setMovement({
             active: shouldMove,
             speed: shouldMove ? 3 : 0,
             theme: "city",
           });
-        if (shouldMove !== moving && avatarReady) {
+        if (!arrested && shouldMove !== moving && avatarReady) {
           moving = shouldMove;
           animate(player.animations, moving);
         }
-        player.root.position.x = Math.max(
-          -4.8,
-          Math.min(4.8, player.root.position.x),
-        );
-        player.root.position.z = Math.max(
-          -11,
-          Math.min(10, player.root.position.z),
-        );
         camera.target.copyFrom(
           player.root.position.add(
             mode === "avatar"
@@ -1762,7 +1881,10 @@ export default function World({
                   smallScreen ? 0.58 : 1.53,
                   0,
                 )
-              : new Vector3(0, smallScreen ? 2.45 : 2.65, 1.5),
+              : transport?.phase === "detained" ||
+                  transport?.phase === "securing"
+                ? new Vector3(0, 1.7, 0)
+                : new Vector3(0, smallScreen ? 2.45 : 2.65, 1.5),
           ),
         );
         contactDisc.position.set(
@@ -1847,19 +1969,19 @@ export default function World({
             engine.getRenderHeight(),
           );
           const gate = Vector3.Project(
-            new Vector3(1, 4.45, 10.3),
+            new Vector3(2.5, 4.45, 10.3),
             Matrix.Identity(),
             scene.getTransformMatrix(),
             viewport,
           );
           const gateLeft = Vector3.Project(
-            new Vector3(-1.5, 4.45, 10.3),
+            new Vector3(0, 4.45, 10.3),
             Matrix.Identity(),
             scene.getTransformMatrix(),
             viewport,
           );
           const gateRight = Vector3.Project(
-            new Vector3(3.5, 4.45, 10.3),
+            new Vector3(5, 4.45, 10.3),
             Matrix.Identity(),
             scene.getTransformMatrix(),
             viewport,
@@ -1922,10 +2044,10 @@ export default function World({
       disposed = true;
       release();
     };
-  }, [outfit, quality, mode]);
+  }, [outfit, quality, mode, avatar]);
   return (
     <canvas
-      key={`${outfit}:${quality}:${mode}`}
+      key={`${outfit}:${quality}:${mode}:${avatar}`}
       ref={canvas}
       className="world-canvas"
       aria-label="Interactive 3D Venture City. Move with WASD or arrow keys, drag to orbit, click a course house."

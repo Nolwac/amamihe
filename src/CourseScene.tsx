@@ -8,7 +8,17 @@ import { publishPosition } from "./socialPresence";
 import { gameAudio } from "./gameAudio";
 import type { Presence } from "../shared/social";
 import { nextRenderHeight } from "../shared/rendering";
-import type { CourseResource, Theme } from "../shared/course";
+import type {
+  CourseResource,
+  Theme,
+  PublicCourseQuestion,
+} from "../shared/course";
+import type {
+  WorldEvidence,
+  WorldTask,
+  WorldAction,
+} from "../shared/world-task";
+import { createWorldChallenge } from "./worldChallengeScene";
 import {
   advanceAdventureRuntime,
   adventureFrame,
@@ -47,13 +57,21 @@ export type SceneGame = {
   stepKey?: string;
   run?: number;
   elapsedMs?: number;
-  activity?: { id: string; correct: boolean; independent: boolean };
+  activity?: {
+    id: string;
+    correct: boolean;
+    independent: boolean;
+    questionId?: string;
+    worldTask?: WorldTask;
+    worldEvidence?: WorldEvidence;
+  };
 };
 /** Tutor preview and published adventures share real rigs, geometry and physics. */
 export default function CourseScene({
   theme,
   worldStyle,
   outfit = "terracotta",
+  avatar = "amani",
   game,
   onReady,
   renderHeight = 360,
@@ -64,13 +82,22 @@ export default function CourseScene({
   resources = [],
   selectedResource,
   onResource,
+  question,
+  worldEvidence,
+  onWorldAction,
+  onWorldSubmit,
 }: {
   resources?: CourseResource[];
+  question?: PublicCourseQuestion;
+  worldEvidence?: WorldEvidence;
+  onWorldAction?: (action: WorldAction) => void;
+  onWorldSubmit?: () => void;
   selectedResource?: string;
   onResource?: (id: string) => void;
   worldStyle?: import("../shared/course").WorldStyle;
   theme: Theme;
   outfit?: string;
+  avatar?: import("../shared/avatars").CharacterId;
   game?: SceneGame;
   onReady?: () => void;
   renderHeight?: number;
@@ -91,6 +118,10 @@ export default function CourseScene({
     resources,
     selectedResource,
     onResource,
+    question,
+    worldEvidence,
+    onWorldAction,
+    onWorldSubmit,
   });
   live.current = {
     game,
@@ -103,6 +134,10 @@ export default function CourseScene({
     resources,
     selectedResource,
     onResource,
+    question,
+    worldEvidence,
+    onWorldAction,
+    onWorldSubmit,
   };
   const resizeLive = useRef<() => void>(() => {});
   useEffect(() => resizeLive.current(), [renderHeight]);
@@ -118,6 +153,10 @@ export default function CourseScene({
         powerPreference: "low-power",
       });
       const scene = new Scene(engine);
+      let renderFrame = 0;
+      scene.onAfterRenderObservable.add(() => {
+        element.dataset.renderFrame = String(++renderFrame);
+      });
       if (live.current.game) gameAudio.setTheme(theme);
       const temple = theme === "temple-chase",
         boxing = theme === "wrestling";
@@ -154,6 +193,8 @@ export default function CourseScene({
       light.intensity = temple ? 1.25 : 1.1;
       light.groundColor = Color3.FromHexString("#6b6860");
       const environment = createCourseEnvironment(scene, theme, worldStyle);
+      const mission = createWorldChallenge(scene);
+      scene.onDisposeObservable.add(() => mission.dispose());
       const stations = createResourceStations(scene);
       const guardian = createGuardian(scene);
       guardian.root.setEnabled(temple && worldStyle !== "story-trail");
@@ -213,13 +254,27 @@ export default function CourseScene({
           event.clientY - bounds.top,
           (mesh) =>
             Number.isInteger(mesh.metadata?.answerIndex) ||
-            Boolean(mesh.metadata?.resourceId),
+            Boolean(mesh.metadata?.resourceId) ||
+            Boolean(mesh.metadata?.worldAction),
           false,
           camera,
         );
         const resourceId = picked?.pickedMesh?.metadata?.resourceId;
         if (resourceId) {
           live.current.onResource?.(resourceId);
+          return;
+        }
+        const worldAction = picked?.pickedMesh?.metadata?.worldAction;
+        element.dataset.lastWorldPick = picked?.pickedMesh?.name ?? "none";
+        if (worldAction) {
+          if (
+            worldAction === "submit" &&
+            (live.current.game?.status === "active" ||
+              live.current.game?.status === "cleared")
+          )
+            live.current.onWorldSubmit?.();
+          else if (live.current.game?.status === "active")
+            live.current.onWorldAction?.(worldAction);
           return;
         }
         if (live.current.game?.status !== "active") return;
@@ -418,6 +473,22 @@ export default function CourseScene({
           theme,
           worldStyle,
           gardenFlowers: environment.productCount(),
+          worldControls: mission.positions().map((item) => {
+            const screen = projectPoint(item.position);
+            const hit = scene.pick(
+              screen[0],
+              screen[1],
+              (m) => Boolean(m.metadata?.worldAction),
+              false,
+              camera,
+            );
+            return {
+              name: item.name,
+              action: item.action,
+              screen,
+              picked: hit?.pickedMesh?.metadata?.worldAction,
+            };
+          }),
           status: renderedStatus,
           distance: frame.distance,
           speed: frame.speed,
@@ -611,7 +682,8 @@ export default function CourseScene({
         const correctTask =
           activityPulse > 0 ? activityCorrect : state.lastTaskCorrect === true;
         if (motionActive) motionTime += dt / 1000;
-        const worldZ = trackOrigin + frame.distance;
+        const isWorldTask = Boolean(live.current.question?.worldTask);
+        const worldZ = isWorldTask ? 2.3 : trackOrigin + frame.distance;
         const caught = g?.status === "game-over" || Boolean(frame.collision);
         if (g) {
           gameAudio.setMovement({
@@ -651,6 +723,13 @@ export default function CourseScene({
         else if (g?.status === "cleared") mode = "celebrate";
         if (theme === "workshop" && active && activityPulse <= 0)
           mode = state.elapsedMs % 5000 > 3100 ? "work" : "run";
+        if (isWorldTask)
+          mode =
+            g?.status === "cleared"
+              ? "celebrate"
+              : activityPulse > 0 && activityCorrect
+                ? "work"
+                : "idle";
         pose = {
           active: motionActive,
           time: motionTime,
@@ -687,7 +766,38 @@ export default function CourseScene({
             player.root.rotation.y = mode === "work" ? -Math.PI / 2 : 0;
           } else player.root.rotation.y = 0;
           player.root.rotation.x = caught ? 0.2 : 0;
-          player.setPose(pose);
+          if (!isWorldTask) player.setPose(pose);
+          if (isWorldTask) {
+            const mobile = element.clientWidth < 600,
+              scale = mobile ? 0.78 : 1;
+            player.root.position.set(-2.4 * scale, 0.03, -0.55);
+            player.root.rotation.y = 0.35;
+            const solved =
+              g?.activity?.independent &&
+              g.activity.questionId === live.current.question?.id;
+            const t = live.current.question?.worldTask;
+            if (solved && t?.kind === "fraction-bridge") {
+              const length =
+                t.targets.reduce((a, b) => a + b.numerator / b.denominator, 0) *
+                6.4;
+              const travel = Math.min(
+                length,
+                Math.max(0, (now - activityAt) / 1000 - 0.3) * 2.4,
+              );
+              player.root.position.set(
+                (-3.2 + travel) * scale,
+                0.76 * scale,
+                4.5 * scale,
+              );
+              player.root.rotation.y = Math.PI / 2;
+              player.setPose({
+                ...pose,
+                mode: travel < length ? "walk" : "celebrate",
+                active: true,
+                speed: 2.4,
+              });
+            } else player.setPose(pose);
+          }
         }
         if (opponent) {
           const recoil = correctTask
@@ -725,6 +835,18 @@ export default function CourseScene({
           Math.max(g?.progress ?? 0, frame.taskProgress),
           pose.strike,
         );
+        const shownEvidence =
+          g?.activity?.independent &&
+          g.activity.questionId === live.current.question?.id
+            ? g.activity.worldEvidence
+            : live.current.worldEvidence;
+        mission.update(
+          live.current.question,
+          shownEvidence,
+          g?.progress || 0,
+          element.clientWidth < 600,
+          g?.status === "cleared",
+        );
         stations(
           live.current.resources,
           worldZ,
@@ -752,6 +874,11 @@ export default function CourseScene({
           1.75,
           boxing ? 3.3 : temple ? worldZ - frame.guardianGap / 2 : worldZ + 2.3,
         );
+        if (isWorldTask) {
+          camera.target.set(0, 1.45, 3.0);
+          camera.radius = element.clientWidth < 600 ? 11 : 10;
+          camera.beta = 1.1;
+        }
         if (temple) {
           // A rear quarter view shows the route ahead and the pursuing guardian.
           // On a narrow canvas, a gradual zoom keeps the distant player readable
@@ -891,6 +1018,7 @@ export default function CourseScene({
         scene,
         outfit,
         boxing || theme === "racing",
+        avatar,
       )
         .then((actors) => {
           if (disposed) return;
@@ -941,10 +1069,11 @@ export default function CourseScene({
       disposed = true;
       release?.();
     };
-  }, [theme, outfit, worldStyle]);
+  }, [theme, outfit, worldStyle, avatar]);
   return (
     <canvas
-      key={`${theme}:${outfit}:${worldStyle || "default"}`}
+      data-character={avatar}
+      key={`${theme}:${outfit}:${avatar}:${worldStyle || "default"}`}
       ref={canvas}
       className="course-scene"
       data-course-theme={theme}

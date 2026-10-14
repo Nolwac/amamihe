@@ -10,6 +10,11 @@ import {
 import type { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import type { Database, DatabaseQueries } from "./db.js";
 import type { EmailProvider } from "./email.js";
+import {
+  CHARACTERS,
+  characterId,
+  type CharacterId,
+} from "../shared/avatars.js";
 
 const digest = (value: string) =>
   createHash("sha256").update(value).digest("hex");
@@ -42,6 +47,7 @@ export type AccountPlayer = {
   id: string;
   name: string;
   outfit: string;
+  avatar: CharacterId;
   points: number;
   email: string;
 };
@@ -80,7 +86,7 @@ export class Authentication {
     return (
       (
         await this.db.query<AccountPlayer>(
-          `SELECT p.id,p.name,p.outfit,p.points,a.email FROM auth_sessions s JOIN players p ON p.id=s.player_id JOIN accounts a ON a.player_id=p.id WHERE s.token_hash=$1 AND s.expires_at>now()`,
+          `SELECT p.id,p.name,p.outfit,p.avatar,p.points,a.email FROM auth_sessions s JOIN players p ON p.id=s.player_id JOIN accounts a ON a.player_id=p.id WHERE s.token_hash=$1 AND s.expires_at>now()`,
           [digest(token)],
         )
       ).rows[0] || null
@@ -144,6 +150,11 @@ export class Authentication {
       throw new AuthError("Use a password between 12 and 128 characters.");
     if (!["terracotta", "teal", "gold"].includes(String(body.outfit)))
       throw new AuthError("Choose an available outfit.");
+    if (
+      body.avatar !== undefined &&
+      !CHARACTERS.some((c) => c.id === body.avatar)
+    )
+      throw new AuthError("Choose an available character.");
     const passwordHash = await hashPassword(body.password);
     const legacy = legacyToken
       ? (
@@ -157,6 +168,7 @@ export class Authentication {
       passwordHash,
       name: body.name.trim(),
       outfit: String(body.outfit),
+      avatar: characterId(body.avatar),
       legacy: legacy || null,
     });
   }
@@ -170,6 +182,7 @@ export class Authentication {
       passwordHash: string;
       name: string;
       outfit: string;
+      avatar: CharacterId;
       legacy: string | null;
     },
   ) {
@@ -188,7 +201,7 @@ export class Authentication {
         [email, purpose],
       );
       await tx.query(
-        "INSERT INTO auth_challenges(id,email,purpose,code_hash,password_hash,name,outfit,legacy_player_id,expires_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)",
+        "INSERT INTO auth_challenges(id,email,purpose,code_hash,password_hash,name,outfit,legacy_player_id,expires_at,avatar) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)",
         [
           id,
           email,
@@ -199,6 +212,7 @@ export class Authentication {
           pending?.outfit || null,
           pending?.legacy || null,
           new Date(Date.now() + 600000).toISOString(),
+          pending?.avatar || null,
         ],
       );
       // Bound retained challenge/session data without removing player progress.
@@ -265,6 +279,7 @@ export class Authentication {
           password_hash: string;
           name: string;
           outfit: string;
+          avatar: string | null;
           legacy_player_id: string | null;
           expires_at: Date | string;
           attempts: number;
@@ -311,16 +326,21 @@ export class Authentication {
           ).rows[0];
           if (!legacy) return null;
           playerId = legacy.id;
-          await tx.query("UPDATE players SET name=$2,outfit=$3 WHERE id=$1", [
-            playerId,
-            row.name,
-            row.outfit,
-          ]);
+          await tx.query(
+            "UPDATE players SET name=$2,outfit=$3,avatar=$4 WHERE id=$1",
+            [playerId, row.name, row.outfit, characterId(row.avatar)],
+          );
         } else {
           playerId = randomUUID();
           await tx.query(
-            "INSERT INTO players(id,token,name,outfit) VALUES($1,$2,$3,$4)",
-            [playerId, randomBytes(32).toString("hex"), row.name, row.outfit],
+            "INSERT INTO players(id,token,name,outfit,avatar) VALUES($1,$2,$3,$4,$5)",
+            [
+              playerId,
+              randomBytes(32).toString("hex"),
+              row.name,
+              row.outfit,
+              characterId(row.avatar),
+            ],
           );
         }
         await tx.query(

@@ -7,9 +7,16 @@ export const THEMES = [
 export const WIDGETS = ["quiz", "notebook", "javascript", "drawing"] as const;
 export type Theme = (typeof THEMES)[number];
 export type Widget = (typeof WIDGETS)[number];
-export type WorldStyle = "garden" | "story-trail" | "pattern-track";
+export type WorldStyle =
+  | "garden"
+  | "story-trail"
+  | "pattern-track"
+  | "fraction-bridge"
+  | "circuit-yard";
+import { validateWorldTask, type WorldTask } from "./world-task.js";
 
 export type CourseQuestion = {
+  worldTask?: WorldTask;
   id: string;
   prompt: string;
   options: string[];
@@ -77,7 +84,7 @@ export type CourseSummary = {
 };
 export type PublicCourseQuestion = Pick<
   CourseQuestion,
-  "id" | "prompt" | "options"
+  "id" | "prompt" | "options" | "worldTask"
 >;
 export type PublicCourseLevel = Omit<
   CourseLevel,
@@ -95,6 +102,10 @@ export type PublishedCourse = {
   definition: PublicCourseDefinition;
 };
 export type LearningProgress = {
+  worldAchievement?: {
+    question: PublicCourseQuestion;
+    evidence: import("./world-task.js").WorldEvidence;
+  };
   selection?: import("./decision.js").LearningSelection;
   journey?: import("./learning-journey.js").LearningJourney;
   practiceDeliveryId?: string;
@@ -352,6 +363,14 @@ export function validateCourse(value: unknown): ValidationIssue[] {
         optionText.add(normalized);
       }
       integer(question.answer, `${questionPath}.answer`, 0, options.length - 1);
+      if (question.worldTask !== undefined) {
+        const error = validateWorldTask(
+          question.worldTask,
+          options,
+          question.answer,
+        );
+        if (error) add(`${questionPath}.worldTask`, error);
+      }
       text(question.hint, `${questionPath}.hint`, 5, 2000);
       text(question.explanation, `${questionPath}.explanation`, 10, 4000);
       text(question.rubric, `${questionPath}.rubric`, 10, 2000);
@@ -386,6 +405,8 @@ export function validateCourse(value: unknown): ValidationIssue[] {
         garden: "workshop",
         "story-trail": "temple-chase",
         "pattern-track": "racing",
+        "fraction-bridge": "workshop",
+        "circuit-yard": "workshop",
       };
       if (
         typeof level.worldStyle !== "string" ||
@@ -421,6 +442,30 @@ export function validateCourse(value: unknown): ValidationIssue[] {
       `${path}.retryQuestions`,
       true,
     );
+    const taskKind =
+      level.worldStyle === "fraction-bridge"
+        ? "fraction-bridge"
+        : level.worldStyle === "circuit-yard"
+          ? "circuit"
+          : undefined;
+    for (const [bank, rows] of [
+      ["questions", level.questions],
+      ["retryQuestions", level.retryQuestions],
+    ] as const) {
+      if (!Array.isArray(rows)) continue;
+      rows.forEach((q, i) => {
+        if (
+          record(q) &&
+          (taskKind
+            ? !record(q.worldTask) || q.worldTask.kind !== taskKind
+            : q.worldTask !== undefined)
+        )
+          add(
+            `${path}.${bank}.${i}.worldTask`,
+            "Use playable tasks only with their matching bridge or circuit world style.",
+          );
+      });
+    }
     const primaryIds = new Set(
       (Array.isArray(level.questions) ? level.questions.slice(0, 12) : [])
         .filter(record)

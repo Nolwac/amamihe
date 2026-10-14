@@ -1,9 +1,12 @@
 import { useEffect, useState } from "react";
 import type { GEAR } from "../shared/gameplay";
 import { gameAudio } from "./gameAudio";
+import CharacterPicker from "./CharacterPicker";
+import type { CharacterId } from "../shared/avatars";
 type Rewards = {
   points: number;
   outfit: string;
+  avatar?: CharacterId;
   gear: typeof GEAR;
   inventory: string[];
   badges: { id: string; title: string }[];
@@ -50,6 +53,29 @@ export default function WardrobeShop({ onChanged }: { onChanged: () => void }) {
         appearance; learning criteria stay the same.
       </p>
       {error && <p role="alert">{error}</p>}
+      <CharacterPicker
+        value={data?.avatar}
+        disabled={busy}
+        onChange={async (avatar) => {
+          setBusy(true);
+          setError("");
+          try {
+            const response = await fetch("/api/avatar", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ avatar }),
+            });
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.error);
+            await load();
+            onChanged();
+          } catch (e) {
+            setError(e instanceof Error ? e.message : "Please try again.");
+          } finally {
+            setBusy(false);
+          }
+        }}
+      />
       <div className="shop-gear">
         {data?.gear.map((gear) => (
           <article key={gear.id}>

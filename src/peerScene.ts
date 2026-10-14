@@ -10,17 +10,18 @@ import { PBRMaterial } from "@babylonjs/core/Materials/PBR/pbrMaterial";
 import { DynamicTexture } from "@babylonjs/core/Materials/Textures/dynamicTexture";
 import { Color3 } from "@babylonjs/core/Maths/math.color";
 import type { Presence } from "../shared/social";
+import { characterAsset, character, characterId } from "../shared/avatars";
 /** Rigged human peers use bounded animation and time-based interpolation. */
 export function createPeerRenderer(
   scene: Scene,
   peers: () => Presence[],
   floor = 0,
 ) {
-  let source: AssetContainer | undefined,
-    loading = false,
-    disposed = false,
-    retryAfter = 0,
-    retries = 0;
+  let disposed = false;
+  const sources = new Map<string, AssetContainer>();
+  const loading = new Set<string>();
+  const retryAfter = new Map<string, number>();
+  const retries = new Map<string, number>();
   const models = new Map<string, TransformNode>();
   const clips = new Map<
     string,
@@ -36,37 +37,20 @@ export function createPeerRenderer(
   if (canvas) canvas.dataset.peerCount = "0";
   scene.onDisposeObservable.addOnce(() => {
     disposed = true;
-    source?.dispose();
+    for (const source of sources.values()) source.dispose();
   });
   return () => {
     if (disposed) return;
     const visible = peers().slice(0, 7);
     if (!visible.length && !models.size) return;
-    if (!source) {
-      if (!loading && performance.now() >= retryAfter) {
-        loading = true;
-        void LoadAssetContainerAsync("/assets/explorer-low.glb", scene)
-          .then((a) => {
-            if (disposed) {
-              a.dispose();
-              return;
-            }
-            source = a;
-          })
-          .catch(() => {
-            loading = false;
-            retryAfter = performance.now() + Math.min(30000, 5000 * ++retries);
-          });
-      }
-      return;
-    }
     const ids = new Set(visible.map((p) => p.id));
     for (const [id, root] of models) {
       const peer = visible.find((p) => p.id === id);
       if (
         !ids.has(id) ||
         root.metadata?.outfit !== peer?.outfit ||
-        root.metadata?.name !== peer?.name
+        root.metadata?.name !== peer?.name ||
+        root.metadata?.avatar !== characterId(peer?.avatar)
       ) {
         for (const mesh of root.getChildMeshes()) {
           const material = mesh.material;
@@ -84,10 +68,39 @@ export function createPeerRenderer(
       }
     }
     for (const p of visible) {
+      const avatar = characterId(p.avatar);
+      const source = sources.get(avatar);
+      if (!source) {
+        if (
+          !loading.has(avatar) &&
+          performance.now() >= (retryAfter.get(avatar) || 0)
+        ) {
+          loading.add(avatar);
+          void LoadAssetContainerAsync(characterAsset(avatar), scene)
+            .then((asset) => {
+              if (disposed) {
+                asset.dispose();
+                return;
+              }
+              sources.set(avatar, asset);
+              loading.delete(avatar);
+            })
+            .catch(() => {
+              loading.delete(avatar);
+              const attempts = (retries.get(avatar) || 0) + 1;
+              retries.set(avatar, attempts);
+              retryAfter.set(
+                avatar,
+                performance.now() + Math.min(30000, 5000 * attempts),
+              );
+            });
+        }
+        continue;
+      }
       let root = models.get(p.id);
       if (!root) {
         root = new TransformNode("peer-" + p.id, scene);
-        root.metadata = { outfit: p.outfit, name: p.name };
+        root.metadata = { outfit: p.outfit, name: p.name, avatar };
         root.position.set(p.x, floor, p.z);
         const instances = source.instantiateModelsToScene(
           (n) => "peer-" + p.id + "-" + n,
@@ -96,7 +109,8 @@ export function createPeerRenderer(
         );
         for (const node of instances.rootNodes) {
           node.parent = root;
-          if (node instanceof TransformNode) node.scaling.scaleInPlace(1.6);
+          if (node instanceof TransformNode)
+            node.scaling.scaleInPlace(character(avatar).height);
         }
         const palette: Record<string, string> = {
           terracotta: "#b7603c",

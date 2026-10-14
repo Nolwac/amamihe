@@ -67,15 +67,19 @@ The immersive recovery/audio release is publicly verified at `ec64f2e` (PR #3). 
 
 Choose **Arrange controls** (the six-dot button) to drag city icons, the walking pad, or adventure control groups. Arrow keys move a focused control in arrange mode; **Reset layout** restores the defaults and **Done** returns to play. Positions stay on the device and are clamped/repacked after viewport changes. Opening a control closes the other HUD menus; popovers stay within the viewport. Panels start collapsed. Arrangement pauses active adventures.
 
-Open **Children’s games** in the city menu, or choose its filter in **Course houses**, to find three maintained, self-contained English starter games. They also appear in the street/portal catalogue:
+Open **Children’s games** in the city menu, or choose its filter in **Course houses**, to find five maintained, self-contained English starter games. **City districts** provides published houses in bounded blocks and walking routes to their actual entrances. Implementation and verification are recorded in the [learning city handoff](docs/status/CITY_LEARNING_HANDOFF.md).
 
 | Course | Suggested ages | Game and learning |
 | --- | --- | --- |
 | Number Garden | 3–5, with a grown-up | Calm garden workshop; count seeds and recognize shapes; solved tasks grow flowers. |
 | Story Trail | 6–8 | Daylight woodland trail; follow an original short story and match rhyme endings. |
 | Pattern Racers | 9–12 | Racing track; infer number rules and repair repeated robot instructions. |
+| Fraction Bridge | 8–12 | Build an equivalent or combined fraction span from beams, test it, and cross the verified bridge. |
+| Circuit Rescue | 10–14 | Operate AND, OR and XOR relays to restore a lighthouse or open a maintenance hatch. |
 
 Each has two levels, four primary challenges, four fresh retries, reading and optional drawing practice, and no task deadline. These are original authored starter examples for review, not a child-tested learning-outcome claim. Ages guide course selection; the account does not collect age. The storytelling-model pilot remains available.
+
+Bridge and circuit submissions record actual construction evidence on the server. Independently correct arrangements cause the physical learning outcome; unfinished arrangements resume from the same delivered task, and completed constructions survive returning to the course. The city includes four free character profiles and uniformed walking officers with a patrol car and permanent station. Source publication of this follow-up is separate from production deployment.
 
 ## Storage and Production Configuration
 

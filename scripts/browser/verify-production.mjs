@@ -3,6 +3,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
 import assert from "node:assert/strict";
 import { KIDS_COURSES } from "../../shared/catalogue.ts";
+import { CHARACTERS } from "../../shared/avatars.ts";
 import {
   DECISION_MODEL,
   DECISION_MODEL_DIGEST,
@@ -151,6 +152,34 @@ try {
   evidence.checks.push(
     "public bounded action avatar with seven skeletal gameplay clips",
   );
+  const cityAssets = [
+    ...CHARACTERS.flatMap(({ id }) => [
+      `character-${id}.glb`,
+      `character-${id}-portrait.png`,
+    ]),
+    "character-officer.glb",
+    "character-officer-portrait.png",
+    ...["kofi", "nia", "tayo"].map((id) => `character-${id}-resident.glb`),
+  ];
+  for (const file of cityAssets) {
+    const response = await context.request.get(base + "/assets/" + file);
+    assert.equal(response.status(), 200, `Missing public city asset: ${file}`);
+    const bytes = await response.body();
+    assert.ok(
+      bytes.length < 1_000_000,
+      `City asset exceeds its budget: ${file}`,
+    );
+    assert.equal(
+      createHash("sha256").update(bytes).digest("hex"),
+      createHash("sha256")
+        .update(await readFile("dist/assets/" + file))
+        .digest("hex"),
+      `Production must serve the approved city asset: ${file}`,
+    );
+  }
+  evidence.checks.push(
+    "exact public assets for four character profiles, portraits, residents and the uniformed officer",
+  );
   assert.ok(
     response.headers()["strict-transport-security"],
     "HTTPS must publish HSTS.",
@@ -232,7 +261,7 @@ try {
     "maintained storytelling pilot is published with six levels, twelve tasks and a training notebook",
   );
   const childrenResponse = await context.request.get(
-    base + "/api/courses?audience=kids&limit=4",
+    base + "/api/courses?audience=kids&limit=8",
   );
   assert.equal(childrenResponse.status(), 200);
   const children = await childrenResponse.json();
@@ -242,7 +271,7 @@ try {
     KIDS_COURSES.map((course) => course.id).sort(),
     "The children’s finder must expose all maintained age bands.",
   );
-  for (const [index, course] of KIDS_COURSES.entries()) {
+  for (const course of KIDS_COURSES) {
     const response = await context.request.get(
       base + "/api/courses/" + course.id,
     );
@@ -264,11 +293,12 @@ try {
     );
     for (const level of published.definition.levels) {
       assert.equal(level.timeLimitSeconds, 0);
-      assert.equal(
-        level.worldStyle,
-        ["garden", "story-trail", "pattern-track"][index],
-      );
+      assert.equal(level.worldStyle, course.worldStyle);
       for (const question of [...level.questions, ...level.retryQuestions]) {
+        if (course.worldStyle === "fraction-bridge")
+          assert.equal(question.worldTask?.kind, "fraction-bridge");
+        if (course.worldStyle === "circuit-yard")
+          assert.equal(question.worldTask?.kind, "circuit");
         for (const field of ["answer", "hint", "explanation", "rubric"])
           assert.equal(
             question[field],
@@ -279,7 +309,7 @@ try {
     }
   }
   evidence.checks.push(
-    "three maintained children’s games: age bands, bounded finder, two levels/four challenges/fresh retries, untimed compatible worlds and private grading fields",
+    `${KIDS_COURSES.length} maintained children’s games: age bands, bounded finder, two levels/four challenges/fresh retries, untimed compatible worlds, physical puzzle tasks and private grading fields`,
   );
   for (const viewport of [
     { width: 1280, height: 900 },

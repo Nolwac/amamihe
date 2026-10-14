@@ -1074,3 +1074,16 @@
   border: 1px solid #eac57888;
   border-radius: 8px;
 }
+
+.world-task-controls {
+  display: grid;
+  gap: 0.7rem;
+}
+.world-piece-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.world-task-controls button {
+  min-height: 44px;
+}

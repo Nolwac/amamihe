@@ -1,5 +1,7 @@
 # Local tev1 decisions and deployment handoff
 
+The learning-city work and all-branch reconciliation are tracked in [Learning city and playable lessons](CITY_LEARNING_HANDOFF.md). The recovery evidence below describes the preceding production release; the combined release requires its own CI approval and exact public acceptance.
+
 ## Current continuation — 14 October 2026
 
 **Production recovery is verified at application revision `d01d5cdc733cbf6144fb2128a3da981775d7f576`.** [Workflow `38561943937`](https://github.com/Nolwac/amamihe/actions/runs/38561943937) passed every job, including public acceptance. The VPS deployment service returned success; public health reports that revision, PostgreSQL, `ollama:tev1:0.8b`, actual typed inference ready and the original pinned model digest. The deployment timer is active. Desktop Tailscale SSH access is working.

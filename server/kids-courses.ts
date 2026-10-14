@@ -6,6 +6,7 @@ import type {
 import type { Database } from "./db.js";
 import { publishMaintainedCourse } from "./pilot-course.js";
 import { KIDS_COURSES } from "../shared/catalogue.js";
+import { playableCourses } from "./playable-courses.js";
 
 type Challenge = [
   prompt: string,
@@ -97,6 +98,7 @@ function course(
 /** Original, finite starter material. Ages guide course choice, never account profiling. */
 export function kidsCourses(): { id: string; definition: CourseDefinition }[] {
   return [
+    ...playableCourses(),
     {
       id: KIDS_COURSES[0].id,
       definition: course(
