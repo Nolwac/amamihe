@@ -24,6 +24,12 @@ After the combined source passes CI, promote it through the normal approved-refe
 
 The combined source passes local build/typechecking, formatting with Windows line-ending handling, 28 focused asset/gameplay/provenance checks and both Python integrity checks. A fresh private database backup passed archive validation before the additive avatar migration; record counts, deployment state and existing container start times were also preserved for post-promotion comparison. The public checker now verifies the exact hashes of all new character/portrait/resident/officer assets and the two physical puzzle types without creating accounts or submitting learner work. The matching main [workflow run](https://github.com/Nolwac/amamihe/actions/workflows/checks.yml?query=branch%3Amain) records complete regression results, packaged cold inference, branch reconciliation, release approval and exact public desktop/phone acceptance; its production evidence artifact records the accepted revision. Do not interpret the earlier branch-only CI or the historical “not deployed” notes below as that final acceptance.
 
+### Combined-source renderer correction
+
+The first combined [workflow](https://github.com/Nolwac/amamihe/actions/runs/38572429182), at `094a01c`, passed 136 Node checks, both Python checks and 35 of 36 browser journeys. Production approval was blocked. The remaining phone journey completed its gameplay assertions but its avatar-color capture contained an entirely blank 3D canvas and zero light-shoe pixels. The snapshot still recorded valid rig projections; a later slide capture rendered normally. Inspection found automatic quality scaling resized the backing buffer immediately **after** `scene.render()`, leaving it cleared until the next throttled draw.
+
+Adaptive resizing now occurs before drawing, and layout/quality resize requests bypass the 100 ms render throttle for a prompt new frame. Avatar captures wait for three actual completed frames after panel/pose settling. All original material, shoe-color, rig, jump, obstacle, checkpoint and reward assertions remain intact. Fresh combined verification must pass before any release is approved; the failed run remains recorded as failed.
+
 ## Work started — 14 October 2026
 
 Baseline: `433311a3c19f0c0a78f9093e7d60fd572b61b1d8`, following the [local tev1 handoff](TEV1_HANDOFF.md). Work is on `feat/learning-city-experiences`. Production promotion of the preceding model release remains unresolved; this work does not claim a live deployment.

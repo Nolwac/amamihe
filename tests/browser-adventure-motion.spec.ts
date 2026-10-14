@@ -208,6 +208,16 @@ async function coloredAvatarFrame(page: Page, path: string) {
     })
     .toBeLessThan(0.001);
   await page.waitForTimeout(200);
+  const courseCanvas = page.locator("canvas[data-course-theme]");
+  const priorFrame = Number(
+    await courseCanvas.getAttribute("data-render-frame"),
+  );
+  await expect
+    .poll(
+      async () => Number(await courseCanvas.getAttribute("data-render-frame")),
+      { timeout: 15000 },
+    )
+    .toBeGreaterThan(priorFrame + 2);
   const rendered = (await snapshot(page))!;
   const canvas = await page.locator("canvas[data-course-theme]").boundingBox();
   expect(canvas).not.toBeNull();

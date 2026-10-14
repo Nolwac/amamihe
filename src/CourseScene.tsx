@@ -287,6 +287,7 @@ export default function CourseScene({
       element.addEventListener("pointerdown", press);
       element.addEventListener("pointerup", choose);
       let adaptiveHeight = 360;
+      let resizePending = true;
       const resize = () => {
         engine.setHardwareScalingLevel(
           Math.max(
@@ -297,6 +298,7 @@ export default function CourseScene({
         );
         camera.viewport = new Viewport(0, 0, 1, 1);
         engine.resize();
+        resizePending = true;
       };
       resizeLive.current = resize;
       const observer = new ResizeObserver(resize);
@@ -617,7 +619,12 @@ export default function CourseScene({
       };
       engine.runRenderLoop(() => {
         const now = performance.now();
-        if (disposed || document.hidden || now - lastRender < 100) return;
+        if (
+          disposed ||
+          document.hidden ||
+          (!resizePending && now - lastRender < 100)
+        )
+          return;
         const dt = Math.min(250, Math.max(0, now - lastFrame));
         lastFrame = now;
         lastRender = now;
@@ -962,8 +969,6 @@ export default function CourseScene({
               heading: player.root.rotation.y,
             },
           });
-        scene.render();
-        renderedStatus = g?.status ?? "preview";
         sampleFrames++;
         if (now - sampleStart > 3000) {
           const fps = (sampleFrames * 1000) / (now - sampleStart);
@@ -975,6 +980,11 @@ export default function CourseScene({
           sampleStart = now;
           sampleFrames = 0;
         }
+        // Resizing clears the canvas backing buffer. Apply adaptive scaling
+        // before drawing, and redraw promptly after layout/quality changes.
+        resizePending = false;
+        scene.render();
+        renderedStatus = g?.status ?? "preview";
         element.dataset.renderHeight = String(engine.getRenderHeight());
         element.dataset.gameStatus = g?.status ?? "preview";
         element.dataset.gameProgress = String(g?.progress || 0);
