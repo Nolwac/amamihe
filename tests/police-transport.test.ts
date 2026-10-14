@@ -89,6 +89,25 @@ test("scene vector accessors are copied as actual coordinates", () => {
   assert.ok(Number.isFinite(advancePoliceTransport(s, 0.1).vehicle.z));
 });
 
+test("police travel keeps its real-time speed at one FPS and still completes the station journey", () => {
+  for (const fps of [1, 3, 10, 60]) {
+    let state = createPoliceTransport({ x: 0, z: -5 });
+    for (let frame = 0; frame < fps; frame++)
+      state = advancePoliceTransport(state, 1 / fps);
+    assert.ok(Math.abs(state.vehicle.z - (CITY_STATION.parking.z + 7)) < 0.001);
+    for (let frame = 0; frame < 60 * fps && state.phase !== "detained"; frame++)
+      state = advancePoliceTransport(state, 1 / fps);
+    assert.equal(state.phase, "detained");
+    assert.deepEqual(state.learner, CITY_STATION.cell);
+  }
+  const delayed = advancePoliceTransport(
+    createPoliceTransport({ x: 0, z: -5 }),
+    60,
+  );
+  assert.equal(delayed.phase, "dispatch");
+  assert.ok(Math.abs(delayed.vehicle.z - (CITY_STATION.parking.z + 7)) < 0.001);
+});
+
 test("officers and escorted learners go around course walls and enter the station doorway", () => {
   const houses = cityHouses([
     { id: STORYTELLING_COURSE_ID, title: "Model Makers" },

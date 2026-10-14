@@ -1663,7 +1663,8 @@ export default function World({
           audioSceneActive = true;
         }
         if (quality === "low" && now - last < 100) return;
-        const dt = Math.min((now - last) / 1000, 0.25);
+        const frameElapsed = last ? Math.max(0, (now - last) / 1000) : 0;
+        const dt = Math.min(frameElapsed, 0.25);
         last = now;
         if (arrested && avatarReady && residents[0] && police) {
           const officer = residents[0];
@@ -1698,12 +1699,7 @@ export default function World({
             keys.clear();
           }
           const previous = transport!.phase;
-          let remaining = dt;
-          while (remaining > 0) {
-            const step = Math.min(0.1, remaining);
-            transport = advancePoliceTransport(transport!, step, houses);
-            remaining -= step;
-          }
+          transport = advancePoliceTransport(transport!, frameElapsed, houses);
           police.update(transport);
           player.root.position.copyFrom(
             transport.learnerSeated

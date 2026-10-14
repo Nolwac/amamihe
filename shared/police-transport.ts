@@ -78,7 +78,24 @@ export function advancePoliceTransport(
   elapsed: number,
   houses: CityHouse[] = [],
 ): PoliceTransport {
-  const dt = Math.max(0, Math.min(0.1, elapsed));
+  // Keep presentation speed tied to elapsed time on slow renderers. Small
+  // movement steps preserve paths; a suspended frame cannot skip the encounter.
+  let remaining = Number.isFinite(elapsed)
+    ? Math.max(0, Math.min(1, elapsed))
+    : 0;
+  let state = s;
+  while (remaining > 0) {
+    const step = Math.min(0.1, remaining);
+    state = advancePoliceStep(state, step, houses);
+    remaining -= step;
+  }
+  return state;
+}
+function advancePoliceStep(
+  s: PoliceTransport,
+  dt: number,
+  houses: CityHouse[],
+): PoliceTransport {
   const next = { ...s, time: s.time + dt };
   const pickup = { x: -4, z: Math.max(-8, s.origin.z - 2) };
   const seat = { x: pickup.x + 1, z: pickup.z };

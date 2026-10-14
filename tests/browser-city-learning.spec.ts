@@ -7,6 +7,7 @@ test("free character selection persists through verification, wardrobe changes, 
   page,
   context,
 }) => {
+  test.setTimeout(180000);
   await page.goto("/");
   await page.getByRole("button", { name: "Choose Kofi", exact: true }).click();
   await signupInBrowser(page, "Character Explorer");
@@ -53,12 +54,20 @@ test("free character selection persists through verification, wardrobe changes, 
       exact: true,
     })
     .click();
+  const enrollment = page.waitForResponse(
+    (response) =>
+      /\/api\/courses\/[^/]+\/enroll$/.test(response.url()) &&
+      response.request().method() === "POST",
+    { timeout: 90000 },
+  );
   await page
     .getByRole("button", { name: "Enroll & enter adventure", exact: true })
     .click();
+  expect((await enrollment).ok()).toBe(true);
   await expect(page.locator("canvas.course-scene")).toHaveAttribute(
     "data-character",
     "tayo",
+    { timeout: 30000 },
   );
   await expect(page.locator("canvas.course-scene")).toHaveAttribute(
     "data-avatar-ready",

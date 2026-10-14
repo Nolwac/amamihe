@@ -326,5 +326,57 @@
     "remotePreFixRun": "https://github.com/Nolwac/amamihe/actions/runs/38507730471",
     "remotePreFixResult": "All four shards stopped before tests because the upstream mutable model tag changed; checksum guard correctly rejected it.",
     "remoteFollowUp": "Rerun CI from the PR head with the reviewed manifest; local verification does not establish remote success."
+  },
+  "timingFollowUp": {
+    "checkedAt": "2026-10-14T08:29:30.272000+00:00",
+    "remoteRun": "https://github.com/Nolwac/amamihe/actions/runs/38533350185",
+    "remoteCommit": "ca811256e5ced535d626db3fc40fdf3971509e53",
+    "remoteNode": {
+      "total": 136,
+      "passed": 135,
+      "failed": 0,
+      "skipped": 1
+    },
+    "remoteBrowser": {
+      "total": 36,
+      "passed": 33,
+      "failed": 3
+    },
+    "diagnosis": [
+      "Police transport consumed at most 0.25 seconds per rendered frame, slowing its approach on a roughly 1 FPS software renderer.",
+      "Character enrollment and final badge checks used five-second assertions before actual CPU inference requests had completed; recorded UI remained pending."
+    ],
+    "correction": "Bounded elapsed-time transport with small movement steps; wait for real enrollment/assessment HTTP responses before UI assertions.",
+    "localTransportTests": {
+      "total": 5,
+      "passed": 5,
+      "failed": 0,
+      "frameRates": [
+        1,
+        3,
+        10,
+        60
+      ]
+    },
+    "localBrowserSetupAttempt": "Two tests could not connect to the stopped disposable API. Restarted with fresh disposable data and verified API/model readiness before rerunning.",
+    "localBrowser": [
+      {
+        "journey": "free character selection persists through verification, wardrobe changes, and course entry",
+        "result": "passed",
+        "durationSeconds": 14.2
+      },
+      {
+        "journey": "detention controls expose a free course release and an auditable appeal",
+        "result": "passed",
+        "durationSeconds": 37.9
+      },
+      {
+        "journey": "playable themes, step Game Over, badge and cosmetic purchase survive reload",
+        "result": "passed",
+        "duration": "about one minute"
+      }
+    ],
+    "buildTypecheckFormatDiff": "passed",
+    "remoteFollowUp": "Inspect the latest PR-head workflow; local corrections do not relabel the earlier remote failures."
   }
 }
