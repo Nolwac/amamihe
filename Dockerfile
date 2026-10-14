@@ -18,6 +18,7 @@ RUN npm run build
 
 FROM node:24-bookworm-slim
 WORKDIR /app
+RUN apt-get update && apt-get install -y --no-install-recommends espeak-ng ffmpeg && rm -rf /var/lib/apt/lists/*
 COPY --chown=node:node package*.json ./
 RUN --mount=type=secret,id=proxy_ca \
     if [ -f /run/secrets/proxy_ca ]; then export NODE_EXTRA_CA_CERTS=/run/secrets/proxy_ca; fi; npm ci --omit=dev

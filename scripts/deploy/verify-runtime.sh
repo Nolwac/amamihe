@@ -20,6 +20,7 @@ docker run --rm -i --name "$name" --network none --read-only \
 import assert from 'node:assert/strict';
 import { startLocalModel } from './server/local-model.ts';
 import { decisionConfiguration, DECISION_MODEL_DIGEST } from './server/decision-provider.ts';
+import { cpuSpeechOutput } from './server/speech-output.ts';
 const started = performance.now();
 const watchdog = setTimeout(() => {
   console.error('Packaged model did not finish real cold inference within three minutes.');
@@ -27,6 +28,10 @@ const watchdog = setTimeout(() => {
 }, 180000);
 let stop;
 try {
+  const narrator = await cpuSpeechOutput();
+  assert.ok(narrator?.languages.includes('en'), 'Packaged native narrator is missing.');
+  const audio = await narrator.synthesize('Count one, two, three.', 'en', 1);
+  assert.ok(audio.byteLength > 1000 && audio.byteLength < 1_500_000);
   stop = await startLocalModel();
   const status = await decisionConfiguration().provider.status(true);
   assert.equal(status.ready, true, status.reason);

@@ -162,8 +162,13 @@ export default function World({
             ? 720
             : 1080;
       const scaleResolution = () => {
+        const preferredHeight =
+          document.documentElement.dataset.dataSaver === "true" &&
+          mode === "world"
+            ? 144
+            : targetRenderHeight;
         engine.setHardwareScalingLevel(
-          Math.max(1, canvas.current!.clientHeight / targetRenderHeight),
+          Math.max(1, canvas.current!.clientHeight / preferredHeight),
         );
         canvas.current!.dataset.renderHeight = String(engine.getRenderHeight());
       };

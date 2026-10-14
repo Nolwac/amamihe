@@ -1,22 +1,31 @@
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import type { CourseSummary } from "../shared/course";
 import { gameAudio } from "./gameAudio";
+import { useAccess } from "./Access";
 const PortalScene = lazy(() => import("./PortalScene"));
 export default function SearchPortals({
   onDoor,
   onClose,
+  initialQuery = "",
 }: {
   onDoor: (course: CourseSummary) => void;
   onClose: () => void;
+  initialQuery?: string;
 }) {
-  const [query, setQuery] = useState(""),
-    [search, setSearch] = useState(""),
+  const { preferences, t } = useAccess();
+  const [query, setQuery] = useState(initialQuery),
+    [search, setSearch] = useState(initialQuery),
     [offset, setOffset] = useState(0),
     [courses, setCourses] = useState<CourseSummary[]>([]),
     [total, setTotal] = useState(0),
     [busy, setBusy] = useState(true),
     [error, setError] = useState("");
   const audibleSearch = useRef<string | null>(null);
+  useEffect(() => {
+    setQuery(initialQuery);
+    setSearch(initialQuery);
+    setOffset(0);
+  }, [initialQuery]);
   function openDoor(course: CourseSummary) {
     void gameAudio.activate();
     onDoor(course);
@@ -28,7 +37,10 @@ export default function SearchPortals({
     setError("");
     void fetch(
       `/api/courses?q=${encodeURIComponent(search)}&limit=4&offset=${offset}`,
-      { signal: controller.signal },
+      {
+        signal: controller.signal,
+        headers: { "X-Amamihe-Language": preferences.language },
+      },
     )
       .then(async (r) => {
         if (!r.ok) throw new Error("Course search unavailable.");
@@ -49,11 +61,11 @@ export default function SearchPortals({
         if (!controller.signal.aborted) setBusy(false);
       });
     return () => controller.abort();
-  }, [search, offset]);
+  }, [search, offset, preferences.language]);
   return (
     <section className="course-directory" aria-label="Search portal universe">
       <header className="course-bar">
-        <h1>Course portals</h1>
+        <h1>{t("Course portals")}</h1>
         <button
           className="course-secondary"
           onClick={() => {
@@ -62,7 +74,7 @@ export default function SearchPortals({
             gameAudio.effect("portal");
           }}
         >
-          Return to city
+          {t("Return to city")}
         </button>
       </header>
       <p>
@@ -81,7 +93,7 @@ export default function SearchPortals({
         }}
       >
         <label>
-          Find a course{" "}
+          {t("Find a course")}{" "}
           <input
             value={query}
             maxLength={200}
@@ -89,7 +101,7 @@ export default function SearchPortals({
           />
         </label>
         <button className="course-secondary" disabled={busy}>
-          Open search portals
+          {t("Open search portals")}
         </button>
       </form>
       {error && <p role="alert">{error}</p>}
@@ -127,7 +139,7 @@ export default function SearchPortals({
               disabled={offset === 0}
               onClick={() => setOffset(Math.max(0, offset - 4))}
             >
-              Previous portals
+              {t("Previous portals")}
             </button>
             <span>{total} matching courses</span>
             <button
@@ -135,7 +147,7 @@ export default function SearchPortals({
               disabled={offset + 4 >= total}
               onClick={() => setOffset(offset + 4)}
             >
-              Next portals
+              {t("Next portals")}
             </button>
           </div>
         </>

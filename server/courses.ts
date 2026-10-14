@@ -40,6 +40,7 @@ import {
 import { blankCourse, storytellingCourse } from "./course-template.js";
 import { worldTaskAnswer } from "../shared/world-task.js";
 import { playableCourses } from "./playable-courses.js";
+import { LANGUAGES } from "../shared/inclusion.js";
 import {
   decisionConfiguration,
   DECISION_IDENTITY,
@@ -277,7 +278,50 @@ function draftDefinition(value: unknown): CourseDefinition {
   )
     throw new CourseError("The course document has an invalid structure.");
   // Strip unrecognized properties instead of persisting arbitrary payload data.
+  let translations: CourseDefinition["translations"];
+  if (data.translations !== undefined) {
+    const variants = object(data.translations);
+    if (Object.keys(variants).length > 6)
+      throw new CourseError("Use at most six additional languages.");
+    translations = {};
+    for (const [key, value] of Object.entries(variants)) {
+      if (!LANGUAGES.some((l) => l.id === key))
+        throw new CourseError("Choose a supported translation language.");
+      const v = object(value);
+      const texts = object(v.texts);
+      if (!text(v.note, 500) || Object.keys(texts).length > 10000)
+        throw new CourseError(
+          "Translation review details exceed their budget.",
+        );
+      const fields: Record<string, string | string[]> = {};
+      for (const [path, value] of Object.entries(texts)) {
+        if (
+          !/^(title|summary|(?:concept|level)\/[a-zA-Z][a-zA-Z0-9_-]{0,63}\/title|resource\/[a-zA-Z][a-zA-Z0-9_-]{0,63}\/(?:title|content)|question\/[a-zA-Z][a-zA-Z0-9_-]{0,63}\/(?:prompt|options|hint|explanation))$/.test(
+            path,
+          ) ||
+          !(
+            text(value, path.endsWith("/content") ? 60000 : 4000) ||
+            (Array.isArray(value) &&
+              value.length <= 8 &&
+              value.every((x) => text(x, 300)))
+          )
+        )
+          throw new CourseError(
+            "Translate display fields only; preserve answer order and grading rules.",
+          );
+        fields[path] = value as string | string[];
+      }
+      translations[key as keyof typeof translations] = {
+        sourceHash:
+          typeof v.sourceHash === "string" ? v.sourceHash.slice(0, 64) : "",
+        confirmed: v.confirmed === true,
+        note: v.note as string,
+        texts: fields,
+      };
+    }
+  }
   return {
+    ...(translations ? { translations } : {}),
     title: data.title as string,
     summary: data.summary as string,
     language: data.language as string,
@@ -294,6 +338,15 @@ function draftDefinition(value: unknown): CourseDefinition {
       url: r.url,
       source: r.source,
       ...(r.practiceCheck ? { practiceCheck: r.practiceCheck } : {}),
+      ...(r.review
+        ? {
+            review: {
+              reviewer: String(r.review.reviewer).slice(0, 80),
+              date: String(r.review.date).slice(0, 10),
+              note: String(r.review.note).slice(0, 500),
+            },
+          }
+        : {}),
     })),
     levels: (data.levels as CourseLevel[]).map((l) => ({
       ...levelMetadata(l),
@@ -877,7 +930,7 @@ export function registerCourses(
         );
       });
     },
-    262144,
+    1048576,
   );
   route("POST", "/api/studio/courses/:id/validate", async (req) => {
     const row = await ownedDraft(db, param(req), (await player(req)).id);
@@ -937,7 +990,8 @@ export function registerCourses(
         : integer(Number(query.limit), "limit", 1, 24);
     const filter = `FROM course_versions v
 JOIN course_drafts d ON d.id=v.course_id AND d.published_version=v.version
-WHERE ($1='' OR position(lower($1) in lower((v.definition->>'title')||' '||(v.definition->>'summary')))>0)
+WHERE ($1='' OR position(lower($1) in lower((v.definition->>'title')||' '||(v.definition->>'summary')))>0
+OR EXISTS(SELECT 1 FROM jsonb_each(coalesce(v.definition->'translations','{}')) t WHERE position(lower($1) in lower(coalesce(t.value->'texts'->>'title','')||' '||coalesce(t.value->'texts'->>'summary','')))>0))
 AND ($2::boolean=false OR v.course_id=ANY($3::text[]))`;
     const total = (
       await db.query<{ count: number }>(

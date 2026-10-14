@@ -34,6 +34,8 @@ jobs:
           POSTGRES_ADMIN_PASSWORD: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
           POSTGRES_APP_PASSWORD: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
       - run: npm ci
+      - name: Install CPU narration runtime
+        run: sudo apt-get update -qq && sudo apt-get install -y --no-install-recommends espeak-ng ffmpeg
       - run: npm run format:check
       - run: npm run build
       - name: Verify preserved model manifest integrity
@@ -53,6 +55,8 @@ jobs:
       - run: npm test
         # Run the complete Node suite once; every shard verifies real inference.
         if: matrix.shard == 1
+        env:
+          REQUIRE_NATIVE_SPEECH: '1'
       - run: npx playwright install --with-deps chromium
       - run: npm start > /tmp/amamihe-api.log 2>&1 &
         env:

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import CharacterPicker from "./CharacterPicker";
 import type { CharacterId } from "../shared/avatars";
+import { useAccess } from "./Access";
 export type Player = {
   id: string;
   name: string;
@@ -34,6 +35,7 @@ export function AccountGate({
   onOutfit: (outfit: string) => void;
   onAuthenticated: (player: Player) => void;
 }) {
+  const { t } = useAccess();
   const [mode, setMode] = useState<"signup" | "password" | "email-code">(
     "signup",
   );
@@ -58,7 +60,9 @@ export function AccountGate({
     setError("");
   }
   async function sendCode() {
-    const result = await accountApi<{ challengeId: string }>(
+    const result = await accountApi<{
+      challengeId: string;
+    }>(
       mode === "signup" ? "signup" : "code",
       mode === "signup" ? { name, email, password, outfit, avatar } : { email },
     );
@@ -80,25 +84,27 @@ export function AccountGate({
   return (
     <section
       className="modal welcome account-gate"
-      aria-label="Create your explorer"
+      aria-label={t("Create your explorer")}
     >
       <span className="eyebrow">YOUR AMAMIHE ACCOUNT</span>
       <h2>
         {challenge
-          ? "Check your email."
+          ? t("Check your email.")
           : mode === "signup"
-            ? "Create your explorer."
-            : "Welcome back."}
+            ? t("Create your explorer.")
+            : t("Welcome back.")}
       </h2>
       <p>
         {challenge
           ? `Enter the six-digit code sent to ${email}. It expires in 10 minutes. Check spam too.`
           : mode === "signup"
-            ? "Verify your email to save your identity and progress across devices."
-            : "Sign in to continue your learning journey."}
+            ? t(
+                "Verify your email to save your identity and progress across devices.",
+              )
+            : t("Sign in to continue your learning journey.")}
       </p>
       {loading ? (
-        <p>Restoring your journey…</p>
+        <p>{t("Restoring your journey\u2026")}</p>
       ) : (
         <>
           <div className="account-tabs">
@@ -108,7 +114,7 @@ export function AccountGate({
               disabled={busy}
               onClick={() => switchMode("signup")}
             >
-              Create account
+              {t("Create account")}
             </button>
             <button
               type="button"
@@ -116,7 +122,7 @@ export function AccountGate({
               disabled={busy}
               onClick={() => switchMode("password")}
             >
-              Sign in
+              {t("Sign in")}
             </button>
           </div>
           <form
@@ -124,14 +130,15 @@ export function AccountGate({
               e.preventDefault();
               void run(async () => {
                 if (challenge) {
-                  const result = await accountApi<{ player: Player }>(
-                    "verify",
-                    { challengeId: challenge, code },
-                  );
+                  const result = await accountApi<{
+                    player: Player;
+                  }>("verify", { challengeId: challenge, code });
                   setPassword("");
                   onAuthenticated(result.player);
                 } else if (mode === "password") {
-                  const result = await accountApi<{ player: Player }>("login", {
+                  const result = await accountApi<{
+                    player: Player;
+                  }>("login", {
                     email,
                     password,
                   });
@@ -144,9 +151,9 @@ export function AccountGate({
             {challenge ? (
               <>
                 <label>
-                  Verification code
+                  {t("Verification code")}
                   <input
-                    aria-label="Verification code"
+                    aria-label={t("Verification code")}
                     value={code}
                     onChange={(e) =>
                       setCode(e.target.value.replace(/\D/g, "").slice(0, 6))
@@ -161,10 +168,10 @@ export function AccountGate({
                 </label>
                 <button className="primary" disabled={busy}>
                   {busy
-                    ? "Verifying…"
+                    ? t("Verifying\u2026")
                     : mode === "signup"
-                      ? "Verify email & enter"
-                      : "Verify code & sign in"}
+                      ? t("Verify email & enter")
+                      : t("Verify code & sign in")}
                 </button>
                 <button
                   type="button"
@@ -172,7 +179,7 @@ export function AccountGate({
                   disabled={busy || cooldown > 0}
                   onClick={() => void run(sendCode)}
                 >
-                  {cooldown ? `Resend code in ${cooldown}s` : "Resend code"}
+                  {cooldown ? `Resend code in ${cooldown}s` : t("Resend code")}
                 </button>
                 <button
                   type="button"
@@ -183,16 +190,16 @@ export function AccountGate({
                     setCode("");
                   }}
                 >
-                  Change email or details
+                  {t("Change email or details")}
                 </button>
               </>
             ) : (
               <>
                 {mode === "signup" && (
                   <label>
-                    Your explorer name
+                    {t("Your explorer name")}
                     <input
-                      aria-label="Your explorer name"
+                      aria-label={t("Your explorer name")}
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       minLength={2}
@@ -203,9 +210,9 @@ export function AccountGate({
                   </label>
                 )}
                 <label>
-                  Email address
+                  {t("Email address")}
                   <input
-                    aria-label="Email address"
+                    aria-label={t("Email address")}
                     type="email"
                     autoComplete="email"
                     value={email}
@@ -216,9 +223,9 @@ export function AccountGate({
                 </label>
                 {mode !== "email-code" && (
                   <label>
-                    Password
+                    {t("Password")}
                     <input
-                      aria-label="Password"
+                      aria-label={t("Password")}
                       type="password"
                       autoComplete={
                         mode === "signup" ? "new-password" : "current-password"
@@ -230,7 +237,7 @@ export function AccountGate({
                       required
                     />
                     {mode === "signup" && (
-                      <small>At least 12 characters.</small>
+                      <small>{t("At least 12 characters.")}</small>
                     )}
                   </label>
                 )}
@@ -244,7 +251,8 @@ export function AccountGate({
                       />
                     )}
                     <label>
-                      Starter outfit <span className="free-label">FREE</span>
+                      {t("Starter outfit")}
+                      <span className="free-label">{t("FREE")}</span>
                     </label>
                     <div className="outfits">
                       {["terracotta", "teal", "gold"].map((color) => (
@@ -272,12 +280,12 @@ export function AccountGate({
                 )}
                 <button className="primary" disabled={busy}>
                   {busy
-                    ? "Please wait…"
+                    ? t("Please wait\u2026")
                     : mode === "signup"
-                      ? "Send verification code"
+                      ? t("Send verification code")
                       : mode === "password"
-                        ? "Sign in & enter"
-                        : "Send login code"}
+                        ? t("Sign in & enter")
+                        : t("Send login code")}
                 </button>
                 {mode !== "signup" && (
                   <button
@@ -291,8 +299,8 @@ export function AccountGate({
                     }
                   >
                     {mode === "password"
-                      ? "Forgot password? Use an email code"
-                      : "Use my password instead"}
+                      ? t("Forgot password? Use an email code")
+                      : t("Use my password instead")}
                   </button>
                 )}
               </>
@@ -315,6 +323,7 @@ export function AccountControls({
   player: Player;
   onLogout: () => void;
 }) {
+  const { t } = useAccess();
   const [open, setOpen] = useState(false),
     [password, setPassword] = useState(""),
     [busy, setBusy] = useState(false),
@@ -334,7 +343,7 @@ export function AccountControls({
     <>
       <button
         className="account-menu-button"
-        aria-label="Account settings"
+        aria-label={t("Account settings")}
         onClick={() => setOpen(true)}
       >
         ⚙
@@ -354,7 +363,7 @@ export function AccountControls({
             >
               ×
             </button>
-            <h2 id="account-title">Your account</h2>
+            <h2 id="account-title">{t("Your account")}</h2>
             <p>{player.name}</p>
             <p className="account-email">{player.email}</p>
             <form
@@ -370,9 +379,9 @@ export function AccountControls({
               }}
             >
               <label>
-                New password
+                {t("New password")}
                 <input
-                  aria-label="New password"
+                  aria-label={t("New password")}
                   type="password"
                   autoComplete="new-password"
                   minLength={12}
@@ -383,7 +392,7 @@ export function AccountControls({
                 />
               </label>
               <button className="primary" disabled={busy}>
-                Update password
+                {t("Update password")}
               </button>
             </form>
             <button
@@ -396,7 +405,7 @@ export function AccountControls({
                 })
               }
             >
-              Sign out
+              {t("Sign out")}
             </button>
             {message && <p role="status">{message}</p>}
           </section>

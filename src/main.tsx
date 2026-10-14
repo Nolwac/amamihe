@@ -10,6 +10,13 @@ import { useBillboards, type Billboard } from "./billboardPresence";
 import WorldPolicy, { useWorldPolicy } from "./WorldPolicy";
 import { useSocialPresence } from "./socialPresence";
 import { initializeAssetCache } from "./rendering";
+import {
+  AccessProvider,
+  useAccess,
+  useVoiceCommands,
+  interfaceLanguage,
+} from "./Access";
+import { clearPrivateDeviceData } from "./OfflineStudy";
 void initializeAssetCache();
 import React, { Suspense, lazy, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
@@ -71,7 +78,10 @@ type Result = {
 async function api<T>(url: string, body?: unknown): Promise<T> {
   const r = await fetch("/api" + url, {
     method: body === undefined ? "GET" : "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      "X-Amamihe-Language": interfaceLanguage(),
+    },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
   const d = await r.json();
@@ -147,6 +157,15 @@ function Icon({ name, size = 22 }: { name: string; size?: number }) {
   );
 }
 function App() {
+  const { preferences: access, t, announce } = useAccess();
+  const [accessOpen, setAccessOpen] = useState(false);
+  const [voiceSearch, setVoiceSearch] = useState("");
+  useEffect(() => {
+    const toggle = (e: Event) =>
+      setAccessOpen(Boolean((e as CustomEvent).detail));
+    window.addEventListener("amamihe-access-open", toggle);
+    return () => window.removeEventListener("amamihe-access-open", toggle);
+  }, []);
   const arrangingControls = useHudEditing();
   const cityAds = useBillboards();
   const [advertisement, setAdvertisement] = useState<Billboard | null>(null);
@@ -169,7 +188,12 @@ function App() {
   const [catalogueTotal, setCatalogueTotal] = useState(0);
   const [catalogueRevision, setCatalogueRevision] = useState(0);
   const [enrollments, setEnrollments] = useState<
-    { courseId: string; title: string; version: number; finished: boolean }[]
+    {
+      courseId: string;
+      title: string;
+      version: number;
+      finished: boolean;
+    }[]
   >([]);
   const [player, setPlayer] = useState<Player | null>(null),
     [loading, setLoading] = useState(true),
@@ -203,9 +227,10 @@ function App() {
     [cleared, setCleared] = useState(false);
   useEffect(() => {
     let alive = true;
-    api<{ courses: CourseSummary[]; total: number }>(
-      `/courses?limit=${CITY_DISTRICT_SIZE}&offset=${cityOffset}`,
-    )
+    api<{
+      courses: CourseSummary[];
+      total: number;
+    }>(`/courses?limit=${CITY_DISTRICT_SIZE}&offset=${cityOffset}`)
       .then((data) => {
         if (alive) {
           setCityCourses(data.courses);
@@ -218,10 +243,13 @@ function App() {
     return () => {
       alive = false;
     };
-  }, [cityOffset, catalogueRevision]);
+  }, [cityOffset, catalogueRevision, access.language]);
   useEffect(() => {
     let alive = true;
-    api<{ courses: CourseSummary[]; total: number }>(
+    api<{
+      courses: CourseSummary[];
+      total: number;
+    }>(
       `/courses?limit=8&offset=${catalogueOffset}${childrenOnly ? "&audience=kids" : ""}`,
     )
       .then((data) => {
@@ -236,11 +264,13 @@ function App() {
     return () => {
       alive = false;
     };
-  }, [catalogueOffset, catalogueRevision, childrenOnly]);
+  }, [catalogueOffset, catalogueRevision, childrenOnly, access.language]);
   useEffect(() => {
     if (!player) return;
     let alive = true;
-    api<{ courses: typeof enrollments }>("/learning")
+    api<{
+      courses: typeof enrollments;
+    }>("/learning")
       .then((data) => {
         if (alive) setEnrollments(data.courses);
       })
@@ -285,7 +315,7 @@ function App() {
     Boolean(player),
     breakMode
       ? "break"
-      : courseId || studio || loading || arrangingControls
+      : courseId || studio || loading || arrangingControls || accessOpen
         ? "waiting"
         : "active",
   );
@@ -327,7 +357,9 @@ function App() {
             (course) => house === "course:" + course.id,
           );
   const refreshPoints = () =>
-    api<{ player: Player }>("/session")
+    api<{
+      player: Player;
+    }>("/session")
       .then((s) => {
         setPlayer(s.player);
         setOutfit(s.player.outfit);
@@ -338,7 +370,11 @@ function App() {
     api<{
       player: Player | null;
       result: Result | null;
-      active?: { id: string; questions: Question[]; answered: number };
+      active?: {
+        id: string;
+        questions: Question[];
+        answered: number;
+      };
     }>("/session")
       .then((d) => {
         setPlayer(d.player);
@@ -372,10 +408,10 @@ function App() {
   const q = attempt?.questions[index];
   const begin = () =>
     action(async () => {
-      const a = await api<{ id: string; questions: Question[] }>(
-        "/attempts",
-        {},
-      );
+      const a = await api<{
+        id: string;
+        questions: Question[];
+      }>("/attempts", {});
       setAttempt(a);
       setIndex(0);
       setAnswer(null);
@@ -409,11 +445,93 @@ function App() {
       setResult(r);
       setAttempt(null);
       setCleared(false);
-      const session = await api<{ player: Player }>("/session");
+      const session = await api<{
+        player: Player;
+      }>("/session");
       setPlayer(session.player);
     });
+  useVoiceCommands((command, respond) => {
+    if (courseId && command.kind !== "home") return false;
+    if (!player) {
+      respond(t("Sign in") + ".");
+      return true;
+    }
+    if (command.kind === "home") {
+      setCourseId(null);
+      setDirectory(false);
+      setPortals(false);
+      setStudio(false);
+      setHouse(null);
+      respond(t("Return to city"));
+      return true;
+    }
+    if (command.kind === "enter" && publishedHouse) {
+      void action(async () => {
+        await api("/courses/" + publishedHouse.id + "/enroll", {
+          version: publishedHouse.version,
+        });
+        if (policy.state?.status === "arrested")
+          await policy.action({
+            action: "release-course",
+            courseId: publishedHouse.id,
+          });
+        setCourseId(publishedHouse.id);
+        setPortals(false);
+        setPortalDoor(null);
+        setHouse(null);
+        setTab("explore");
+        respond(publishedHouse.title, publishedHouse.language);
+      });
+      return true;
+    }
+    if (command.kind === "where" || command.kind === "nearby") {
+      const nearby = mapHouses
+        .map((h) => ({
+          ...h,
+          distance: Math.hypot(h.x - stats.x, h.z - stats.z),
+        }))
+        .sort((a, b) => a.distance - b.distance)
+        .slice(0, 3);
+      respond(
+        [
+          t("Where am I") + ": Workshop District.",
+          ...nearby.map((h) => `${h.title}: ${Math.round(h.distance)} m`),
+        ].join(" "),
+      );
+      return true;
+    }
+    if (command.kind === "search" || command.kind === "go") {
+      void api<{
+        courses: CourseSummary[];
+      }>(`/courses?q=${encodeURIComponent(command.text)}&limit=8`)
+        .then((data) => {
+          if (command.kind === "go" && data.courses.length === 1) {
+            setPortalDoor(data.courses[0]);
+            setHouse("course:" + data.courses[0].id);
+            setPortals(false);
+            setDirectory(false);
+            respond(
+              data.courses[0].title + ". " + data.courses[0].summary,
+              data.courses[0].language,
+            );
+          } else {
+            setVoiceSearch(command.text);
+            setPortals(true);
+            setDirectory(false);
+            respond(
+              data.courses.map((c) => c.title).join(". ") || t("Find a course"),
+            );
+          }
+        })
+        .catch((e) => respond(e.message));
+      return true;
+    }
+    return false;
+  });
   return (
     <div
+      id="learner-content"
+      tabIndex={-1}
       data-view={
         courseId || studio
           ? "course"
@@ -440,7 +558,8 @@ function App() {
                 className={tab === "explore" ? "active" : ""}
                 onClick={() => setTab("explore")}
               >
-                <Icon name="compass" size={17} /> Explore the world
+                <Icon name="compass" size={17} />
+                {t("Explore the world")}
               </button>
               <button
                 className={tab === "learn" ? "active" : ""}
@@ -450,7 +569,8 @@ function App() {
                   setDirectory(true);
                 }}
               >
-                <Icon name="book" size={17} /> My learning
+                <Icon name="book" size={17} />
+                {t("My learning")}
               </button>
               {player && (
                 <>
@@ -462,7 +582,7 @@ function App() {
                       setHouse(null);
                     }}
                   >
-                    Course houses
+                    {t("Course houses")}
                   </button>
                   <button
                     onClick={() => {
@@ -472,7 +592,7 @@ function App() {
                       setHouse(null);
                     }}
                   >
-                    Children’s games
+                    {t("Children\u2019s games")}
                   </button>
                   <button
                     onClick={() => {
@@ -481,7 +601,7 @@ function App() {
                       setHouse(null);
                     }}
                   >
-                    Search portals
+                    {t("Search portals")}
                   </button>
                   <button
                     className="tutor-toggle"
@@ -490,7 +610,7 @@ function App() {
                       setHouse(null);
                     }}
                   >
-                    Tutor studio
+                    {t("Tutor studio")}
                   </button>
                 </>
               )}
@@ -635,7 +755,10 @@ function App() {
           {player && (
             <AccountControls
               player={player}
-              onLogout={() => window.location.reload()}
+              onLogout={() => {
+                clearPrivateDeviceData();
+                window.location.reload();
+              }}
             />
           )}
         </div>
@@ -674,7 +797,7 @@ function App() {
               <details className="city-graphics">
                 <summary aria-label="City graphics settings">⚙</summary>
                 <label className="quality-control">
-                  Graphics{" "}
+                  {t("Graphics")}{" "}
                   <select
                     aria-label="Graphics quality"
                     value={quality}
@@ -693,7 +816,9 @@ function App() {
               Return to Venture City when you are ready.
             </div>
           ) : loading ? (
-            <div className="world-loading">Restoring your journey…</div>
+            <div className="world-loading">
+              {t("Restoring your journey\u2026")}
+            </div>
           ) : (
             <Suspense
               fallback={
@@ -962,6 +1087,7 @@ function App() {
           }
         >
           <SearchPortals
+            initialQuery={voiceSearch}
             onClose={() => setPortals(false)}
             onDoor={(course) => {
               setPortalDoor(course);
@@ -988,7 +1114,7 @@ function App() {
               className="course-secondary"
               onClick={() => setDirectory(false)}
             >
-              Return to city
+              {t("Return to city")}
             </button>
           </header>
           {!childrenOnly && (
@@ -1086,7 +1212,7 @@ function App() {
                 setCatalogueOffset(0);
               }}
             >
-              Children’s games
+              {t("Children\u2019s games")}
             </button>
           </div>
           <div className="course-directory-grid">
@@ -1420,7 +1546,7 @@ function App() {
             <button
               className="close"
               onClick={() => setTab("explore")}
-              aria-label="Return to city"
+              aria-label={t("Return to city")}
             >
               ×
             </button>
@@ -1462,10 +1588,11 @@ function App() {
                   disabled={busy}
                   onClick={() =>
                     action(async () => {
-                      const d = await api<{ explanation: string }>(
-                        "/attempts/" + attempt!.id + "/help",
-                        { questionId: q.id },
-                      );
+                      const d = await api<{
+                        explanation: string;
+                      }>("/attempts/" + attempt!.id + "/help", {
+                        questionId: q.id,
+                      });
                       setHelp(d.explanation);
                     })
                   }
@@ -1569,7 +1696,9 @@ function App() {
 createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <HudLayout>
-      <App />
+      <AccessProvider>
+        <App />
+      </AccessProvider>
     </HudLayout>
   </React.StrictMode>,
 );

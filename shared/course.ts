@@ -14,6 +14,7 @@ export type WorldStyle =
   | "fraction-bridge"
   | "circuit-yard";
 import { validateWorldTask, type WorldTask } from "./world-task.js";
+import { validateTranslations } from "./course-language.js";
 
 export type CourseQuestion = {
   worldTask?: WorldTask;
@@ -27,6 +28,7 @@ export type CourseQuestion = {
   retryFor?: string;
 };
 export type CourseResource = {
+  review?: { reviewer: string; date: string; note: string };
   practiceCheck?: "embedding-parameters" | "average-loss" | "attention-score";
   id: string;
   title: string;
@@ -55,6 +57,12 @@ export type CourseLevel = {
   retryQuestions: CourseQuestion[];
 };
 export type CourseDefinition = {
+  translations?: Partial<
+    Record<
+      import("./inclusion.js").Language,
+      import("./course-language.js").CourseTranslation
+    >
+  >;
   reviewPolicy?: {
     window: number;
     minimumEvidence: number;
@@ -75,6 +83,7 @@ export type CourseDraft = {
   definition: CourseDefinition;
 };
 export type CourseSummary = {
+  availableLanguages?: string[];
   id: string;
   title: string;
   summary: string;
@@ -93,7 +102,13 @@ export type PublicCourseLevel = Omit<
   questions: PublicCourseQuestion[];
   retryQuestions: PublicCourseQuestion[];
 };
-export type PublicCourseDefinition = Omit<CourseDefinition, "levels"> & {
+export type PublicCourseDefinition = Omit<
+  CourseDefinition,
+  "levels" | "translations"
+> & {
+  availableLanguages?: string[];
+  sourceLanguage?: string;
+  translationNote?: string;
   levels: PublicCourseLevel[];
 };
 export type PublishedCourse = {
@@ -102,6 +117,10 @@ export type PublishedCourse = {
   definition: PublicCourseDefinition;
 };
 export type LearningProgress = {
+  language?: string;
+  sourceLanguage?: string;
+  availableLanguages?: string[];
+  translationNote?: string;
   worldAchievement?: {
     question: PublicCourseQuestion;
     evidence: import("./world-task.js").WorldEvidence;
@@ -312,6 +331,22 @@ export function validateCourse(value: unknown): ValidationIssue[] {
       );
     https(resource.url, `${path}.url`, true);
     https(resource.source, `${path}.source`);
+    if (resource.review !== undefined) {
+      if (!record(resource.review))
+        add(`${path}.review`, "Provide publisher review details.");
+      else {
+        text(resource.review.reviewer, `${path}.review.reviewer`, 2, 80);
+        text(resource.review.note, `${path}.review.note`, 10, 500);
+        if (
+          typeof resource.review.date !== "string" ||
+          !/^\d{4}-\d{2}-\d{2}$/.test(resource.review.date) ||
+          !Number.isFinite(Date.parse(resource.review.date)) ||
+          new Date(resource.review.date).toISOString().slice(0, 10) !==
+            resource.review.date
+        )
+          add(`${path}.review.date`, "Use a valid source-review date.");
+      }
+    }
     if (
       (typeof resource.content !== "string" || !resource.content.trim()) &&
       (typeof resource.url !== "string" || !resource.url.trim())
@@ -587,5 +622,7 @@ export function validateCourse(value: unknown): ValidationIssue[] {
         "Use a 3–20 response window, at least three observations, and an error/help threshold of at least two within that minimum.",
       );
   }
+  if (!issues.length)
+    issues.push(...validateTranslations(value as CourseDefinition));
   return issues;
 }

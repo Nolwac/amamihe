@@ -37,6 +37,12 @@ import { Authentication, registerAuthentication } from "./auth.js";
 import { emailConfiguration } from "./email.js";
 import { initializeCourseSchema, registerCourses } from "./courses.js";
 import { readRelease } from "./release.js";
+import {
+  initializeInclusionSchema,
+  registerCourseLocalization,
+  registerInclusion,
+} from "./inclusion.js";
+import { cpuSpeechOutput, registerNarration } from "./speech-output.js";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const release = await readRelease();
 const stopLocalModel = await startLocalModel();
@@ -59,10 +65,18 @@ await initializeReviewSchema(db);
 await initializeSocialSchema(db);
 await initializeAdvertisingSchema(db);
 await initializeWorldPolicySchema(db);
+await initializeInclusionSchema(db);
 const email = await emailConfiguration();
 const auth = new Authentication(db, email.provider, email.codeSecret);
 const app = Fastify({
-  logger: true,
+  logger: {
+    serializers: {
+      req: (req) => ({
+        method: req.method,
+        url: String(req.url || "").split("?")[0],
+      }),
+    },
+  },
   bodyLimit: 16384,
   // Production ingress is the private loopback publication behind Caddy.
   trustProxy:
@@ -84,6 +98,11 @@ app.addHook("onRequest", async (req, reply) => {
   reply
     .header("X-Content-Type-Options", "nosniff")
     .header("Referrer-Policy", "same-origin");
+  if (req.url.startsWith("/api/")) reply.header("Cache-Control", "no-store");
+  reply.header(
+    "Permissions-Policy",
+    "camera=(), geolocation=(), microphone=(self), on-device-speech-recognition=(self)",
+  );
   if (req.method !== "GET" && req.method !== "HEAD") {
     const origin = req.headers.origin;
     if (origin) {
@@ -105,6 +124,9 @@ registerWorldPolicy(app, db, auth);
 registerAuthentication(app, auth);
 const decisions = decisionConfiguration();
 registerCourses(app, db, auth, decisions.provider);
+registerCourseLocalization(app, db, auth);
+registerInclusion(app, db, auth);
+registerNarration(app, auth, await cpuSpeechOutput());
 app.get("/api/decision-status", async (_req, reply) => {
   reply.header("Cache-Control", "no-store");
   return decisions.status();
@@ -139,6 +161,12 @@ app.get("/api/health", async () => {
       authorizedBillboards: true,
       learningPolice: true,
       worldOperations: true,
+      accessibilitySettings: true,
+      voiceCommands: true,
+      authoredTranslations: true,
+      publicStudyPacks: true,
+      materialCorrections: true,
+      privateDataExport: true,
     },
   };
 });

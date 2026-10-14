@@ -1,0 +1,207 @@
+.access-launcher {
+  position: fixed;
+  inset-inline-end: 14px;
+  bottom: 14px;
+  z-index: 450;
+  padding: 10px 14px;
+  border: 1px solid #ffd678;
+  border-radius: 18px;
+  background: #183238;
+  color: #fff0c8;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  min-height: 44px;
+}
+.creating-character ~ .access-launcher {
+  top: 100px;
+  bottom: auto;
+}
+.narration-player {
+  position: fixed;
+  bottom: 64px;
+  inset-inline-end: 14px;
+  z-index: 650;
+  width: min(310px, calc(100vw - 28px));
+}
+.access-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 600;
+  background: #071f2bcc;
+  display: grid;
+  place-items: center;
+  padding: 12px;
+}
+.access-panel {
+  background: #152e33;
+  color: #f5f6ee;
+  width: min(620px, 100%);
+  max-height: calc(100dvh - 24px);
+  overflow: auto;
+  border: 1px solid #eed28b;
+  border-radius: 18px;
+  padding: 22px;
+  text-align: start;
+}
+.access-panel header {
+  display: flex;
+  justify-content: space-between;
+  gap: 15px;
+  align-items: center;
+}
+.access-panel label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 12px 0;
+}
+.access-panel .access-check {
+  flex-direction: row;
+  align-items: center;
+}
+.access-panel input,
+.access-panel select,
+.access-panel textarea {
+  font: inherit;
+  padding: 10px;
+  color: #fff;
+  background: #253e45;
+  border: 1px solid #98aaa6;
+  border-radius: 8px;
+  max-width: 100%;
+}
+.access-panel button {
+  font: inherit;
+  color: #fff5cd;
+  background: #2b4448;
+  border: 1px solid #98aaa6;
+  min-height: 44px;
+  padding: 9px 12px;
+  margin: 5px;
+  border-radius: 9px;
+}
+.access-panel section {
+  border-block-start: 1px solid #647875;
+  padding-block: 14px;
+}
+.access-panel p {
+  line-height: 1.65;
+}
+.screen-reader-status {
+  position: fixed;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+.skip-link {
+  position: fixed;
+  top: -100px;
+  inset-inline-start: 10px;
+  z-index: 700;
+  padding: 14px;
+  background: #ffdb7f;
+  color: #152e33;
+}
+.skip-link:focus {
+  top: 10px;
+}
+:focus-visible {
+  outline: 3px solid #ffdb7f !important;
+  outline-offset: 3px;
+}
+html[data-access-text="large"] {
+  font-size: 19px;
+}
+html[data-access-text="larger"] {
+  font-size: 22px;
+}
+html[data-access-text="large"]
+  :is(
+    .account-gate,
+    .course-task-panel,
+    .field-journal,
+    .access-panel,
+    .course-directory
+  ) {
+  font-size: 1.1rem;
+}
+html[data-access-text="larger"]
+  :is(
+    .account-gate,
+    .course-task-panel,
+    .field-journal,
+    .access-panel,
+    .course-directory
+  ) {
+  font-size: 1.2rem;
+}
+html[data-access-text]:not([data-access-text="normal"])
+  :is(button, input, select, textarea, .journal-page, label, .help-box) {
+  font-size: inherit;
+}
+html[data-access-contrast="true"]
+  :is(
+    .modal,
+    .course-task-panel,
+    .field-journal,
+    .access-panel,
+    .directory-card
+  ) {
+  background: #061a20;
+  color: #fff;
+  border-color: #fff;
+}
+html[data-access-contrast="true"]
+  :is(p, label, small, .eyebrow, .journal-page) {
+  color: #fff;
+  opacity: 1;
+}
+html[data-access-motion="true"] * {
+  scroll-behavior: auto !important;
+  animation-duration: 0.01ms !important;
+  transition-duration: 0.01ms !important;
+}
+[dir="rtl"]
+  :is(
+    .access-panel,
+    .account-gate,
+    .field-journal,
+    .course-task-panel,
+    .directory-card
+  ) {
+  text-align: start;
+}
+[dir="rtl"] input:is([type="email"], [type="password"]) {
+  direction: ltr;
+  text-align: start;
+}
+.source-evidence {
+  border-block-start: 1px solid #6b827a;
+  padding-block: 12px;
+  margin-block-start: 14px;
+}
+.source-evidence textarea {
+  width: 100%;
+  min-height: 80px;
+  font: inherit;
+}
+.offline-study {
+  max-height: 65dvh;
+  overflow: auto;
+}
+.offline-study pre {
+  white-space: pre-wrap;
+  font: inherit;
+  line-height: 1.8;
+}
+@media (max-width: 600px) {
+  .access-launcher {
+    font-size: 12px;
+    bottom: max(8px, env(safe-area-inset-bottom));
+  }
+  .access-panel {
+    padding: 16px;
+  }
+}

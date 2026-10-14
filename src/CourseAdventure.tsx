@@ -1,5 +1,9 @@
 import { FloatingControl, useHudEditing } from "./FloatingHud";
+import { useAccess, useVoiceCommands, interfaceLanguage } from "./Access";
+import { normalizedSpeech } from "../shared/inclusion";
+import { saveStudyPack } from "./OfflineStudy";
 import LearningJourney from "./LearningJourney";
+import SourceEvidence from "./SourceEvidence";
 import FieldJournal from "./FieldJournal";
 import { useBillboards } from "./billboardPresence";
 import BillboardLinks from "./BillboardLinks";
@@ -8,7 +12,7 @@ import PracticeTool from "./PracticeTool";
 import AudioControls from "./AudioControls";
 import { gameAudio } from "./gameAudio";
 import { lazy, Suspense, useEffect, useState, useRef, useMemo } from "react";
-import type { LearningProgress } from "../shared/course";
+import type { LearningProgress, PublishedCourse } from "../shared/course";
 import {
   changeWorldEvidence,
   emptyWorldEvidence,
@@ -26,7 +30,10 @@ const CourseScene = lazy(() => import("./CourseScene"));
 async function request<T>(path: string, body?: unknown): Promise<T> {
   const response = await fetch("/api" + path, {
     method: body === undefined ? "GET" : "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      "X-Amamihe-Language": interfaceLanguage(),
+    },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
   const data = await response.json();
@@ -53,13 +60,24 @@ export default function CourseAdventure({
   avatar?: import("../shared/avatars").CharacterId;
   peers?: Presence[];
 }) {
+  const { preferences: access, t, announce, speak, stopSpeech } = useAccess();
+  const [dictation, setDictation] = useState("");
+  const [studyStatus, setStudyStatus] = useState("");
+  const pendingVoice = useRef<{
+    id: string;
+    answer: number;
+    evidence: string;
+  } | null>(null);
   const arrangingControls = useHudEditing();
   useEffect(() => {
     if (arrangingControls) void run(pauseForStudy);
   }, [arrangingControls]);
   const [decision, setDecision] = useState({ mode: "ollama", ready: false });
   useEffect(() => {
-    void request<{ mode: string; ready: boolean }>("/decision-status")
+    void request<{
+      mode: string;
+      ready: boolean;
+    }>("/decision-status")
       .then(setDecision)
       .catch(() => setDecision({ mode: "unavailable", ready: false }));
   }, []);
@@ -97,15 +115,17 @@ export default function CourseAdventure({
   const ads = useBillboards(courseId, display?.version, display?.levelId);
   useEffect(
     () => () => {
-      window.speechSynthesis?.cancel();
+      stopSpeech();
     },
-    [],
+    [stopSpeech],
   );
   const [started, setStarted] = useState(Date.now());
   const [sceneReady, setSceneReady] = useState(false);
   const [multiplier, setMultiplier] = useState(1);
   const [reducedMotion, setReducedMotion] = useState(
-    () => window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+    () =>
+      access.reducedMotion ||
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches,
   );
   const [clock, setClock] = useState(0);
   const [boost, setBoost] = useState(0);
@@ -118,7 +138,26 @@ export default function CourseAdventure({
   const [journeyOpen, setJourneyOpen] = useState(false);
   const taskPanel = useRef<HTMLDivElement>(null);
   const [controlNotice, setControlNotice] = useState("");
-  const [renderHeight, setRenderHeight] = useState(0);
+  const [renderHeight, setRenderHeight] = useState(access.dataSaver ? 144 : 0);
+  useEffect(
+    () => setRenderHeight(access.dataSaver ? 144 : 0),
+    [access.dataSaver],
+  );
+  useEffect(
+    () => setReducedMotion(access.reducedMotion),
+    [access.reducedMotion],
+  );
+  useEffect(() => {
+    const pause = (e: Event) => {
+      if (
+        (e as CustomEvent).detail &&
+        latest.current?.game?.status === "active"
+      )
+        void gameCommand("pause").catch(() => {});
+    };
+    window.addEventListener("amamihe-access-open", pause);
+    return () => window.removeEventListener("amamihe-access-open", pause);
+  }, [courseId]);
   const synced = useRef(Date.now());
   const latest = useRef(progress);
   latest.current = progress;
@@ -351,6 +390,12 @@ export default function CourseAdventure({
           );
         try {
           const draft = JSON.parse(localStorage.getItem(draftKey) || "null");
+          setDictation(
+            draft?.questionId === p.question?.id &&
+              typeof draft?.dictation === "string"
+              ? draft.dictation.slice(0, 2000)
+              : "",
+          );
           if (
             p.question?.worldTask &&
             draft?.questionId === p.question.id &&
@@ -413,7 +458,7 @@ export default function CourseAdventure({
     return () => {
       alive = false;
     };
-  }, [courseId]);
+  }, [courseId, access.language]);
   async function run(work: () => Promise<void>) {
     setBusy(true);
     setError("");
@@ -426,6 +471,16 @@ export default function CourseAdventure({
     }
   }
   const question = progress?.question;
+  useEffect(() => {
+    pendingVoice.current = null;
+    if (question && access.narration)
+      announce(
+        question.prompt +
+          ". " +
+          question.options.map((o, i) => `${i + 1}. ${o}`).join(". "),
+        progress?.language || "en",
+      );
+  }, [question?.id, question?.prompt, progress?.language, access.narration]);
   const currentWorldEvidence = question?.worldTask
     ? worldDraft?.questionId === question.id
       ? worldDraft.evidence
@@ -494,10 +549,10 @@ export default function CourseAdventure({
   const playbackLabel = !sceneReady
     ? "Loading adventure…"
     : progress?.game?.status === "active"
-      ? "Pause section"
+      ? t("Pause section")
       : progress?.game?.status === "paused"
-        ? "Resume section"
-        : "Start section";
+        ? t("Resume section")
+        : t("Start section");
   const draftKey = `amamihe-draft:${playerId}:${courseId}`;
   useEffect(() => {
     if (!progress?.question) return;
@@ -508,12 +563,13 @@ export default function CourseAdventure({
           questionId: progress.question.id,
           answer,
           worldEvidence: currentWorldEvidence,
+          dictation: dictation.slice(0, 2000),
         }),
       );
     } catch {
       /* Storage is optional. */
     }
-  }, [answer, worldDraft, progress?.question?.id]);
+  }, [answer, dictation, worldDraft, progress?.question?.id]);
   const submitting = useRef(false);
   function continueMission() {
     if (progress?.finished) {
@@ -613,6 +669,7 @@ export default function CourseAdventure({
       latest.current = next;
       setProgress(next);
       setAnswer(null);
+      setDictation("");
       setHelp("");
       setStarted(Date.now());
       onPoints();
@@ -658,6 +715,159 @@ export default function CourseAdventure({
     setSelectedResource(undefined);
     setStarted(Date.now());
   }
+  useVoiceCommands((command, respond) => {
+    const lang = progress?.language || "en";
+    if (command.kind === "untimed") {
+      if (progress?.game?.status === "ready") {
+        setMultiplier(0);
+        setTaskOpen(true);
+        respond(t("Untimed"));
+      } else respond(t("This command is not available in the current place."));
+      return true;
+    }
+    if (command.kind === "hint" && question) {
+      void run(async () => {
+        await pauseForStudy();
+        const result = await request<{ hint: string; explanation: string }>(
+          "/learning/" + courseId + "/help",
+          { questionId: question.id },
+        );
+        setHelp(result.hint + " " + result.explanation);
+        setProgress(await request<LearningProgress>("/learning/" + courseId));
+        respond(result.hint + " " + result.explanation, lang);
+      });
+      return true;
+    }
+    if (command.kind === "read") {
+      if (!question) return false;
+      setTaskOpen(true);
+      void run(async () => {
+        await pauseForStudy();
+        respond(
+          question.prompt +
+            ". " +
+            question.options.map((o, i) => `${i + 1}. ${o}`).join(". "),
+          lang,
+        );
+      });
+      return true;
+    }
+    if (command.kind === "where" || command.kind === "nearby") {
+      respond(
+        [
+          progress?.level?.title,
+          progress?.game?.status,
+          question?.prompt,
+          question?.worldTask
+            ? document.querySelector(".world-task-controls")?.textContent
+            : "",
+        ]
+          .filter(Boolean)
+          .join(". "),
+        lang,
+      );
+      return true;
+    }
+    if (command.kind === "pause" || command.kind === "start") {
+      void run(async () => {
+        await gameCommand(command.kind === "pause" ? "pause" : "play");
+        respond(
+          t(command.kind === "pause" ? t("Pause section") : t("Start section")),
+        );
+      });
+      return true;
+    }
+    if (command.kind === "cancel") {
+      pendingVoice.current = null;
+      respond(t("Cancel"));
+      return true;
+    }
+    if (command.kind === "answer" && question && !question.worldTask) {
+      if (command.index >= question.options.length) {
+        respond(
+          t(
+            "Command not recognized. Open the command guide or type a command.",
+          ),
+        );
+        return true;
+      }
+      setAnswer(command.index);
+      setTaskOpen(true);
+      pendingVoice.current = null;
+      respond(`${command.index + 1}. ${question.options[command.index]}`, lang);
+      return true;
+    }
+    if (command.kind === "dictate" && question && !question.worldTask) {
+      const plain = (value: string) =>
+        normalizedSpeech(value)
+          .replace(/[^\p{L}\p{N}\s]/gu, "")
+          .trim();
+      const matches = question.options
+        .map((o, i) => (plain(o) === plain(command.text) ? i : -1))
+        .filter((i) => i >= 0);
+      setDictation(command.text);
+      setTaskOpen(true);
+      if (matches.length === 1) {
+        setAnswer(matches[0]);
+        respond(question.options[matches[0]], lang);
+      } else respond(command.text, lang);
+      return true;
+    }
+    if (
+      command.kind === "beam" ||
+      command.kind === "relay" ||
+      command.kind === "undo" ||
+      command.kind === "reset"
+    ) {
+      if (!question?.worldTask || !actionEnabled) return false;
+      if (
+        command.kind === "beam" &&
+        question.worldTask.kind === "fraction-bridge"
+      )
+        worldAction({ kind: "add-piece", units: command.units });
+      else if (
+        command.kind === "relay" &&
+        question.worldTask.kind === "circuit"
+      )
+        worldAction({ kind: "switch", index: command.index });
+      else if (
+        command.kind === "undo" &&
+        question.worldTask.kind === "fraction-bridge"
+      )
+        worldAction({ kind: "remove-piece" });
+      else if (command.kind === "reset") worldAction({ kind: "reset" });
+      else return false;
+      pendingVoice.current = null;
+      setTaskOpen(true);
+      respond(command.kind === "reset" ? t("Cancel") : t("Confirm"));
+      return true;
+    }
+    if (command.kind === "submit" || command.kind === "confirm") {
+      if (!question || answer === null || !actionEnabled) {
+        respond(t("This command is not available in the current place."));
+        return true;
+      }
+      const identity = {
+        id: question.id,
+        answer,
+        evidence: JSON.stringify(currentWorldEvidence || null),
+      };
+      if (command.kind === "submit") {
+        pendingVoice.current = identity;
+        respond(t("Your answer is selected. Confirm before submitting."));
+        return true;
+      }
+      if (JSON.stringify(pendingVoice.current) !== JSON.stringify(identity)) {
+        pendingVoice.current = null;
+        respond(t("Nothing is waiting for confirmation."));
+        return true;
+      }
+      pendingVoice.current = null;
+      void run(submitTask);
+      return true;
+    }
+    return false;
+  }, 10);
   return (
     <section
       className="course-adventure course-overlay"
@@ -780,7 +990,7 @@ export default function CourseAdventure({
             >
               <span aria-hidden="true">{taskOpen ? "×" : "?"}</span>
               <span className="sr-only">
-                {taskOpen ? "Hide task" : "Show task"}
+                {taskOpen ? t("Hide task") : t("Show task")}
               </span>
             </button>
             <button
@@ -794,7 +1004,7 @@ export default function CourseAdventure({
               className="course-secondary"
             >
               <span aria-hidden="true">⌂</span>
-              <span className="sr-only">Return to city</span>
+              <span className="sr-only">{t("Return to city")}</span>
             </button>
           </div>
         </FloatingControl>
@@ -949,7 +1159,7 @@ export default function CourseAdventure({
                         ? "Independent answers power your attacks"
                         : adventure?.assist !== false
                           ? "Guided obstacle navigation"
-                          : "Manual obstacle controls"}
+                          : t("Manual obstacle controls")}
                   </span>
                   {!sceneReady && (
                     <span>Loading your character and world…</span>
@@ -1219,7 +1429,7 @@ export default function CourseAdventure({
                   ? progress.journey?.completed
                     ? "Course complete · back to Venture City"
                     : "Save & return to Venture City"
-                  : "Continue adventure"}
+                  : t("Continue adventure")}
               </button>
             </section>
           ) : progress?.blocked ? (
@@ -1231,7 +1441,7 @@ export default function CourseAdventure({
                 supply additional independent retry tasks.
               </p>
               <button className="primary" onClick={onClose}>
-                Return to city
+                {t("Return to city")}
               </button>
             </section>
           ) : question ? (
@@ -1240,7 +1450,20 @@ export default function CourseAdventure({
                 {progress?.retry ? "INDEPENDENT RETRY" : "AUTHORED TASK"} ·{" "}
                 {progress!.questionIndex + 1}
               </span>
-              <h2>{question.prompt}</h2>
+              {progress?.sourceLanguage &&
+                progress.language !== access.language && (
+                  <p>
+                    {t(
+                      "This lesson keeps its authored language. Your progress is preserved.",
+                    )}
+                  </p>
+                )}
+              <h2
+                lang={progress?.language || "en"}
+                dir={progress?.language?.startsWith("ar") ? "rtl" : "ltr"}
+              >
+                {question.prompt}
+              </h2>
               <div className="game-controls">
                 {(theme === "temple-chase" || theme === "racing") && (
                   <label>
@@ -1254,13 +1477,13 @@ export default function CourseAdventure({
                       }
                       onChange={(e) => setManualControls(e.target.checked)}
                     />{" "}
-                    Manual obstacle controls
+                    {t("Manual obstacle controls")}
                   </label>
                 )}
                 <label>
-                  Graphics{" "}
+                  {t("Graphics")}{" "}
                   <select
-                    aria-label="Adventure graphics"
+                    aria-label={t("Adventure graphics")}
                     value={renderHeight}
                     onChange={(e) => setRenderHeight(Number(e.target.value))}
                   >
@@ -1273,16 +1496,16 @@ export default function CourseAdventure({
                   </select>
                 </label>
                 <label>
-                  Section timing{" "}
+                  {t("Section timing")}{" "}
                   <select
-                    aria-label="Section timing"
+                    aria-label={t("Section timing")}
                     value={multiplier}
                     disabled={progress?.game?.status !== "ready"}
                     onChange={(e) => setMultiplier(Number(e.target.value))}
                   >
-                    <option value={1}>Tutor time</option>
-                    <option value={2}>Double time</option>
-                    <option value={0}>Untimed</option>
+                    <option value={1}>{t("Tutor time")}</option>
+                    <option value={2}>{t("Double time")}</option>
+                    <option value={0}>{t("Untimed")}</option>
                   </select>
                 </label>
                 <label>
@@ -1316,25 +1539,29 @@ export default function CourseAdventure({
                       } else setReducedMotion(enabled);
                     }}
                   />{" "}
-                  Reduced motion
+                  {t("Reduced motion")}
                 </label>
-                {"speechSynthesis" in window && (
+                {
                   <button
                     className="course-secondary"
                     onClick={() =>
                       run(async () => {
                         if (progress?.game?.status === "active")
                           await gameCommand("pause");
-                        window.speechSynthesis.cancel();
-                        window.speechSynthesis.speak(
-                          new SpeechSynthesisUtterance(question.prompt),
+                        speak(
+                          question.prompt +
+                            ". " +
+                            question.options
+                              .map((o, i) => `${i + 1}. ${o}`)
+                              .join(". "),
+                          progress?.language || "en",
                         );
                       })
                     }
                   >
-                    Read task aloud
+                    {t("Read task aloud")}
                   </button>
-                )}
+                }
               </div>
               <p className="gate-help">
                 {theme === "workshop"
@@ -1361,7 +1588,11 @@ export default function CourseAdventure({
                   disabled={!actionEnabled}
                 />
               ) : (
-                <div className="answers">
+                <div
+                  className="answers"
+                  lang={progress?.language || "en"}
+                  dir={progress?.language?.startsWith("ar") ? "rtl" : "ltr"}
+                >
                   {question.options.map((option, i) => (
                     <button
                       key={i}
@@ -1379,6 +1610,20 @@ export default function CourseAdventure({
               {progress?.feedback && (
                 <p className="help-box">{progress.feedback}</p>
               )}
+              <label>
+                {t("Practice explanation")}
+                <textarea
+                  aria-label={t("Practice explanation")}
+                  value={dictation}
+                  maxLength={2000}
+                  onChange={(e) => setDictation(e.target.value)}
+                />
+              </label>
+              <small>
+                {t(
+                  "Practice notes stay on this device and do not submit an answer.",
+                )}
+              </small>
               {help && (
                 <div className="help-box">
                   {help}
@@ -1403,6 +1648,7 @@ export default function CourseAdventure({
                 <button
                   className="primary"
                   disabled={
+                    !online ||
                     busy ||
                     answer === null ||
                     !progress?.game ||
@@ -1410,7 +1656,7 @@ export default function CourseAdventure({
                   }
                   onClick={() => void run(submitTask)}
                 >
-                  {busy ? "Saving…" : "Submit task"}
+                  {busy ? t("Saving\u2026") : t("Submit task")}
                 </button>
                 <button
                   className="course-secondary"
@@ -1432,7 +1678,7 @@ export default function CourseAdventure({
                     })
                   }
                 >
-                  Show authored help
+                  {t("Show authored help")}
                 </button>
               </div>
             </section>
@@ -1444,7 +1690,28 @@ export default function CourseAdventure({
               className="adventure-resources"
               aria-label="Course resources"
             >
-              <h3>Workbench resources</h3>
+              <h3>{t("Workbench resources")}</h3>
+              <button
+                className="course-secondary"
+                disabled={busy || !online}
+                onClick={() =>
+                  run(async () => {
+                    await pauseForStudy();
+                    const course = await request<PublishedCourse>(
+                      `/courses/${courseId}?version=${progress.version}`,
+                    );
+                    await saveStudyPack(course);
+                    setStudyStatus(
+                      t(
+                        "Saved public readings. Open Saved lessons in accessibility settings. Offline availability depends on browser storage.",
+                      ),
+                    );
+                  })
+                }
+              >
+                {t("Save lesson for offline study")}
+              </button>
+              {studyStatus && <p role="status">{studyStatus}</p>}
               {progress.resources.map((resource) => (
                 <details
                   key={resource.id}
@@ -1460,7 +1727,12 @@ export default function CourseAdventure({
                     {resource.title}
                     <span>{resource.kind}</span>
                   </summary>
-                  <pre>{resource.content}</pre>
+                  <pre lang={progress.language || "en"}>{resource.content}</pre>
+                  <SourceEvidence
+                    resource={resource}
+                    courseId={courseId}
+                    version={progress.version}
+                  />
                   <PracticeTool
                     playerId={playerId}
                     resource={resource}
@@ -1514,11 +1786,13 @@ export default function CourseAdventure({
               (r) => r.id === selectedResource,
             )!}
             courseId={courseId}
+            version={progress.version}
+            language={progress.language || "en"}
             deliveryId={progress.practiceDeliveryId}
             onChallenge={() => {
               setSelectedResource(undefined);
               setTaskOpen(true);
-              window.speechSynthesis?.cancel();
+              stopSpeech();
             }}
             onStudy={() =>
               journeyActivity("study", { resourceId: selectedResource }).then(
@@ -1528,7 +1802,7 @@ export default function CourseAdventure({
             onPractice={pauseForStudy}
             onClose={() => {
               setSelectedResource(undefined);
-              window.speechSynthesis?.cancel();
+              stopSpeech();
             }}
           />
         )}

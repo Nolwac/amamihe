@@ -4,6 +4,7 @@ import {
   type WorldEvidence,
   type WorldTask,
 } from "../shared/world-task";
+import { useAccess } from "./Access";
 export default function WorldTaskControls({
   task,
   evidence,
@@ -15,6 +16,7 @@ export default function WorldTaskControls({
   onAction: (a: WorldAction) => void;
   disabled: boolean;
 }) {
+  const { t } = useAccess();
   return (
     <section
       className="world-task-controls"
@@ -52,7 +54,7 @@ export default function WorldTaskControls({
             disabled={disabled || !evidence.pieces.length}
             onClick={() => onAction({ kind: "remove-piece" })}
           >
-            Undo last beam
+            {t("Undo last beam")}
           </button>
         </>
       ) : task.kind === "circuit" && evidence.kind === "circuit" ? (
@@ -89,7 +91,7 @@ export default function WorldTaskControls({
         disabled={disabled}
         onClick={() => onAction({ kind: "reset" })}
       >
-        Reset experiment
+        {t("Reset experiment")}
       </button>
     </section>
   );

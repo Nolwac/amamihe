@@ -8,15 +8,23 @@ import type {
   CourseResource,
 } from "../shared/course";
 import "./studio.css";
-
-type Issue = { path: string; message: string };
+import { useAccess } from "./Access";
+import CourseTranslations from "./CourseTranslations";
+import MaterialReports from "./MaterialReports";
+type Issue = {
+  path: string;
+  message: string;
+};
 type StudioProps = {
   onClose: () => void;
   onPublished: (courseId: string) => void;
   renderScene?: (theme: CourseLevel["theme"]) => ReactNode;
 };
 type Editor =
-  | { kind: "resource"; resource: CourseResource }
+  | {
+      kind: "resource";
+      resource: CourseResource;
+    }
   | {
       kind: "question";
       question: CourseQuestion;
@@ -160,24 +168,25 @@ function ResourceEditor({
   onSave: (resource: CourseResource) => void;
   onClose: () => void;
 }) {
+  const { t } = useAccess();
   const [resource, setResource] = useState(initial);
   const [importError, setImportError] = useState("");
   const [importing, setImporting] = useState(false);
   const patch = (value: Partial<CourseResource>) =>
     setResource((previous) => ({ ...previous, ...value }));
   return (
-    <Dialog title="Learning resource" onClose={onClose}>
+    <Dialog title={t("Learning resource")} onClose={onClose}>
       <p className="studio-muted">
         Add the material learners will actually read or open. Record its
         original, credible source.
       </p>
-      <Label title="Resource title">
+      <Label title={t("Resource title")}>
         <input
           value={resource.title}
           onChange={(event) => patch({ title: event.target.value })}
         />
       </Label>
-      <Label title="Resource type">
+      <Label title={t("Resource type")}>
         <select
           value={resource.kind}
           onChange={(event) =>
@@ -288,7 +297,7 @@ function ResourceEditor({
           onChange={(event) => patch({ url: event.target.value })}
         />
       </Label>
-      <Label title="Credible source URL">
+      <Label title={t("Credible source URL")}>
         <input
           type="url"
           value={resource.source}
@@ -301,14 +310,69 @@ function ResourceEditor({
         the adventure. Notebook resources support download and launch/return.
         External runtime access may require an account.
       </p>
+      <fieldset lang="en">
+        <legend>Publisher source review (public, optional)</legend>
+        <p>
+          Check the source and factual claims before publication. These details
+          identify your review; they do not certify independent expert approval.
+        </p>
+        <Label title="Public reviewer name">
+          <input
+            value={resource.review?.reviewer || ""}
+            maxLength={80}
+            onChange={(e) =>
+              patch({
+                review: {
+                  reviewer: e.target.value,
+                  date: resource.review?.date || "",
+                  note: resource.review?.note || "",
+                },
+              })
+            }
+          />
+        </Label>
+        <Label title="Source review date">
+          <input
+            type="date"
+            value={resource.review?.date || ""}
+            onChange={(e) =>
+              patch({
+                review: {
+                  reviewer: resource.review?.reviewer || "",
+                  date: e.target.value,
+                  note: resource.review?.note || "",
+                },
+              })
+            }
+          />
+        </Label>
+        <Label title="Review/source note">
+          <textarea
+            value={resource.review?.note || ""}
+            maxLength={500}
+            onChange={(e) =>
+              patch({
+                review: {
+                  reviewer: resource.review?.reviewer || "",
+                  date: resource.review?.date || "",
+                  note: e.target.value,
+                },
+              })
+            }
+          />
+        </Label>
+        <button type="button" onClick={() => patch({ review: undefined })}>
+          Clear review details
+        </button>
+      </fieldset>
       <div className="studio-dialog-actions">
-        <button onClick={onClose}>Cancel</button>
+        <button onClick={onClose}>{t("Cancel")}</button>
         <button
           className="studio-primary"
           disabled={importing}
           onClick={() => onSave(resource)}
         >
-          Keep resource
+          {t("Keep resource")}
         </button>
       </div>
     </Dialog>
@@ -685,12 +749,12 @@ function LearnerPreview({
     </div>
   );
 }
-
 export default function TutorStudio({
   onClose,
   onPublished,
   renderScene,
 }: StudioProps) {
+  const { t } = useAccess();
   const [courses, setCourses] = useState<CourseDraft[]>([]);
   const [draft, setDraft] = useState<CourseDraft | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
@@ -711,7 +775,9 @@ export default function TutorStudio({
   const level = definition?.levels.find((item) => item.id === selected);
   useEffect(() => {
     let active = true;
-    request<{ courses: CourseDraft[] }>("")
+    request<{
+      courses: CourseDraft[];
+    }>("")
       .then((data) => {
         if (!active) return;
         setCourses(data.courses);
@@ -827,11 +893,9 @@ export default function TutorStudio({
     void perform(async () => {
       const saved = await save();
       if (!saved) return;
-      const checked = await request<{ issues: Issue[] }>(
-        `/${saved.id}/validate`,
-        "POST",
-        { revision: saved.revision },
-      );
+      const checked = await request<{
+        issues: Issue[];
+      }>(`/${saved.id}/validate`, "POST", { revision: saved.revision });
       setIssues(checked.issues);
       if (checked.issues.length) {
         setMessage(
@@ -847,11 +911,10 @@ export default function TutorStudio({
         );
         return;
       }
-      const published = await request<{ id: string; version: number }>(
-        `/${saved.id}/publish`,
-        "POST",
-        { revision: saved.revision },
-      );
+      const published = await request<{
+        id: string;
+        version: number;
+      }>(`/${saved.id}/publish`, "POST", { revision: saved.revision });
       const updated = { ...saved, publishedVersion: published.version };
       setDraft(updated);
       remember(updated);
@@ -985,7 +1048,7 @@ export default function TutorStudio({
   return (
     <section
       className={`tutor-studio studio-panel-${panel}`}
-      aria-label="Tutor studio"
+      aria-label={t("Tutor studio")}
     >
       <header className="studio-header">
         <div className="studio-brand">
@@ -993,7 +1056,7 @@ export default function TutorStudio({
             a<span>✦</span>
           </span>
           <div>
-            <strong>Tutor studio</strong>
+            <strong>{t("Tutor studio")}</strong>
             <small>BUILD A WORLD OF LEARNING</small>
           </div>
         </div>
@@ -1049,7 +1112,9 @@ export default function TutorStudio({
               onClick={() => {
                 if (canLeave())
                   void perform(async () => {
-                    const data = await request<{ courses: CourseDraft[] }>("");
+                    const data = await request<{
+                      courses: CourseDraft[];
+                    }>("");
                     setCourses(data.courses);
                     const latest = data.courses.find(
                       (item) => item.id === draft?.id,
@@ -1214,7 +1279,7 @@ export default function TutorStudio({
                       : "UNPUBLISHED DRAFT"}
                   </span>
                 </div>
-                <Label title="Course title">
+                <Label title={t("Course title")}>
                   <input
                     className="studio-title-input"
                     value={definition.title}
@@ -1393,7 +1458,7 @@ export default function TutorStudio({
                               {item.resourceIds.length} resources <i>·</i>{" "}
                               {item.timeLimitSeconds
                                 ? `${item.timeLimitSeconds}s`
-                                : "Untimed"}
+                                : t("Untimed")}
                             </p>
                             <span className="studio-level-reward">
                               ✦ {item.points} points
@@ -1445,7 +1510,7 @@ export default function TutorStudio({
                     }
                   />
                 </Label>
-                <Label title="Course summary">
+                <Label title={t("Course summary")}>
                   <textarea
                     rows={4}
                     value={definition.summary}
@@ -1500,7 +1565,7 @@ export default function TutorStudio({
                     }
                   />
                 </Label>
-                <Label title="Course language">
+                <Label title={t("Course language")}>
                   <input
                     value={definition.language}
                     placeholder="en"
@@ -1512,6 +1577,13 @@ export default function TutorStudio({
                     }
                   />
                 </Label>
+                <CourseTranslations
+                  definition={definition}
+                  onSave={(translations) =>
+                    modify((previous) => ({ ...previous, translations }))
+                  }
+                />
+                {draft && <MaterialReports courseId={draft.id} />}
                 <section className="studio-inspector-section">
                   <div className="studio-section-heading">
                     <h3>Skills & prerequisites</h3>

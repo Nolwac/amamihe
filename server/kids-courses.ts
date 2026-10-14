@@ -7,6 +7,7 @@ import type { Database } from "./db.js";
 import { publishMaintainedCourse } from "./pilot-course.js";
 import { KIDS_COURSES } from "../shared/catalogue.js";
 import { playableCourses } from "./playable-courses.js";
+import { addNumberGardenTranslations } from "./number-garden-languages.js";
 
 type Challenge = [
   prompt: string,
@@ -101,89 +102,91 @@ export function kidsCourses(): { id: string; definition: CourseDefinition }[] {
     ...playableCourses(),
     {
       id: KIDS_COURSES[0].id,
-      definition: course(
-        "Number Garden",
-        "Ages 3–5 · English · 10–15 minutes with a grown-up. Count seeds, discover shapes and fill a garden in a calm 3D workshop. No reading prerequisite: a helper can read each short prompt. Unlimited practice, no task deadline.",
-        "workshop",
-        "https://www.thecorestandards.org/Math/Content/K/CC/",
-        [
-          {
-            title: "Seed counting",
-            concept: "Count small groups",
-            lesson:
-              "Welcome to Number Garden! Touch or point at each seed once as you count: 1, 2, 3. The last number says how many seeds there are. Do not count the same seed twice. Garden mission: count a small group of real toys, then sketch your own seed patch. Grown-up: read the short questions aloud, let the learner point, and ask how they counted. These are original Amamihe examples; the linked counting framework is background reading for helpers.",
-            questions: [
-              [
-                "Count these seeds: ● ● ●. How many?",
-                ["2", "3", "4"],
-                1,
-                "Point to each dot just once.",
-                "There are three seeds: count 1, 2, 3.",
+      definition: addNumberGardenTranslations(
+        course(
+          "Number Garden",
+          "Ages 3–5 · English · 10–15 minutes with a grown-up. Count seeds, discover shapes and fill a garden in a calm 3D workshop. No reading prerequisite: a helper can read each short prompt. Unlimited practice, no task deadline.",
+          "workshop",
+          "https://www.thecorestandards.org/Math/Content/K/CC/",
+          [
+            {
+              title: "Seed counting",
+              concept: "Count small groups",
+              lesson:
+                "Welcome to Number Garden! Touch or point at each seed once as you count: 1, 2, 3. The last number says how many seeds there are. Do not count the same seed twice. Garden mission: count a small group of real toys, then sketch your own seed patch. Grown-up: read the short questions aloud, let the learner point, and ask how they counted. These are original Amamihe examples; the linked counting framework is background reading for helpers.",
+              questions: [
+                [
+                  "Count these seeds: ● ● ●. How many?",
+                  ["2", "3", "4"],
+                  1,
+                  "Point to each dot just once.",
+                  "There are three seeds: count 1, 2, 3.",
+                ],
+                [
+                  "One seed and one more seed. How many now?",
+                  ["1", "3", "2"],
+                  2,
+                  "Use one finger, then add one finger.",
+                  "One and one make two seeds.",
+                ],
               ],
-              [
-                "One seed and one more seed. How many now?",
-                ["1", "3", "2"],
-                2,
-                "Use one finger, then add one finger.",
-                "One and one make two seeds.",
+              retries: [
+                [
+                  "Count these flowers: ✿ ✿ ✿ ✿. How many?",
+                  ["4", "2", "3"],
+                  0,
+                  "Point to each flower once.",
+                  "There are four flowers: 1, 2, 3, 4.",
+                ],
+                [
+                  "Two seeds get one more seed. How many now?",
+                  ["4", "3", "2"],
+                  1,
+                  "Start with two fingers and add one.",
+                  "Two and one make three seeds.",
+                ],
               ],
-            ],
-            retries: [
-              [
-                "Count these flowers: ✿ ✿ ✿ ✿. How many?",
-                ["4", "2", "3"],
-                0,
-                "Point to each flower once.",
-                "There are four flowers: 1, 2, 3, 4.",
+            },
+            {
+              title: "Shape stepping stones",
+              concept: "Recognize circles and triangles",
+              lesson:
+                "A circle is round, with no corners. A triangle has three straight sides and three corners. Our garden path uses round ponds and triangle flags. Trace a circle in the air, then draw a triangle flag in the sketchbook. A grown-up can help find these shapes nearby; touching shapes and drawing are practice, not automatic challenge credit.",
+              questions: [
+                [
+                  "Which shape is round with no corners?",
+                  ["Triangle △", "Square □", "Circle ○"],
+                  2,
+                  "Think about the edge of a round plate.",
+                  "A circle is round and has no corners.",
+                ],
+                [
+                  "Which flag shape has three corners?",
+                  ["Triangle △", "Circle ○", "Square □"],
+                  0,
+                  "Count the corners with your finger.",
+                  "A triangle has three corners and three sides.",
+                ],
               ],
-              [
-                "Two seeds get one more seed. How many now?",
-                ["4", "3", "2"],
-                1,
-                "Start with two fingers and add one.",
-                "Two and one make three seeds.",
+              retries: [
+                [
+                  "Which shape matches a round pond?",
+                  ["Square □", "Circle ○", "Triangle △"],
+                  1,
+                  "A pond can have a smooth round edge.",
+                  "A round pond matches a circle.",
+                ],
+                [
+                  "A shape has three straight sides. What is it?",
+                  ["Circle ○", "Square □", "Triangle △"],
+                  2,
+                  "Count three sides and three corners.",
+                  "Three straight sides make a triangle.",
+                ],
               ],
-            ],
-          },
-          {
-            title: "Shape stepping stones",
-            concept: "Recognize circles and triangles",
-            lesson:
-              "A circle is round, with no corners. A triangle has three straight sides and three corners. Our garden path uses round ponds and triangle flags. Trace a circle in the air, then draw a triangle flag in the sketchbook. A grown-up can help find these shapes nearby; touching shapes and drawing are practice, not automatic challenge credit.",
-            questions: [
-              [
-                "Which shape is round with no corners?",
-                ["Triangle △", "Square □", "Circle ○"],
-                2,
-                "Think about the edge of a round plate.",
-                "A circle is round and has no corners.",
-              ],
-              [
-                "Which flag shape has three corners?",
-                ["Triangle △", "Circle ○", "Square □"],
-                0,
-                "Count the corners with your finger.",
-                "A triangle has three corners and three sides.",
-              ],
-            ],
-            retries: [
-              [
-                "Which shape matches a round pond?",
-                ["Square □", "Circle ○", "Triangle △"],
-                1,
-                "A pond can have a smooth round edge.",
-                "A round pond matches a circle.",
-              ],
-              [
-                "A shape has three straight sides. What is it?",
-                ["Circle ○", "Square □", "Triangle △"],
-                2,
-                "Count three sides and three corners.",
-                "Three straight sides make a triangle.",
-              ],
-            ],
-          },
-        ],
+            },
+          ],
+        ),
       ),
     },
     {

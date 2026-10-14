@@ -59,6 +59,12 @@ while (true) {
       candidate.features?.authorizedBillboards &&
       candidate.features?.learningPolice &&
       candidate.features?.worldOperations &&
+      candidate.features?.accessibilitySettings &&
+      candidate.features?.voiceCommands &&
+      candidate.features?.authoredTranslations &&
+      candidate.features?.publicStudyPacks &&
+      candidate.features?.materialCorrections &&
+      candidate.features?.privateDataExport &&
       candidate.storage === "PostgreSQL" &&
       candidate.classifier === DECISION_IDENTITY &&
       candidate.decisionService?.ready === true &&
@@ -149,6 +155,39 @@ try {
       ),
       `Public course avatar must include baked ${name} motion.`,
     );
+  const speech = await context.request.get(base + "/api/speech/capabilities");
+  assert.equal(speech.status(), 200);
+  assert.ok((await speech.json()).languages.includes("en"));
+  assert.equal((await speech.json()).storesAudio, false);
+  assert.equal(
+    (
+      await context.request.post(base + "/api/speech/narrate", {
+        data: { text: "Count one", language: "en" },
+      })
+    ).status(),
+    401,
+  );
+  assert.equal(
+    (await context.request.get(base + "/api/account/export")).status(),
+    401,
+  );
+  for (const language of ["en", "fr", "pt", "ar", "ig", "yo", "ha"]) {
+    const response = await context.request.get(
+      base + "/api/courses/amamihe-number-garden",
+      { headers: { "x-amamihe-language": language } },
+    );
+    assert.equal(response.status(), 200);
+    const definition = (await response.json()).definition;
+    assert.equal(definition.language, language);
+    assert.equal("translations" in definition, false);
+    for (const level of definition.levels)
+      for (const q of [...level.questions, ...level.retryQuestions])
+        for (const key of ["answer", "hint", "explanation", "rubric"])
+          assert.equal(key in q, false);
+  }
+  evidence.checks.push(
+    "seven authored lesson languages, protected exports and actual native narrator capabilities",
+  );
   evidence.checks.push(
     "public bounded action avatar with seven skeletal gameplay clips",
   );
@@ -370,6 +409,26 @@ try {
     });
     evidence.checks.push(
       `live ${viewport.width}px browser: rigged 3D avatar, account gate, aligned layout, no page errors`,
+    );
+    await page
+      .getByRole("button", { name: "Access & language", exact: true })
+      .click();
+    await page.getByLabel("Language", { exact: true }).selectOption("ar");
+    assert.equal(await page.locator("html").getAttribute("dir"), "rtl");
+    await page.screenshot({
+      path: `test-results/production/access-arabic-${viewport.width}.png`,
+      fullPage: true,
+    });
+    assert.ok(
+      await page
+        .locator(".access-panel")
+        .evaluate((el) => el.scrollWidth <= el.clientWidth + 2),
+    );
+    await page.getByRole("combobox").first().selectOption("en");
+    await page.keyboard.press("Escape");
+    assert.deepEqual(errors, []);
+    evidence.checks.push(
+      `live ${viewport.width}px Arabic access controls and RTL layout`,
     );
     await page.close();
   }
