@@ -45,6 +45,6 @@ Captures: [bridge](../../evidence/screenshots/city-learning-fraction-bridge.png)
 
 ## Publication and continuation
 
-Feature branch: `feat/learning-city-experiences`, based on `433311a3c19f0c0a78f9093e7d60fd572b61b1d8`. The source is ready for publication. Git transport accepts a push dry run, and GitHub API access has recovered after transient HTTP 401 responses. Update this paragraph with the actual commit, push and review result.
+Feature branch `feat/learning-city-experiences` is pushed and under review in [PR #6](https://github.com/Nolwac/amamihe/pull/6). Implementation commit: `2d3b376`; final character/asset refinement: `f8c1846`. Baseline: `433311a3c19f0c0a78f9093e7d60fd572b61b1d8`. GitHub API access recovered without requiring user intervention. The PR workflow is responsible for remote verification; no remote CI success is claimed here.
 
 These changes have **not been deployed**. The preceding release’s unresolved VPS promotion/access boundary remains in `TEV1_HANDOFF.md`. Do not request repeated manual VPS logs or claim local verification establishes a live release. After source review, use the existing CI-approved deployment procedure and exact-release public acceptance. Further course work can turn the older question-based starters into more spatial missions, using these two playable examples; richer steering/boarding animation and physical-device performance remain useful subsequent polish.

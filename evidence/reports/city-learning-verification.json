@@ -307,5 +307,7 @@
     "passed": 20,
     "failed": 0,
     "scope": "Rebuilt character weights, rig bounds, provenance, walking/transport clips and retained adventure avatar contract."
-  }
+  },
+  "implementationCommit": "f8c1846324702933371399d4d9abf3c354162296",
+  "pullRequest": "https://github.com/Nolwac/amamihe/pull/6"
 }
