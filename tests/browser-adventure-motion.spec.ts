@@ -82,7 +82,12 @@ async function audioSnapshot(page: Page): Promise<RenderedAudio | null> {
 }
 
 async function openAudioControls(page: Page) {
-  const controls = page.locator(".audio-controls");
+  // After refresh, the city toolbar can appear before the lazy course view.
+  // Wait for the restored adventure and interact with its persistent toolbar.
+  await expect(page.getByLabel("Published course adventure")).toBeVisible({
+    timeout: 30000,
+  });
+  const controls = page.locator(".course-adventure .audio-controls");
   if ((await controls.getAttribute("open")) === null) {
     await controls.locator("summary").click({ timeout: 10000 });
   }

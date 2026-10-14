@@ -1,8 +1,105 @@
 import { test, expect } from "@playwright/test";
 import { createAccount } from "./auth-helpers";
-import { openAdventurePanels } from "./game-ui-helpers";
+import { openAdventurePanels, openCityMenu } from "./game-ui-helpers";
 import { UI_TRANSLATIONS } from "../shared/ui-language";
 import { LANGUAGES } from "../shared/inclusion";
+
+test("walking follows a panned camera with keyboard and screen buttons", async ({
+  page,
+  context,
+}) => {
+  await createAccount(context.request, "Camera explorer");
+  await page.setViewportSize({ width: 600, height: 900 });
+  await page.goto("/");
+  const canvas = page.locator("canvas");
+  await expect(canvas).toHaveAttribute("data-avatar-ready", "true", {
+    timeout: 60000,
+  });
+  async function frame(): Promise<{ x: number; z: number; alpha: number }> {
+    return JSON.parse((await canvas.getAttribute("data-movement-frame"))!);
+  }
+  const initial = await frame();
+  const size = page.viewportSize()!;
+  // Real pointer orbit, with no direct camera mutation.
+  for (let swipe = 0; swipe < 4; swipe++) {
+    await page.mouse.move(size.width * 0.65, size.height * 0.48);
+    await page.mouse.down();
+    await page.mouse.move(size.width * 0.25, size.height * 0.48, { steps: 10 });
+    await page.mouse.up();
+    await page.waitForTimeout(700);
+    if (Math.abs((await frame()).alpha - initial.alpha) > 0.65) break;
+  }
+  await expect
+    .poll(async () => Math.abs((await frame()).alpha - initial.alpha))
+    .toBeGreaterThan(0.65);
+  await page.waitForTimeout(1000);
+  for (const input of ["w", "ArrowUp", "ArrowRight", "button"] as const) {
+    const before = await frame();
+    if (input !== "button") await page.keyboard.down(input);
+    else {
+      const bounds = await page
+        .getByRole("button", { name: "Walk Up", exact: true })
+        .boundingBox();
+      await page.mouse.move(
+        bounds!.x + bounds!.width / 2,
+        bounds!.y + bounds!.height / 2,
+      );
+      await page.mouse.down();
+    }
+    await page.waitForTimeout(450);
+    if (input !== "button") await page.keyboard.up(input);
+    else await page.mouse.up();
+    const after = await frame();
+    const dx = after.x - before.x,
+      dz = after.z - before.z;
+    const distance = Math.hypot(dx, dz);
+    expect(distance).toBeGreaterThan(0.15);
+    const expected =
+      input === "ArrowRight"
+        ? { x: -Math.sin(before.alpha), z: Math.cos(before.alpha) }
+        : { x: -Math.cos(before.alpha), z: -Math.sin(before.alpha) };
+    const alignment = (dx * expected.x + dz * expected.z) / distance;
+    expect(alignment).toBeGreaterThan(0.9);
+    expect(Math.abs(after.alpha - before.alpha)).toBeLessThan(0.08);
+  }
+});
+
+test("city graphics persist and accessibility settings do not obstruct the city menu", async ({
+  page,
+  context,
+}) => {
+  await createAccount(context.request, "Graphics explorer");
+  await page.goto("/");
+  await openCityMenu(page);
+  await page.getByLabel("City graphics settings", { exact: true }).click();
+  await page
+    .getByLabel("Graphics quality", { exact: true })
+    .selectOption("medium");
+  await page.reload();
+  await expect(page.locator("canvas")).toHaveAttribute(
+    "data-scene-quality",
+    "medium",
+  );
+  await openCityMenu(page);
+  await page.getByLabel("City graphics settings", { exact: true }).click();
+  await expect(
+    page.getByLabel("Graphics quality", { exact: true }),
+  ).toHaveValue("medium");
+  await page
+    .getByRole("button", { name: "Access & language", exact: true })
+    .click();
+  await page.getByLabel("Reduced motion", { exact: true }).check();
+  await page.keyboard.press("Escape");
+  await page.reload();
+  await expect(page.locator("html")).toHaveAttribute(
+    "data-access-motion",
+    "true",
+  );
+  await expect(page.locator("canvas")).toHaveAttribute(
+    "data-scene-quality",
+    "medium",
+  );
+});
 
 test("seven-language account entry and keyboard access remain protected on a small screen", async ({
   page,
@@ -68,6 +165,16 @@ test("voice navigation, version-pinned translations and public offline readings 
   page.on("pageerror", (e) => errors.push(e.message));
   await createAccount(context.request, "Inclusive explorer");
   await page.goto("/");
+  await openCityMenu(page);
+  await page.getByLabel("City graphics settings", { exact: true }).click();
+  await page
+    .getByLabel("Graphics quality", { exact: true })
+    .selectOption("medium");
+  await page.reload();
+  await expect(page.locator("canvas")).toHaveAttribute(
+    "data-scene-quality",
+    "medium",
+  );
   await page
     .getByRole("button", { name: "Access & language", exact: true })
     .click();
@@ -85,6 +192,24 @@ test("voice navigation, version-pinned translations and public offline readings 
   });
   await page.keyboard.press("Escape");
   await openAdventurePanels(page);
+  const graphics = page.getByLabel("Adventure graphics", { exact: true });
+  await expect(graphics).toHaveValue("0");
+  await page
+    .getByRole("button", { name: "Access & language", exact: true })
+    .click();
+  await page.getByLabel("Save mobile data", { exact: true }).check();
+  await expect(graphics).toHaveValue("144");
+  await page.getByLabel("Save mobile data", { exact: true }).uncheck();
+  await expect(graphics).toHaveValue("0");
+  await page.keyboard.press("Escape");
+  await page
+    .getByLabel("Adventure graphics", { exact: true })
+    .selectOption("720");
+  await page.reload();
+  await openAdventurePanels(page);
+  await expect(
+    page.getByLabel("Adventure graphics", { exact: true }),
+  ).toHaveValue("720");
   const original = await (
     await context.request.get("/api/learning/amamihe-number-garden")
   ).json();
@@ -124,6 +249,10 @@ test("voice navigation, version-pinned translations and public offline readings 
       .toBe(lang);
   }
   await page.locator(".access-panel select").first().selectOption("en");
+  await page.getByLabel("Save mobile data", { exact: true }).check();
+  await expect(graphics).toHaveValue("720");
+  await page.getByLabel("Save mobile data", { exact: true }).uncheck();
+  await expect(graphics).toHaveValue("720");
   await command("write My own counting explanation");
   await page.keyboard.press("Escape");
   await expect(
@@ -151,7 +280,38 @@ test("voice navigation, version-pinned translations and public offline readings 
   await page
     .getByRole("button", { name: "Access & language", exact: true })
     .click();
+  // Opening accessibility settings pauses the timed game. Resume explicitly
+  // before checking the separate answer/submit/confirm sequence.
+  await expect
+    .poll(
+      async () =>
+        (
+          await (
+            await context.request.get("/api/learning/amamihe-number-garden")
+          ).json()
+        ).game.status,
+    )
+    .toBe("paused");
+  await command("start");
+  await expect
+    .poll(
+      async () =>
+        (
+          await (
+            await context.request.get("/api/learning/amamihe-number-garden")
+          ).json()
+        ).game.status,
+    )
+    .toBe("active");
   await command("answer 2");
+  let answerRequests = 0;
+  page.on("request", (request) => {
+    if (
+      request.method() === "POST" &&
+      request.url().endsWith("/api/learning/amamihe-number-garden/answer")
+    )
+      answerRequests++;
+  });
   await command("submit answer");
   const after = await (await context.request.get("/api/account/export")).json();
   expect(after.data.course_chunks).toEqual(before.data.course_chunks);
@@ -160,10 +320,10 @@ test("voice navigation, version-pinned translations and public offline readings 
   );
   await command("answer 1");
   await command("confirm");
-  expect(
-    (await (await context.request.get("/api/account/export")).json()).data
-      .course_chunks,
-  ).toEqual(before.data.course_chunks);
+  await expect(page.locator(".access-feedback")).toContainText(
+    "Nothing is waiting for confirmation",
+  );
+  expect(answerRequests).toBe(0);
   await command("submit answer");
   const submitted = page.waitForResponse(
     (r) =>
@@ -172,6 +332,7 @@ test("voice navigation, version-pinned translations and public offline readings 
   );
   await command("confirm");
   expect((await submitted).ok()).toBe(true);
+  expect(answerRequests).toBe(1);
   const recorded = (
     await (await context.request.get("/api/account/export")).json()
   ).data.course_chunks;
@@ -199,8 +360,13 @@ test("voice navigation, version-pinned translations and public offline readings 
       exact: true,
     })
     .click();
-  await expect(page.locator(".offline-study pre").first()).toContainText(
-    "Count",
+  const savedReading = saved[0].definition.resources[0];
+  await expect(page.locator(".offline-study pre").first()).toHaveText(
+    savedReading.content,
+  );
+  await expect(page.locator(".offline-study a").first()).toHaveAttribute(
+    "href",
+    savedReading.source,
   );
   await page.reload();
   await expect(page.getByLabel("Published course adventure")).toHaveCount(0);
@@ -213,7 +379,13 @@ test("voice navigation, version-pinned translations and public offline readings 
       exact: true,
     })
     .click();
-  await expect(page.locator(".offline-study pre").first()).toBeVisible();
+  await expect(page.locator(".offline-study pre").first()).toHaveText(
+    savedReading.content,
+  );
+  await expect(page.locator(".offline-study a").first()).toHaveAttribute(
+    "href",
+    savedReading.source,
+  );
   await context.setOffline(false);
   expect(errors).toEqual([]);
 });

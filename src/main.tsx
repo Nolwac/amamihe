@@ -17,6 +17,7 @@ import {
   interfaceLanguage,
 } from "./Access";
 import { clearPrivateDeviceData } from "./OfflineStudy";
+import { useVisualPreference } from "./visualPreferences";
 void initializeAssetCache();
 import React, { Suspense, lazy, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
@@ -198,7 +199,7 @@ function App() {
   const [player, setPlayer] = useState<Player | null>(null),
     [loading, setLoading] = useState(true),
     [outfit, setOutfit] = useState("terracotta"),
-    [quality, setQuality] = useState("low"),
+    [quality, setQuality] = useVisualPreference("cityQuality", "low"),
     [stats, setStats] = useState({
       fps: 0,
       meshes: 0,
@@ -225,6 +226,10 @@ function App() {
     [started, setStarted] = useState(Date.now()),
     [result, setResult] = useState<Result | null>(null),
     [cleared, setCleared] = useState(false);
+  useEffect(() => {
+    // Visibility changes can move fixed obstacles without resizing the controls.
+    window.dispatchEvent(new Event("resize"));
+  }, [player?.id, courseId, access.language]);
   useEffect(() => {
     let alive = true;
     api<{
@@ -801,7 +806,9 @@ function App() {
                   <select
                     aria-label="Graphics quality"
                     value={quality}
-                    onChange={(e) => setQuality(e.target.value)}
+                    onChange={(e) =>
+                      setQuality(e.target.value as "low" | "medium" | "high")
+                    }
                   >
                     <option value="low">Low · adaptive 144–360p</option>
                     <option value="medium">Medium · 720p</option>

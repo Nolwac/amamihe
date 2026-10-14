@@ -1,0 +1,21 @@
+name: Codex inline review request
+on:
+  pull_request_review_comment:
+    types: [created]
+permissions: {}
+jobs:
+  capture:
+    if: github.event.comment.user.type != 'Bot'
+    runs-on: ubuntu-latest
+    steps:
+      # No checkout, repository secrets or write-capable GitHub token here.
+      # The privileged main workflow re-fetches and authorizes this identifier.
+      - name: Capture comment identifier only
+        run: |
+          node -e 'const fs = require("node:fs"); const event = JSON.parse(fs.readFileSync(process.env.GITHUB_EVENT_PATH, "utf8")); if (!Number.isSafeInteger(event.comment.id) || event.comment.id < 1) throw Error("Invalid comment"); fs.writeFileSync(process.env.RUNNER_TEMP + "/request.json", JSON.stringify({id: event.comment.id}));'
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: codex-inline-request
+          path: ${{ runner.temp }}/request.json
+          retention-days: 1
+          if-no-files-found: error

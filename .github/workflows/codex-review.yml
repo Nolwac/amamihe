@@ -1,0 +1,161 @@
+name: Codex automatic review
+on:
+  pull_request_target:
+    branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
+  issue_comment:
+    types: [created]
+  workflow_run:
+    workflows: [Codex inline review request]
+    types: [completed]
+  workflow_call:
+    inputs:
+      pr_number:
+        required: true
+        type: string
+      trusted_ref:
+        required: true
+        type: string
+    secrets:
+      OPENAI_API_KEY:
+        required: true
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: Pull request number to review
+        required: true
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: codex-review-${{ inputs.pr_number || github.event.pull_request.number || github.event.issue.number || github.event.workflow_run.pull_requests[0].number || github.run_id }}
+  cancel-in-progress: false
+jobs:
+  prepare:
+    if: github.event.comment.user.type != 'Bot' && (github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.actor.type != 'Bot'))
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+      checks: write
+      actions: read
+    outputs:
+      number: ${{ steps.context.outputs.number }}
+      head: ${{ steps.context.outputs.head }}
+      check: ${{ steps.context.outputs.check }}
+      comment: ${{ steps.context.outputs.comment }}
+      comment_root: ${{ steps.context.outputs.comment_root }}
+      comment_type: ${{ steps.context.outputs.comment_type }}
+      skip: ${{ steps.context.outputs.skip }}
+      trusted_ref: ${{ steps.trust.outputs.ref }}
+    steps:
+      - name: Select trusted workflow source
+        id: trust
+        env:
+          TRUSTED_REF: ${{ inputs.trusted_ref }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Review-comment events use the PR merge ref. Never take helper code
+          # from that ref; normal reviews pin the current main revision instead.
+          if [[ -z "$TRUSTED_REF" ]]; then
+            TRUSTED_REF=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq '.object.sha')
+          fi
+          [[ "$TRUSTED_REF" =~ ^[0-9a-f]{40}$ ]]
+          printf 'ref=%s\n' "$TRUSTED_REF" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ steps.trust.outputs.ref }}
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "24"
+      - name: Retrieve inline-comment identifier from the unprivileged receiver
+        if: github.event_name == 'workflow_run'
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: codex-inline-request
+          path: inline-request
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ github.token }}
+      - name: Authorize requester and collect bounded review data
+        id: context
+        run: node scripts/codex/review-github.mjs prepare
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ inputs.pr_number }}
+      - name: Transfer private review input between jobs
+        if: steps.context.outputs.skip == 'false'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: codex-review-input-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/codex-prompt.md
+          retention-days: 1
+          if-no-files-found: error
+  review:
+    needs: prepare
+    if: needs.prepare.outputs.skip == 'false'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    outputs:
+      result: ${{ steps.codex.outputs.final-message }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ needs.prepare.outputs.trusted_ref }}
+          path: trusted
+          persist-credentials: false
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ needs.prepare.outputs.head }}
+          path: candidate
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: codex-review-input-${{ github.run_id }}-${{ github.run_attempt }}
+          path: review-input
+      # Last step: no project installation/execution, writes, network tools or
+      # write-capable GitHub token in the model job. Credentials stay in the proxy.
+      - name: Review exact head with Codex exec
+        id: codex
+        uses: openai/codex-action@bdf19a4a223ec2549a3e2274a0cf61556bc07675 # v1
+        with:
+          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+          sandbox: read-only
+          safety-strategy: drop-sudo
+          effort: medium
+          working-directory: candidate
+          prompt-file: ${{ github.workspace }}/review-input/codex-prompt.md
+          output-schema-file: ${{ github.workspace }}/trusted/.github/codex/review.schema.json
+          codex-args: '["--ephemeral", "-c", "project_doc_max_bytes=0"]'
+  publish:
+    needs: [prepare, review]
+    if: always() && needs.prepare.outputs.number != '' && needs.prepare.outputs.head != ''
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      checks: write
+      issues: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ needs.prepare.outputs.trusted_ref }}
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "24"
+      - name: Publish review and reply without OpenAI credentials
+        run: node scripts/codex/review-github.mjs publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ needs.prepare.outputs.number }}
+          REVIEW_HEAD: ${{ needs.prepare.outputs.head }}
+          REVIEW_CHECK: ${{ needs.prepare.outputs.check }}
+          REVIEW_COMMENT: ${{ needs.prepare.outputs.comment }}
+          REVIEW_COMMENT_ROOT: ${{ needs.prepare.outputs.comment_root }}
+          REVIEW_COMMENT_TYPE: ${{ needs.prepare.outputs.comment_type }}
+          REVIEW_JOB_RESULT: ${{ needs.review.result }}
+          REVIEW_RESULT: ${{ needs.review.outputs.result }}

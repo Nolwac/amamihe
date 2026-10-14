@@ -2,6 +2,7 @@ import { FloatingControl, useHudEditing } from "./FloatingHud";
 import { useAccess, useVoiceCommands, interfaceLanguage } from "./Access";
 import { normalizedSpeech } from "../shared/inclusion";
 import { saveStudyPack } from "./OfflineStudy";
+import { useVisualPreference } from "./visualPreferences";
 import LearningJourney from "./LearningJourney";
 import SourceEvidence from "./SourceEvidence";
 import FieldJournal from "./FieldJournal";
@@ -60,7 +61,14 @@ export default function CourseAdventure({
   avatar?: import("../shared/avatars").CharacterId;
   peers?: Presence[];
 }) {
-  const { preferences: access, t, announce, speak, stopSpeech } = useAccess();
+  const {
+    preferences: access,
+    setPreferences,
+    t,
+    announce,
+    speak,
+    stopSpeech,
+  } = useAccess();
   const [dictation, setDictation] = useState("");
   const [studyStatus, setStudyStatus] = useState("");
   const pendingVoice = useRef<{
@@ -138,10 +146,9 @@ export default function CourseAdventure({
   const [journeyOpen, setJourneyOpen] = useState(false);
   const taskPanel = useRef<HTMLDivElement>(null);
   const [controlNotice, setControlNotice] = useState("");
-  const [renderHeight, setRenderHeight] = useState(access.dataSaver ? 144 : 0);
-  useEffect(
-    () => setRenderHeight(access.dataSaver ? 144 : 0),
-    [access.dataSaver],
+  const [renderHeight, setRenderHeight] = useVisualPreference(
+    "adventureHeight",
+    access.dataSaver ? 144 : 0,
   );
   useEffect(
     () => setReducedMotion(access.reducedMotion),
@@ -844,7 +851,11 @@ export default function CourseAdventure({
     }
     if (command.kind === "submit" || command.kind === "confirm") {
       if (!question || answer === null || !actionEnabled) {
-        respond(t("This command is not available in the current place."));
+        respond(
+          progress?.game?.status === "paused"
+            ? t("Resume section")
+            : t("This command is not available in the current place."),
+        );
         return true;
       }
       const identity = {
@@ -1535,8 +1546,12 @@ export default function CourseAdventure({
                           latest.current = next;
                           setProgress(next);
                           setReducedMotion(true);
+                          setPreferences({ reducedMotion: true });
                         });
-                      } else setReducedMotion(enabled);
+                      } else {
+                        setReducedMotion(enabled);
+                        setPreferences({ reducedMotion: enabled });
+                      }
                     }}
                   />{" "}
                   {t("Reduced motion")}

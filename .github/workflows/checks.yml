@@ -4,9 +4,28 @@ on:
     branches: [main]
   pull_request:
   workflow_dispatch:
+    inputs:
+      review_pr:
+        description: Optional PR number for the maintainer-controlled review bootstrap
+        type: string
+        required: false
 permissions:
   contents: read
 jobs:
+  bootstrap-review:
+    if: github.event_name == 'workflow_dispatch' && inputs.review_pr != '' && github.ref != 'refs/heads/main'
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+      checks: write
+      actions: read
+    uses: ./.github/workflows/codex-review.yml
+    with:
+      pr_number: ${{ inputs.review_pr }}
+      trusted_ref: ${{ github.sha }}
+    secrets:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
   verify_shards:
     name: Browser verification (${{ matrix.shard }}/4)
     runs-on: ubuntu-latest
@@ -18,7 +37,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '24'
+          node-version: "24"
           cache: npm
       - name: Validate deployment helper syntax
         run: |
@@ -28,7 +47,7 @@ jobs:
         run: docker compose --env-file /dev/null --file deploy/shared/compose.yaml config --quiet
         env:
           AMAMIHE_SHARED_DIR: /tmp/amamihe-compose-validation
-          APP_LOOPBACK_PORT: '13001'
+          APP_LOOPBACK_PORT: "13001"
           AMAMIHE_IMAGE: amamihe-validation:local
           POSTGRES_IMAGE: postgres:17-bookworm@sha256:0000000000000000000000000000000000000000000000000000000000000000
           POSTGRES_ADMIN_PASSWORD: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
@@ -56,7 +75,7 @@ jobs:
         # Run the complete Node suite once; every shard verifies real inference.
         if: matrix.shard == 1
         env:
-          REQUIRE_NATIVE_SPEECH: '1'
+          REQUIRE_NATIVE_SPEECH: "1"
       - run: npx playwright install --with-deps chromium
       - run: npm start > /tmp/amamihe-api.log 2>&1 &
         env:
@@ -76,7 +95,7 @@ jobs:
           exit "$result"
         env:
           PLAYWRIGHT_JSON_OUTPUT_FILE: /tmp/amamihe-browser-report.json
-          PLAYWRIGHT_MANAGED_BROWSER: '1'
+          PLAYWRIGHT_MANAGED_BROWSER: "1"
           EMAIL_TEST_OUTBOX: /tmp/amamihe-test-outbox
       - uses: actions/upload-artifact@v4
         if: always()
@@ -128,10 +147,20 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      pull-requests: read
+      checks: read
     concurrency:
       group: approve-amamihe-deployment
       cancel-in-progress: false
     steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: Require an exact-head Codex-approved merged PR
+        run: node scripts/codex/review-github.mjs gate
+        env:
+          GH_TOKEN: ${{ github.token }}
       - name: Publish verified source reference for the read-only VPS
         env:
           GH_TOKEN: ${{ github.token }}
@@ -168,7 +197,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '24'
+          node-version: "24"
           cache: npm
       - run: npm ci
       - run: npm run build
@@ -177,7 +206,7 @@ jobs:
         run: node scripts/browser/verify-production.mjs
         env:
           EXPECTED_RELEASE: ${{ github.sha }}
-          PLAYWRIGHT_MANAGED_BROWSER: '1'
+          PLAYWRIGHT_MANAGED_BROWSER: "1"
           PRODUCTION_URL: https://amamihe.online
       - uses: actions/upload-artifact@v4
         if: always()

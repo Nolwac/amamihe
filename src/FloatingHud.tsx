@@ -237,7 +237,7 @@ export function FloatingControl({
       ? clamp(saved.x * window.innerWidth, saved.y * window.innerHeight)
       : null);
   useEffect(() => {
-    if (!saved || !ref.current) return;
+    if (!ref.current) return;
     const r = ref.current.getBoundingClientRect();
     const collision = [
       ...document.querySelectorAll<HTMLElement>(
