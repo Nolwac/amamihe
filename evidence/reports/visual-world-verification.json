@@ -52,7 +52,7 @@
       "tests/browser-world-policy.spec.ts:35:1 \u203a detention controls expose a free course release and an auditable appeal (37.6s)",
       "tests/browser.spec.ts:216:1 \u203a rigged avatars load and the HUD remains aligned at desktop, tablet, and phone widths (16.2s)"
     ],
-    "scope": "Final integrated source: characters, streets, bridge persistence, collapsed journal/practice, camera walking, saved graphics, languages, offline reading, draggable phone controls, real 3D portal picking, art cache, police gait/seated transport/detention/release, HUD across viewports. Remaining browser journeys are delegated to CI."
+    "scope": "Initial local14-journey regression suite, followed by the focused corrections below. The final feature head2791c1a passed all43CIbrowser journeys; see liveRelease for accepted source verification."
   },
   "visual": {
     "characters": "Unedited Cycles renders of final GLBs; provenance and budgets in visual-world-character-assets.json.",
@@ -70,8 +70,9 @@
     "reviewedHead": "be3135fbc3c988ff7c655239f81a01a90a7046e5",
     "codexReview": "approved",
     "ci": "All4shards and verify passed after targeted registry503 retry, run38749962726 attempt2.",
-    "remainingWorldWork": "PR9 targets main after PR8 merged as647a2c1333d07b96387beec469ffd678025be7a1; bridge browser assertion corrected, awaiting fresh exact-head CI/review.",
-    "approvalBoundary": "User explicitly authorized fixing CI, merging the entire work into main, and deploying. PR8 merged after exact-head approval and CI; PR9 and production acceptance pending."
+    "remainingWorldWork": "PR9 merged as3039a4de1851bcb33b2111cf4c43775f35784e9f. Game release is live; shared city-asset validation budget follow-up is in progress.",
+    "approvalBoundary": "User explicitly authorized fixing CI, merging the entire work and deploying; PR8 andPR9 are merged.",
+    "worldCI": "Exact head2791c1aad7818d13e224a2a259c53e02135b66a9: Codex approved,43browser journeys and163Node tests passed; one optional external-PostgreSQL skip."
   },
   "floorCorrection": {
     "reason": "Actual street capture showed shoes sinking into raised course steps.",
@@ -140,7 +141,8 @@
     "secondFollowupRun": "https://github.com/Nolwac/amamihe/actions/runs/38774320379",
     "secondFollowupFailure": "The revised CI captured only1Walkframe while using full-scene per-frame diagnostics and forced720p. Three other shards and exact-head Codex review passed.",
     "thirdFollowupRun": "https://github.com/Nolwac/amamihe/actions/runs/38798219571",
-    "thirdFollowupFailure": "The remaining gait assertion observed no change in one shin; final diagnostics cover both upper and lower leg chains and retain actual sampled matrices. Codex also found the unreachable automatic-resolution recovery threshold."
+    "thirdFollowupFailure": "The remaining gait assertion observed no change in one shin; final diagnostics cover both upper and lower leg chains and retain actual sampled matrices. Codex also found the unreachable automatic-resolution recovery threshold.",
+    "status": "Passed in exact-head CI38803166351; PR9 merged into3039a4d."
   },
   "automaticCorrection": {
     "review": "https://github.com/Nolwac/amamihe/actions/runs/38798216234",
@@ -157,7 +159,7 @@
       "duration": "1.6m",
       "scope": "Real local-model enrollment and actual3D rendering; controlled RAF clock verifies Automatic recovery and explicit144p retention."
     },
-    "limit": "Controlled animation time is not a physical-device FPS benchmark. Final both-leg-chain bridge follow-up also passed1.9m; fresh exact-head CI/review are required before merge."
+    "limit": "Controlled animation time is not a physical-device FPS benchmark. Automatic-policy coverage and the both-leg-chain bridge follow-up passed in exact-head CI2791c1a."
   },
   "phoneCameraCorrection": {
     "failedRun": "https://github.com/Nolwac/amamihe/actions/runs/38800718683",
@@ -171,6 +173,43 @@
       "headRayHeight": 4.575,
       "headTop": 3.725
     },
-    "local": "Production build/typecheck and diff check passed. Actual phone jump/retry/visibility follow-up is running; require fresh exact-head CI/review before merge."
+    "local": "Local full phone journey exhausted180s before the hurdle check. The complete phone journey, including corrected guardian-foot visibility, subsequently passed in exact-head CI38803166351."
+  },
+  "liveRelease": {
+    "commit": "3039a4de1851bcb33b2111cf4c43775f35784e9f",
+    "storage": "PostgreSQL",
+    "classifier": "ollama:tev1:0.8b",
+    "modelReady": true,
+    "ci": "https://github.com/Nolwac/amamihe/actions/runs/38804400548/attempts/2",
+    "sourceVerification": {
+      "browserPassed": 43,
+      "nodePassed": 163,
+      "nodeSkipped": 1,
+      "skipReason": "Optional external PostgreSQL Node test; actual production uses PostgreSQL.",
+      "nodeTotal": 164
+    },
+    "liveAssets": {
+      "verified": 13,
+      "hashesMatch": true,
+      "method": "Managed-proxy HTTPS requests compared with approved source SHA256."
+    },
+    "remaining": "Public checker stopped at stale1MB budget. Follow-up aligns its limits with the documented1.5MB builder contract and adds pre-merge coverage.",
+    "verifiedAt": "2026-10-15T21:38:21.059061+00:00"
+  },
+  "assetBudgetCorrection": {
+    "branch": "fix/city-asset-validation-budgets",
+    "limits": {
+      "animated": 1500000,
+      "resident": 600000,
+      "portrait": 100000
+    },
+    "sharedContract": "shared/avatars.ts:cityAssetDownloads",
+    "localAssetTests": {
+      "passed": 18,
+      "failed": 0
+    },
+    "typecheck": "passed",
+    "format": "passed",
+    "fullLocalPublicCheck": "Blocked at HTTP redirect request by managed HTTP proxy; retained all TLS/redirect/privacy assertions. GitHub public acceptance remains required."
   }
 }

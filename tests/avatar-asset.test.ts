@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
-import { CHARACTERS } from "../shared/avatars";
+import { CHARACTERS, cityAssetDownloads } from "../shared/avatars";
 import { usesEquippedFabric } from "../src/avatarMaterials";
 
 function readAsset(file: string) {
@@ -14,6 +14,18 @@ function readAsset(file: string) {
   );
   return { binary, json };
 }
+
+test("every public city asset fits the live release's category transfer limit", () => {
+  for (const { file, maxBytes } of cityAssetDownloads()) {
+    const bytes = readFileSync(
+      new URL(`../public/assets/${file}`, import.meta.url),
+    );
+    assert.ok(
+      bytes.length < maxBytes,
+      `${file} transfers ${bytes.length} bytes; its limit is ${maxBytes}`,
+    );
+  }
+});
 
 test("every selectable baked jacket accepts equipped fabric only on the player", () => {
   for (const { id } of CHARACTERS) {

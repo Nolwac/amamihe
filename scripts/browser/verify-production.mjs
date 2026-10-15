@@ -3,7 +3,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
 import assert from "node:assert/strict";
 import { KIDS_COURSES } from "../../shared/catalogue.ts";
-import { CHARACTERS } from "../../shared/avatars.ts";
+import { cityAssetDownloads } from "../../shared/avatars.ts";
 import {
   DECISION_MODEL,
   DECISION_MODEL_DIGEST,
@@ -191,22 +191,13 @@ try {
   evidence.checks.push(
     "public bounded action avatar with seven skeletal gameplay clips",
   );
-  const cityAssets = [
-    ...CHARACTERS.flatMap(({ id }) => [
-      `character-${id}.glb`,
-      `character-${id}-portrait.png`,
-    ]),
-    "character-officer.glb",
-    "character-officer-portrait.png",
-    ...["kofi", "nia", "tayo"].map((id) => `character-${id}-resident.glb`),
-  ];
-  for (const file of cityAssets) {
+  for (const { file, maxBytes } of cityAssetDownloads()) {
     const response = await context.request.get(base + "/assets/" + file);
     assert.equal(response.status(), 200, `Missing public city asset: ${file}`);
     const bytes = await response.body();
     assert.ok(
-      bytes.length < 1_000_000,
-      `City asset exceeds its budget: ${file}`,
+      bytes.length < maxBytes,
+      `City asset exceeds its ${maxBytes}-byte budget: ${file} (${bytes.length} bytes)`,
     );
     assert.equal(
       createHash("sha256").update(bytes).digest("hex"),
