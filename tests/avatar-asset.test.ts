@@ -2,6 +2,8 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
+import { CHARACTERS } from "../shared/avatars";
+import { usesEquippedFabric } from "../src/avatarMaterials";
 
 function readAsset(file: string) {
   const binary = readFileSync(
@@ -12,6 +14,20 @@ function readAsset(file: string) {
   );
   return { binary, json };
 }
+
+test("every selectable baked jacket accepts equipped fabric only on the player", () => {
+  for (const { id } of CHARACTERS) {
+    const { json } = readAsset(`character-${id}.glb`);
+    const jacket = json.materials.find((material: { name: string }) =>
+      usesEquippedFabric("explorer", "explorer-" + material.name),
+    );
+    assert.ok(jacket, `${id} needs a wearable jacket material`);
+    assert.equal(usesEquippedFabric("resident-" + id, jacket.name), false);
+    assert.equal(usesEquippedFabric("learning-police", jacket.name), false);
+  }
+  assert.equal(usesEquippedFabric("explorer", "Explorer_Trousers"), false);
+  assert.equal(usesEquippedFabric("explorer", "Backpack"), false);
+});
 
 for (const file of [
   "explorer.glb",

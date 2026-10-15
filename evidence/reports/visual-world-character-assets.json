@@ -1,0 +1,196 @@
+{
+  "source": "public/assets/explorer-low.glb",
+  "source_sha256": "b128411df5e3933880a9e357f7ff1e9ed2a753047c71a77391a1c4a1479656e9",
+  "asset_test_result": {
+    "tests": 16,
+    "passed": 16,
+    "failed": 0,
+    "skipped": 0
+  },
+  "assets": [
+    {
+      "path": "public/assets/character-amani.glb",
+      "bytes": 933608,
+      "sha256": "ec7b1ad6373934c065095c4cc988afb94284e0573db41ddae315b8c1aa553382",
+      "triangles": 14473,
+      "joints": 25,
+      "clips": [
+        "Idle",
+        "Walk",
+        "Run",
+        "Jump",
+        "Slide",
+        "Guard",
+        "Jab",
+        "Hit",
+        "Build",
+        "Sit",
+        "Restrained",
+        "WalkRestrained"
+      ]
+    },
+    {
+      "path": "public/assets/character-amani-portrait.png",
+      "bytes": 83019,
+      "sha256": "768ac8b3251b2cc8a1a502bf37337e733d415e9ca471c7d9fc6c988e49af19af",
+      "dimensions": [
+        256,
+        256
+      ]
+    },
+    {
+      "path": "public/assets/character-kofi.glb",
+      "bytes": 1304248,
+      "sha256": "bbee22991a6cc7bce6be1d47a14f6dc968372d5cae86e6ff88d6356a70875bbb",
+      "triangles": 21371,
+      "joints": 25,
+      "clips": [
+        "Idle",
+        "Walk",
+        "Run",
+        "Jump",
+        "Slide",
+        "Guard",
+        "Jab",
+        "Hit",
+        "Build",
+        "Sit",
+        "Restrained",
+        "WalkRestrained"
+      ]
+    },
+    {
+      "path": "public/assets/character-kofi-resident.glb",
+      "bytes": 495616,
+      "sha256": "3d840859059136e99814938f20f1bfaf1af218df166917dc0dab41d3cf22b849",
+      "character_source_sha256": "bbee22991a6cc7bce6be1d47a14f6dc968372d5cae86e6ff88d6356a70875bbb",
+      "source_match_verified": true,
+      "joints": 0
+    },
+    {
+      "path": "public/assets/character-kofi-portrait.png",
+      "bytes": 78970,
+      "sha256": "f8880c8c00c51132890150e57938435f9c582cbc01b5992804adcfcdfe3baaaa",
+      "dimensions": [
+        256,
+        256
+      ]
+    },
+    {
+      "path": "public/assets/character-nia.glb",
+      "bytes": 1335464,
+      "sha256": "9de6cc09c1bea00a7e72d7c157d52c70c12fa9500e035fd7bbf59b45db0637ac",
+      "triangles": 24867,
+      "joints": 25,
+      "clips": [
+        "Idle",
+        "Walk",
+        "Run",
+        "Jump",
+        "Slide",
+        "Guard",
+        "Jab",
+        "Hit",
+        "Build",
+        "Sit",
+        "Restrained",
+        "WalkRestrained"
+      ]
+    },
+    {
+      "path": "public/assets/character-nia-resident.glb",
+      "bytes": 507300,
+      "sha256": "6de27859bbdca2268d40d4164a8a49b77f940ea73bf4cc875fe94bbe1671c42e",
+      "character_source_sha256": "9de6cc09c1bea00a7e72d7c157d52c70c12fa9500e035fd7bbf59b45db0637ac",
+      "source_match_verified": true,
+      "joints": 0
+    },
+    {
+      "path": "public/assets/character-nia-portrait.png",
+      "bytes": 83033,
+      "sha256": "22e13af4fd0d23c47281cf57bf7a862d41ae376d32ef905112c6adf47c7f91f3",
+      "dimensions": [
+        256,
+        256
+      ]
+    },
+    {
+      "path": "public/assets/character-tayo.glb",
+      "bytes": 1231804,
+      "sha256": "6c97bc78875bbf6fe16fb94cb3e77bccb741a9d75cb66c7d44ff35aaca7570d7",
+      "triangles": 18537,
+      "joints": 25,
+      "clips": [
+        "Idle",
+        "Walk",
+        "Run",
+        "Jump",
+        "Slide",
+        "Guard",
+        "Jab",
+        "Hit",
+        "Build",
+        "Sit",
+        "Restrained",
+        "WalkRestrained"
+      ]
+    },
+    {
+      "path": "public/assets/character-tayo-resident.glb",
+      "bytes": 473416,
+      "sha256": "8ba293e45aa8c4d3177745b1b9260994e3bb6de53ed2c193139bb668555e7040",
+      "character_source_sha256": "6c97bc78875bbf6fe16fb94cb3e77bccb741a9d75cb66c7d44ff35aaca7570d7",
+      "source_match_verified": true,
+      "joints": 0
+    },
+    {
+      "path": "public/assets/character-tayo-portrait.png",
+      "bytes": 82104,
+      "sha256": "7648971f34898e37d022ebbf51e0915d8ec323355292f214b0eb1df35f886ffa",
+      "dimensions": [
+        256,
+        256
+      ]
+    },
+    {
+      "path": "public/assets/character-officer.glb",
+      "bytes": 1305096,
+      "sha256": "e033ca6843ac9e3c5b2ff221bfcb81ce79ad103b0a302ca937a5852c1d3de4d8",
+      "triangles": 19263,
+      "joints": 25,
+      "clips": [
+        "Idle",
+        "Walk",
+        "Run",
+        "Jump",
+        "Slide",
+        "Guard",
+        "Jab",
+        "Hit",
+        "Build",
+        "Sit",
+        "Restrained",
+        "WalkRestrained"
+      ]
+    },
+    {
+      "path": "public/assets/character-officer-portrait.png",
+      "bytes": 73763,
+      "sha256": "2b9a0739ec55d92d566f004a8b11dc0c38e64122c7376d15dfabd47f556ce648",
+      "dimensions": [
+        256,
+        256
+      ]
+    }
+  ],
+  "proofs": [
+    {
+      "path": "evidence/screenshots/visual-world-kofi-asset.png",
+      "source": "Unedited Blender Cycles render of exported final GLB; not browser or physical-device evidence"
+    },
+    {
+      "path": "evidence/screenshots/visual-world-officer-asset.png",
+      "source": "Unedited Blender Cycles render of exported final GLB; not browser or physical-device evidence"
+    }
+  ]
+}

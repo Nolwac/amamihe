@@ -1,4 +1,5 @@
 import { createSoftBox } from "./softGeometry";
+import { usesEquippedFabric } from "./avatarMaterials";
 import { character, characterAsset, type CharacterId } from "../shared/avatars";
 import {
   cityHouses,
@@ -295,7 +296,7 @@ export default function World({
         false,
       );
       const fabricTexture = new DynamicTexture(
-        "starter-fabric",
+        "outfit-fabric-" + outfit,
         { width: 256, height: 256 },
         scene,
         true,
@@ -1232,7 +1233,12 @@ export default function World({
               for (const m of mats)
                 if (m instanceof PBRMaterial) {
                   m.environmentIntensity = 0.55;
-                  if (
+                  if (usesEquippedFabric(id, m.name)) {
+                    m.albedoColor = Color3.White();
+                    m.albedoTexture = ["azure", "plum"].includes(outfit)
+                      ? fabricTexture
+                      : playerFabric;
+                  } else if (
                     m.name.includes("Explorer_Jacket") &&
                     id !== "learning-police"
                   ) {
@@ -1283,6 +1289,32 @@ export default function World({
                 }
               }
             }
+            const renderedMaterials = root.getChildMeshes().flatMap((mesh) => {
+              const material = mesh.material;
+              return material instanceof PBRMaterial
+                ? [
+                    {
+                      name: material.name,
+                      color: material.albedoColor.asArray(),
+                      texture: material.albedoTexture?.name || null,
+                    },
+                  ]
+                : material instanceof StandardMaterial
+                  ? [
+                      {
+                        name: material.name,
+                        color: material.diffuseColor.asArray(),
+                        texture: material.diffuseTexture?.name || null,
+                      },
+                    ]
+                  : [];
+            });
+            canvas.current?.setAttribute(
+              id === "explorer"
+                ? "data-avatar-materials"
+                : "data-" + id + "-materials",
+              JSON.stringify(renderedMaterials),
+            );
             animate(instance.animationGroups, false);
             if (backpack)
               canvas.current?.setAttribute(
