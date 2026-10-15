@@ -319,6 +319,13 @@ test("world bridge controls preserve unfinished work and verified construction o
       ),
     )
     .toBeGreaterThanOrEqual(2);
+  // Walk starts during the take-off stance. Wait for the crossing before
+  // inspecting its retained motion, rather than sampling two stationary frames.
+  await expect
+    .poll(() =>
+      canvas.evaluate((c: any) => c.getAdventureSnapshot().actor.position[0]),
+    )
+    .toBeCloseTo(-3.2 + targetUnits * 0.8, 1);
   const walking = await canvas.evaluate((c: any) =>
     c.bridgeMotion.frames.filter((frame: any) => /Walk$/.test(frame.animation)),
   );
@@ -335,11 +342,6 @@ test("world bridge controls preserve unfinished work and verified construction o
       ),
     ),
   ).toBeGreaterThan(0.01);
-  await expect
-    .poll(() =>
-      canvas.evaluate((c: any) => c.getAdventureSnapshot().actor.position[0]),
-    )
-    .toBeCloseTo(-3.2 + targetUnits * 0.8, 1);
   await canvas.evaluate((c: any) => c.bridgeMotion.stop());
   await page.getByRole("button", { name: "Hide task", exact: true }).click();
   await expect

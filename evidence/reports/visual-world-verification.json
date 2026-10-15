@@ -132,8 +132,10 @@
   "ciCorrection": {
     "failedRun": "https://github.com/Nolwac/amamihe/actions/runs/38763999224",
     "failure": "Shard1 missed the brief Walk animation after accepted bridge construction; the actual CI capture shows the actor already on the far bank. Other3shards passed.",
-    "change": "Arm bounded actual-rendered-frame capture before submit; retain Walk frames and require root travel, normalized leg rotation and final far-bank arrival. Await actual enrollment response. No production motion or server evidence change.",
-    "localVerification": "Targeted real-model bridge journey passed twice (1.6m and1.4m); final fresh worker uses non-evicting Walk-frame history. Typecheck, formatting and diff check pass. Exact-head CI/review required before merge.",
-    "deployment": "Pending final approved main release and exact public server/client acceptance. See final main workflow and PR9 for deployment evidence."
+    "change": "Arm bounded actual-rendered-frame capture before submit; retain Walk frames and wait for far-bank arrival before requiring root travel and normalized leg rotation. Await actual enrollment response. No production motion or server evidence change.",
+    "localVerification": "Initial revision passed twice (1.6m and1.4m). Final arrival-first real-model bridge journey passed2.7m, with real root travel, changing normalized leg rotation, far-bank arrival, saved work, server evidence and720p frames. Typecheck, formatting and diff check pass. Fresh exact-head CI/review required before merge.",
+    "deployment": "Pending final approved main release and exact public server/client acceptance. See final main workflow and PR9 for deployment evidence.",
+    "followupRun": "https://github.com/Nolwac/amamihe/actions/runs/38772430616",
+    "followupFailure": "Initial revised check froze its first2Walkframes during the deliberate0.3-second stance before travel; three other shards passed and exact-head Codex approved8e95732."
   }
 }
