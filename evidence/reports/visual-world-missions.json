@@ -1,0 +1,277 @@
+{
+  "environment": "Local Chromium with software WebGL, not a physical phone",
+  "errors": [],
+  "missions": [
+    {
+      "kind": "bridge",
+      "question": "level-0:primary:question-0-1",
+      "rayEvidence": {
+        "kind": "fraction-bridge",
+        "pieces": [
+          1
+        ]
+      },
+      "independent": true,
+      "desktop": {
+        "renderHeight": "664",
+        "actorPosition": [
+          -2.4,
+          0.37,
+          -0.55
+        ]
+      },
+      "phone": {
+        "renderHeight": "720",
+        "actorPosition": [
+          -1.8719999999999999,
+          0.2952,
+          -0.55
+        ]
+      },
+      "phoneControls": [
+        {
+          "name": "beam-piece-1",
+          "screen": [
+            115.02841273249015,
+            498.35743669990586,
+            0.9170384673258687
+          ],
+          "picked": {
+            "kind": "add-piece",
+            "units": 1
+          },
+          "inside": true
+        },
+        {
+          "name": "beam-label-1",
+          "screen": [
+            113.24009401255691,
+            487.85779873321883,
+            0.915181050989462
+          ],
+          "picked": {
+            "kind": "add-piece",
+            "units": 1
+          },
+          "inside": true
+        },
+        {
+          "name": "beam-piece-2",
+          "screen": [
+            195.00000179519827,
+            498.35743669990586,
+            0.9170384673258687
+          ],
+          "picked": {
+            "kind": "add-piece",
+            "units": 2
+          },
+          "inside": true
+        },
+        {
+          "name": "beam-label-2",
+          "screen": [
+            195.00000182832432,
+            487.85779873321883,
+            0.915181050989462
+          ],
+          "picked": {
+            "kind": "add-piece",
+            "units": 2
+          },
+          "inside": true
+        },
+        {
+          "name": "beam-piece-3",
+          "screen": [
+            274.9715908579064,
+            498.35743669990586,
+            0.9170384673258687
+          ],
+          "picked": {
+            "kind": "add-piece",
+            "units": 3
+          },
+          "inside": true
+        },
+        {
+          "name": "beam-label-3",
+          "screen": [
+            276.75990964409175,
+            487.85779873321883,
+            0.915181050989462
+          ],
+          "picked": {
+            "kind": "add-piece",
+            "units": 3
+          },
+          "inside": true
+        },
+        {
+          "name": "undo-beam",
+          "screen": [
+            105.18167385469611,
+            512.209760142235,
+            0.9112535847587874
+          ],
+          "picked": {
+            "kind": "remove-piece"
+          },
+          "inside": true
+        },
+        {
+          "name": "mission-submit",
+          "screen": [
+            195.0000017034162,
+            512.0743386248682,
+            0.91047474436406
+          ],
+          "picked": "submit",
+          "inside": true
+        },
+        {
+          "name": "mission-reset",
+          "screen": [
+            284.8183295594275,
+            512.209760142235,
+            0.9112535847587874
+          ],
+          "picked": {
+            "kind": "reset"
+          },
+          "inside": true
+        }
+      ]
+    },
+    {
+      "kind": "circuit",
+      "question": "level-0:primary:question-0-0",
+      "rayEvidence": {
+        "kind": "circuit",
+        "switches": [
+          true,
+          true
+        ]
+      },
+      "independent": true,
+      "desktop": {
+        "renderHeight": "664",
+        "actorPosition": [
+          -2.4,
+          0.43500000000000005,
+          -0.55
+        ]
+      },
+      "phone": {
+        "renderHeight": "720",
+        "actorPosition": [
+          -1.8719999999999999,
+          0.3459,
+          -0.55
+        ]
+      },
+      "phoneControls": [
+        {
+          "name": "relay-0-stem",
+          "screen": [
+            135.33926883106832,
+            424.48125825138777,
+            0.9249898169039953
+          ],
+          "picked": {
+            "kind": "switch",
+            "index": 0
+          },
+          "inside": true
+        },
+        {
+          "name": "relay-0-switch",
+          "screen": [
+            134.58497163344538,
+            420.00620813636704,
+            0.9240401902362054
+          ],
+          "picked": {
+            "kind": "switch",
+            "index": 0
+          },
+          "inside": true
+        },
+        {
+          "name": "relay-label-0",
+          "screen": [
+            134.3706751955628,
+            408.0260120076412,
+            0.9237704008676867
+          ],
+          "picked": {
+            "kind": "switch",
+            "index": 0
+          },
+          "inside": true
+        },
+        {
+          "name": "relay-1-stem",
+          "screen": [
+            253.95290644694384,
+            420.46358837419194,
+            0.9258809424872844
+          ],
+          "picked": {
+            "kind": "switch",
+            "index": 1
+          },
+          "inside": true
+        },
+        {
+          "name": "relay-1-switch",
+          "screen": [
+            253.88548327917906,
+            411.54610655313553,
+            0.9259658256397618
+          ],
+          "picked": {
+            "kind": "switch",
+            "index": 1
+          },
+          "inside": true
+        },
+        {
+          "name": "relay-label-1",
+          "screen": [
+            255.62932920989596,
+            408.0260120076412,
+            0.9237704008676867
+          ],
+          "picked": {
+            "kind": "switch",
+            "index": 1
+          },
+          "inside": true
+        },
+        {
+          "name": "mission-submit",
+          "screen": [
+            195.0000017034162,
+            512.0743386248682,
+            0.91047474436406
+          ],
+          "picked": "submit",
+          "inside": true
+        },
+        {
+          "name": "mission-reset",
+          "screen": [
+            284.8183295594275,
+            512.209760142235,
+            0.9112535847587874
+          ],
+          "picked": {
+            "kind": "reset"
+          },
+          "inside": true
+        }
+      ]
+    }
+  ]
+}

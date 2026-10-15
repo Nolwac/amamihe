@@ -36,6 +36,26 @@ test("3D search portals preview a published doorstep and preserve enrollment on 
   const canvas = page.getByLabel("3D course portal universe");
   await expect(canvas).toHaveAttribute("data-portal-ready", "true");
   await expect(canvas).toHaveAttribute("data-portal-count", "1");
+  // A low-resolution scene must pick the doorway under the actual CSS pointer.
+  // Clicking equivalent HTML alone would miss scaled-canvas ray regressions.
+  await expect(canvas).toHaveAttribute("data-portal-targets", /courseId/);
+  const portalTarget = await canvas.evaluate(
+    (element, id) =>
+      JSON.parse(element.dataset.portalTargets!).find(
+        (target: { courseId: string }) => target.courseId === id,
+      ),
+    draft.id,
+  );
+  expect(
+    await canvas.evaluate((element) => (element as HTMLCanvasElement).height),
+  ).toBeLessThan(844);
+  await canvas.click({ position: { x: portalTarget.x, y: portalTarget.y } });
+  await expect(
+    page.getByRole("region", { name: "Published course house preview" }),
+  ).toContainText(draft.definition.title);
+  await page
+    .getByRole("button", { name: "Close course preview", exact: true })
+    .click();
   await page
     .getByRole("button", { name: "Teleport to " + draft.definition.title })
     .click();
@@ -69,4 +89,21 @@ test("3D search portals preview a published doorstep and preserve enrollment on 
     viewport: innerWidth,
   }));
   expect(width.document).toBeLessThanOrEqual(width.viewport);
+  // The small in-world return gateway also works when scene pixels are scaled.
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await openCityMenu(page);
+  await page
+    .getByRole("button", { name: "Search portals", exact: true })
+    .click();
+  await expect(canvas).toHaveAttribute("data-portal-layout", "terrace");
+  await expect(canvas).toHaveAttribute("data-portal-return-target", /"x"/);
+  const returnTarget = await canvas.evaluate((element) =>
+    JSON.parse(element.dataset.portalReturnTarget!),
+  );
+  expect(returnTarget.x).toBeGreaterThan(0);
+  expect(returnTarget.x).toBeLessThan(1440);
+  await canvas.click({ position: returnTarget });
+  await expect(
+    page.getByRole("region", { name: "Search portal universe" }),
+  ).toBeHidden();
 });

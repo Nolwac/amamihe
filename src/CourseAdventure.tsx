@@ -1498,7 +1498,7 @@ export default function CourseAdventure({
                     value={renderHeight}
                     onChange={(e) => setRenderHeight(Number(e.target.value))}
                   >
-                    <option value={0}>Automatic · 144–360p</option>
+                    <option value={0}>Automatic · 360–720p</option>
                     {[144, 360, 720, 1080].map((h) => (
                       <option key={h} value={h}>
                         {h}p

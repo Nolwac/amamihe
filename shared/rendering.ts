@@ -12,9 +12,21 @@ export function assetTier(connection?: Connection): "low" | "standard" {
     ? "low"
     : "standard";
 }
-export function nextRenderHeight(height: number, fps: number): number {
+export function nextRenderHeight(
+  height: number,
+  fps: number,
+  minimum = 144,
+  maximum = height,
+): number {
   if (!Number.isFinite(fps) || fps < 0) return height;
-  const tiers = [144, 360, 720, 1080];
+  const tiers = [144, 360, 720, 1080].filter(
+    (tier) => tier >= minimum && tier <= maximum,
+  );
+  if (!tiers.length) return height;
   const index = Math.max(0, tiers.indexOf(height));
-  return fps < 8 ? tiers[Math.max(0, index - 1)] : height;
+  return fps < 8
+    ? tiers[Math.max(0, index - 1)]
+    : fps >= 24
+      ? tiers[Math.min(tiers.length - 1, index + 1)]
+      : height;
 }

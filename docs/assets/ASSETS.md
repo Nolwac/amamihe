@@ -22,6 +22,9 @@ Rebuild from the repository root with Blender 4.3+: `blender -b -t 2 --python-ex
 
 The permanent police station and articulated four-seat patrol car are original procedural geometry in `src/policeScene.ts`. The station uses stone arches and window surrounds, terracotta trim, timber details, tiled interiors and an indoor cell. The car uses shaped bodywork, separate glazing, lights, wheel assemblies and door mechanisms. Materials and small tile textures are authored in code. These remain stylized game assets rather than scanned architecture or vehicle models.
 
+`src/cityStreets.ts` builds paved routes from `shared/city-layout.ts`: a civic road, pedestrian branches to course porches, kerbs, crossings and brass arrival medallions. `src/PortalScene.tsx` builds the course-search terrace with open stone arches, recessed course-house courtyards, carved doors, planting, lanterns and distant islands. Both reuse checked-in world textures, whose provenance is documented below; their geometry and arrangements are project-authored.
+
+`src/worldChallengeArt.ts` supplies the original riverbank, stonework, timber deck, vegetation, water patterns, apparatus, coastal pavilion and lighthouse around Fraction Bridge and Circuit Rescue. `src/worldChallengeScene.ts` retains the interactive beams, relays and verified outcomes. Static scenery is merged into material batches; interactive pieces remain separate meshes. Rounded forms use the existing soft-geometry helper and curved mesh construction. Transport and learning outcomes do not depend on an external asset service.
 
 ## Explorer
 

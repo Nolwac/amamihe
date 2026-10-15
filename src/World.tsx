@@ -1,8 +1,18 @@
 import { createSoftBox } from "./softGeometry";
+import { usesEquippedFabric } from "./avatarMaterials";
+import { createCityStreets } from "./cityStreets";
+import {
+  cityCameraWalls,
+  resolveCityCamera,
+  type ResolvedCityCamera,
+} from "./cityCamera";
 import { character, characterAsset, type CharacterId } from "../shared/avatars";
 import {
   cityHouses,
   cityPath,
+  followCityRoute,
+  coursePorchSteps,
+  cityStandingHeight,
   walkCity,
   CITY_STATION,
 } from "../shared/city-layout";
@@ -154,7 +164,7 @@ export default function World({
         engine.getGlInfo().renderer,
       );
       canvas.current!.dataset.softwareRendering = String(softwareRendering);
-      let targetRenderHeight =
+      const targetRenderHeight =
         quality === "low"
           ? mode === "avatar"
             ? 540
@@ -210,6 +220,7 @@ export default function World({
       scene.ambientColor = new Color3(0.18, 0.2, 0.22);
       scene.imageProcessingConfiguration.toneMappingEnabled = quality !== "low";
       scene.imageProcessingConfiguration.toneMappingType = 1;
+      scene.imageProcessingConfiguration.contrast = 1.08;
       const envFaces = Array.from({ length: 6 }, (_, face) => {
         const bytes = new Uint8Array(16 * 16 * 4);
         for (let i = 0; i < 256; i++) {
@@ -245,15 +256,14 @@ export default function World({
         new Vector3(0, 1, 0),
         scene,
       );
-      ambient.intensity = quality === "low" ? 1.15 : 0.66;
+      ambient.intensity = quality === "low" ? 0.8 : 0.66;
       ambient.groundColor = new Color3(0.26, 0.22, 0.19);
       const sun = new DirectionalLight(
         "late-afternoon",
         new Vector3(0.65, -1.3, 0.5),
         scene,
       );
-      sun.intensity = 0.92;
-      sun.setEnabled(quality !== "low");
+      sun.intensity = quality === "low" ? 0.68 : 0.92;
       sun.position.set(-18, 28, -18);
       const shadows = new ShadowGenerator(quality === "low" ? 1024 : 2048, sun);
       shadows.usePercentageCloserFiltering = quality !== "low";
@@ -295,7 +305,7 @@ export default function World({
         false,
       );
       const fabricTexture = new DynamicTexture(
-        "starter-fabric",
+        "outfit-fabric-" + outfit,
         { width: 256, height: 256 },
         scene,
         true,
@@ -554,24 +564,7 @@ export default function World({
       }
       if (mode === "world") {
         box("land", 0, -0.3, 20, 130, 0.6, 160, mat("ground", "#b7ac78"));
-        box("street-foundation", 0, 0.015, 25, 12, 0.1, 140, stone);
-        box("sidewalk-left", -8.2, 0.12, 25, 4.4, 0.25, 140, stone);
-        box("sidewalk-right", 8.2, 0.12, 25, 4.4, 0.25, 140, stone);
-        const pavingTexture = new Texture(asset("world/limestone.webp"), scene);
-        pavingTexture.uScale = 6;
-        pavingTexture.vScale = 50;
-        pavingTexture.wrapU = Texture.WRAP_ADDRESSMODE;
-        pavingTexture.wrapV = Texture.WRAP_ADDRESSMODE;
-        path.diffuseTexture = pavingTexture;
-        path.diffuseColor = Color3.White();
-        const pavement = MeshBuilder.CreateGround(
-          "limestone-street",
-          { width: 12, height: 140 },
-          scene,
-        );
-        pavement.position.set(0, 0.073, 25);
-        pavement.material = path;
-        pavement.receiveShadows = true;
+        statics.push(...createCityStreets(scene, houses));
         for (let i = 0; i < 13; i++) {
           const x = (i % 2 === 0 ? -1 : 1) * (14 + (i % 3) * 3),
             z = 40 + Math.floor(i / 2) * 7;
@@ -795,15 +788,15 @@ export default function World({
               gold,
             );
           }
-          for (let i = 0; i < 3; i++)
+          for (const step of coursePorchSteps({ x, z }))
             box(
               "entrance-step",
-              x,
-              0.11 + i * 0.12,
-              front - 0.75 + i * 0.22,
-              3.7,
-              0.16,
-              1.2 - i * 0.22,
+              step.x,
+              step.y,
+              step.z,
+              step.width,
+              step.height,
+              step.depth,
               stone,
             );
           box("awning", x, 3.65, front - 0.65, 4, 0.25, 1.5, gold);
@@ -898,10 +891,13 @@ export default function World({
           }
         }
         for (const house of houses) {
-          const title =
-            house.title.length > 24
-              ? [house.title.slice(0, 24), house.title.slice(24, 48)]
-              : [house.title];
+          const title: string[] = [];
+          for (const word of house.title.split(/\s+/)) {
+            const lastLine = title.length - 1;
+            if (lastLine < 0 || title[lastLine].length + word.length > 24)
+              title.push(word);
+            else title[lastLine] += " " + word;
+          }
           await building(
             house.pilot ? "ModelMakers" : "house-" + house.id,
             house.x,
@@ -1232,7 +1228,12 @@ export default function World({
               for (const m of mats)
                 if (m instanceof PBRMaterial) {
                   m.environmentIntensity = 0.55;
-                  if (
+                  if (usesEquippedFabric(id, m.name)) {
+                    m.albedoColor = Color3.White();
+                    m.albedoTexture = ["azure", "plum"].includes(outfit)
+                      ? fabricTexture
+                      : playerFabric;
+                  } else if (
                     m.name.includes("Explorer_Jacket") &&
                     id !== "learning-police"
                   ) {
@@ -1283,6 +1284,32 @@ export default function World({
                 }
               }
             }
+            const renderedMaterials = root.getChildMeshes().flatMap((mesh) => {
+              const material = mesh.material;
+              return material instanceof PBRMaterial
+                ? [
+                    {
+                      name: material.name,
+                      color: material.albedoColor.asArray(),
+                      texture: material.albedoTexture?.name || null,
+                    },
+                  ]
+                : material instanceof StandardMaterial
+                  ? [
+                      {
+                        name: material.name,
+                        color: material.diffuseColor.asArray(),
+                        texture: material.diffuseTexture?.name || null,
+                      },
+                    ]
+                  : [];
+            });
+            canvas.current?.setAttribute(
+              id === "explorer"
+                ? "data-avatar-materials"
+                : "data-" + id + "-materials",
+              JSON.stringify(renderedMaterials),
+            );
             animate(instance.animationGroups, false);
             if (backpack)
               canvas.current?.setAttribute(
@@ -1586,6 +1613,64 @@ export default function World({
         return cuff;
       });
       let attachedCuffs = false;
+      const cameraWalls = cityCameraWalls(houses);
+      const requestedCamera = {
+        alpha: camera.alpha,
+        radius: camera.radius,
+        target: camera.target.clone(),
+      };
+      let renderedCamera: ResolvedCityCamera | undefined;
+      let cameraCheckedAt = performance.now();
+      // Temporary wall avoidance must not become the next frame's orbit/zoom input.
+      scene.onBeforeAnimationsObservable.add(() => {
+        if (!renderedCamera) return;
+        if (camera.alpha === renderedCamera.alpha)
+          camera.alpha = requestedCamera.alpha;
+        if (camera.radius === renderedCamera.radius)
+          camera.radius = requestedCamera.radius;
+        if (
+          camera.target.x === renderedCamera.target.x &&
+          camera.target.y === renderedCamera.target.y &&
+          camera.target.z === renderedCamera.target.z
+        )
+          camera.target.copyFrom(requestedCamera.target);
+      });
+      camera.onAfterCheckInputsObservable.add(() => {
+        const now = performance.now();
+        const elapsed = (now - cameraCheckedAt) / 1000;
+        cameraCheckedAt = now;
+        requestedCamera.alpha = camera.alpha;
+        requestedCamera.radius = camera.radius;
+        requestedCamera.target.copyFrom(camera.target);
+        // The station has its own interior cutaway and detention framing.
+        if (mode !== "world" || enforcement.current.status === "arrested") {
+          renderedCamera = undefined;
+          return;
+        }
+        renderedCamera = resolveCityCamera(
+          {
+            target: camera.target,
+            anchor: {
+              x: player.root.position.x,
+              y: player.root.position.y + 1.4,
+              z: player.root.position.z,
+            },
+            alpha: camera.alpha,
+            beta: camera.beta,
+            radius: camera.radius,
+          },
+          cameraWalls,
+          renderedCamera,
+          elapsed,
+        );
+        camera.alpha = renderedCamera.alpha;
+        camera.radius = renderedCamera.radius;
+        camera.target.set(
+          renderedCamera.target.x,
+          renderedCamera.target.y,
+          renderedCamera.target.z,
+        );
+      });
       const keys = new Set<string>();
       let destinationKey: string | null | undefined;
       let cityRoute: { x: number; z: number }[] = [];
@@ -1648,8 +1733,7 @@ export default function World({
       let last = 0,
         audioSceneActive = false,
         tick = performance.now(),
-        frames = 0,
-        lastResolutionChange = performance.now();
+        frames = 0;
       engine.runRenderLoop(() => {
         const now = performance.now();
         const arrested =
@@ -1718,7 +1802,11 @@ export default function World({
           officer.root.position.copyFrom(
             transport.officerSeated
               ? police.seat(true)
-              : new Vector3(transport.officer.x, 0, transport.officer.z),
+              : new Vector3(
+                  transport.officer.x,
+                  cityStandingHeight(transport.officer, houses),
+                  transport.officer.z,
+                ),
           );
           player.root.rotation.y = transport.learnerSeated
             ? transport.heading
@@ -1816,6 +1904,7 @@ export default function World({
         const manual = cameraRelativeMovement(dx, dz, camera.alpha);
         dx = manual.x;
         dz = manual.z;
+        let routed = false;
         if (!arrested && mode === "world" && avatarReady) {
           if (destinationKey !== navigation.current.destination) {
             destinationKey = navigation.current.destination;
@@ -1833,19 +1922,20 @@ export default function World({
               navigation.current.onNavigationEnd?.(destinationKey, false);
           }
           if (cityRoute.length) {
-            const point = cityRoute[0],
-              distance = Math.hypot(
-                point.x - player.root.position.x,
-                point.z - player.root.position.z,
-              );
-            if (distance < 0.15) {
-              cityRoute.shift();
-              if (!cityRoute.length && destinationKey)
-                navigation.current.onNavigationEnd?.(destinationKey, true);
-            } else {
-              dx = (point.x - player.root.position.x) / distance;
-              dz = (point.z - player.root.position.z) / distance;
-            }
+            routed = true;
+            const walked = followCityRoute(
+              player.root.position,
+              cityRoute,
+              frameElapsed,
+              houses,
+            );
+            player.root.position.x = walked.position.x;
+            player.root.position.z = walked.position.z;
+            cityRoute = walked.remaining;
+            dx = walked.direction.x;
+            dz = walked.direction.z;
+            if (!cityRoute.length && destinationKey)
+              navigation.current.onNavigationEnd?.(destinationKey, true);
           }
           canvas.current!.dataset.cityNavigation = JSON.stringify({
             destination: destinationKey,
@@ -1857,7 +1947,7 @@ export default function World({
           dz = 0;
         }
         if (dx || dz) {
-          if (mode === "world") {
+          if (mode === "world" && !routed) {
             const length = Math.hypot(dx, dz);
             const next = walkCity(
               player.root.position,
@@ -1871,6 +1961,13 @@ export default function World({
             player.root.position.z = next.z;
           }
           if (mode === "world") player.root.rotation.y = Math.atan2(dx, dz);
+        }
+        if (mode === "world") {
+          if (!transport?.learnerSeated)
+            player.root.position.y = cityStandingHeight(
+              player.root.position,
+              houses,
+            );
         }
         const shouldMove =
           mode === "world" &&
@@ -1903,25 +2000,9 @@ export default function World({
         );
         contactDisc.position.set(
           player.root.position.x,
-          0.09,
+          transport?.learnerSeated ? 0.09 : player.root.position.y + 0.01,
           player.root.position.z,
         );
-        if (
-          quality === "low" &&
-          avatarReady &&
-          now - tick > 500 &&
-          (frames * 1000) / (now - tick) < 8 &&
-          now - lastResolutionChange > 2000 &&
-          targetRenderHeight > 144
-        ) {
-          targetRenderHeight = Math.max(
-            144,
-            Math.round(targetRenderHeight * 0.8),
-          );
-          // Resizing clears the canvas; draw the new buffer in this same frame.
-          scaleResolution();
-          lastResolutionChange = now;
-        }
         synchronizePeers();
         synchronizeAds();
         if (mode === "world")
@@ -1935,6 +2016,24 @@ export default function World({
           });
         const renderStart = performance.now();
         scene.render();
+        if (mode === "world")
+          canvas.current?.setAttribute(
+            "data-city-camera",
+            JSON.stringify({
+              position: camera.position.asArray(),
+              target: camera.target.asArray(),
+              requestedAlpha: requestedCamera.alpha,
+              requestedRadius: requestedCamera.radius,
+              alpha: camera.alpha,
+              beta: camera.beta,
+              radius: camera.radius,
+              adjusted: Boolean(
+                renderedCamera &&
+                (Math.abs(camera.alpha - requestedCamera.alpha) > 0.001 ||
+                  Math.abs(camera.radius - requestedCamera.radius) > 0.001),
+              ),
+            }),
+          );
         if (
           avatarLoaded &&
           !avatarReady &&
@@ -1948,8 +2047,7 @@ export default function World({
             )
         ) {
           avatarReady = true;
-          // Startup shader compilation should not trigger quality reductions.
-          lastResolutionChange = performance.now();
+          // Start frame-rate sampling after the avatar's shaders are ready.
           tick = performance.now();
           frames = 0;
         }

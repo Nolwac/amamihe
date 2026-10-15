@@ -11,6 +11,14 @@ test("bandwidth tiers and render resolution are independent", () => {
   assert.equal(nextRenderHeight(144, 2), 144);
   assert.equal(nextRenderHeight(360, 10), 360);
 });
+test("automatic course rendering keeps readable detail and recovers within its budget", () => {
+  assert.equal(nextRenderHeight(360, 2, 360, 720), 360);
+  assert.equal(nextRenderHeight(720, 6, 360, 720), 360);
+  assert.equal(nextRenderHeight(360, 30, 360, 720), 720);
+  assert.equal(nextRenderHeight(720, 30, 360, 720), 720);
+  assert.equal(nextRenderHeight(360, 15, 360, 720), 360);
+  assert.equal(nextRenderHeight(144, 2), 144);
+});
 test("every low world texture transfers fewer bytes", async () => {
   for (const file of [
     "plaster.webp",

@@ -1,0 +1,59 @@
+{
+  "desktop": {
+    "width": 1152,
+    "height": 720,
+    "engine": "Babylon.js v9.30.0",
+    "portalLayout": "terrace",
+    "portalCount": "4",
+    "portalArchitecture": "open-stone-arches",
+    "portalMeshCount": "51",
+    "portalReady": "true",
+    "portalFocus": "all",
+    "portalFocusTarget": "{\"x\":0,\"y\":2.05,\"z\":1}"
+  },
+  "phone": {
+    "width": 333,
+    "height": 720,
+    "engine": "Babylon.js v9.30.0",
+    "portalLayout": "focused-arch",
+    "portalCount": "4",
+    "portalArchitecture": "open-stone-arches",
+    "portalMeshCount": "51",
+    "portalReady": "true",
+    "portalFocus": "c2b1cedd-dd69-4a5a-8d34-a6010f6a6e06",
+    "portalFocusTarget": "{\"x\":-6.9750000000000005,\"y\":3,\"z\":2.663}"
+  },
+  "overflows": {
+    "document": 390,
+    "viewport": 390
+  },
+  "errors": [],
+  "reports": {
+    "desktopAxe": [],
+    "phoneAxe": [],
+    "phoneAction": {
+      "x": 237.140625,
+      "y": 745,
+      "width": 94.859375,
+      "height": 38
+    },
+    "accessLauncher": {
+      "x": 236.6875,
+      "y": 610,
+      "width": 139.3125,
+      "height": 44
+    }
+  },
+  "returnedToCity": true,
+  "environment": "Local Chromium with software WebGL; medium720 rendering, not a physical phone",
+  "journey": {
+    "passed": true,
+    "seconds": 10.5,
+    "source": "tests/browser-portals.spec.ts against final integrated build",
+    "checks": [
+      "actual 3D doorway CSS pointer at scaled phone resolution",
+      "preview-close-preview-enroll-return with persisted enrollment",
+      "actual in-world return gate CSS pointer at scaled desktop resolution"
+    ]
+  }
+}

@@ -1,0 +1,125 @@
+{
+  "baseline": "5bc0400e0518557c3490d5267c2ce7fd40b09a0f",
+  "branch": "feat/visual-world-refinement",
+  "verifiedAt": "2026-10-15T07:11:28.792459+00:00",
+  "environment": "Local Node24 / Chromium software WebGL; not physical-device verification",
+  "build": {
+    "command": "npm run build",
+    "passed": true,
+    "notes": [
+      "Existing Vite large-chunk warning remains."
+    ]
+  },
+  "format": {
+    "command": "npm run format:check",
+    "passed": true
+  },
+  "node": {
+    "command": "node --import tsx --test --test-concurrency=1 tests/*.test.ts",
+    "total": 163,
+    "passed": 161,
+    "failed": 0,
+    "skipped": 2,
+    "skipReasons": [
+      "No disposable external TEST_DATABASE_URL.",
+      "Native eSpeak narrator absent; ffmpeg alone is insufficient."
+    ],
+    "realLocalTev1": "Passed actual grading and level/category/question selection.",
+    "source": "Final integrated camera/wardrobe source; 15 October2026."
+  },
+  "python": {
+    "command": "python -m unittest discover -s tests -p 'test_model_download.py'",
+    "passed": 2,
+    "failed": 0
+  },
+  "browser": {
+    "total": 14,
+    "passed": 14,
+    "failed": 0,
+    "tests": [
+      "tests/browser-city-learning.spec.ts:6:1 \u203a free character selection persists through verification, wardrobe changes, and course entry (19.7s)",
+      "tests/browser-city-learning.spec.ts:86:1 \u203a every publication gets a district house and a learner can walk to a distant course entrance (20.5s)",
+      "tests/browser-city-learning.spec.ts:162:1 \u203a world bridge controls preserve unfinished work and verified construction on return (15.3s)",
+      "tests/browser-immersive.spec.ts:6:1 \u203a phone adventure restores the paused draft and exposes world study and practice through collapsed icons (53.2s)",
+      "tests/browser-inclusion.spec.ts:7:1 \u203a walking follows a panned camera with keyboard and screen buttons (10.3s)",
+      "tests/browser-inclusion.spec.ts:67:1 \u203a city graphics persist and accessibility settings do not obstruct the city menu (5.1s)",
+      "tests/browser-inclusion.spec.ts:104:1 \u203a seven-language account entry and keyboard access remain protected on a small screen (3.8s)",
+      "tests/browser-inclusion.spec.ts:160:1 \u203a voice navigation, version-pinned translations and public offline readings preserve account progress (22.5s)",
+      "tests/browser-mobile-kids.spec.ts:53:1 \u203a phone controls do not overlap, touch dragging persists, panels fit, and reset and rotation recover (6.1s)",
+      "tests/browser-portals.spec.ts:5:1 \u203a 3D search portals preview a published doorstep and preserve enrollment on return (10.5s)",
+      "tests/browser-resources.spec.ts:2:1 \u203a art cache recovers interrupted/offline downloads without caching private data (1.3s)",
+      "tests/browser-world-policy.spec.ts:5:1 \u203a Learning Police NPC and protected breaks work without changing progress (3.5s)",
+      "tests/browser-world-policy.spec.ts:35:1 \u203a detention controls expose a free course release and an auditable appeal (37.6s)",
+      "tests/browser.spec.ts:216:1 \u203a rigged avatars load and the HUD remains aligned at desktop, tablet, and phone widths (16.2s)"
+    ],
+    "scope": "Final integrated source: characters, streets, bridge persistence, collapsed journal/practice, camera walking, saved graphics, languages, offline reading, draggable phone controls, real 3D portal picking, art cache, police gait/seated transport/detention/release, HUD across viewports. Remaining browser journeys are delegated to CI."
+  },
+  "visual": {
+    "characters": "Unedited Cycles renders of final GLBs; provenance and budgets in visual-world-character-assets.json.",
+    "police": "Isolated procedural-module browser previews plus final integrated detention capture. 65 police meshes; articulated parts remain independent.",
+    "missions": "Final integrated desktop/phone captures; actual ray-picked actions and independent acceptance, details in visual-world-missions.json.",
+    "portals": "Final desktop/phone720p captures, zero serious/critical axe findings, no horizontal overflow; final spatial doorway/return clicks passed, details in visual-world-portals.json.",
+    "streets": "Five static material batches; all houses reached by actual pathfinding and final browser journey."
+  },
+  "limitations": [
+    "No physical-phone GPU or memory validation.",
+    "Stylized shared character anatomy and procedural environments remain below the illustrated concept references."
+  ],
+  "publication": "Character/police art in PR8, exact-head Codex approved be3135f; a registry503 requires one CI shard rerun. Remaining world changes follow in a second PR. No production deployment is established by local checks.",
+  "floorCorrection": {
+    "reason": "Actual street capture showed shoes sinking into raised course steps.",
+    "implementation": "Rendered course steps and actor standing support share coursePorchSteps; standing learner/officer heights follow streets, porches and station floors; vehicle seat transforms stay authoritative while seated.",
+    "node": {
+      "passed": 8,
+      "failed": 0,
+      "command": "node --import tsx --test tests/police-transport.test.ts"
+    },
+    "browser": {
+      "passed": 5,
+      "failed": 0,
+      "tests": [
+        "tests/browser-city-learning.spec.ts:86:1 \u203a every publication gets a district house and a learner can walk to a distant course entrance (19.2s)",
+        "tests/browser-inclusion.spec.ts:7:1 \u203a walking follows a panned camera with keyboard and screen buttons (10.3s)",
+        "tests/browser-world-policy.spec.ts:5:1 \u203a Learning Police NPC and protected breaks work without changing progress (2.9s)",
+        "tests/browser-world-policy.spec.ts:35:1 \u203a detention controls expose a free course release and an auditable appeal (36.2s)",
+        "tests/browser.spec.ts:216:1 \u203a rigged avatars load and the HUD remains aligned at desktop, tablet, and phone widths (16.2s)"
+      ]
+    },
+    "suiteTiming": "Complete Node and 14-journey suite preceded this final floor correction; focused checks above followed it."
+  },
+  "cameraCorrection": {
+    "reason": "Actual phone capture entered the pilot tower on the upper-row return route.",
+    "implementation": "Analytic hollow building bounds preserve requested orbit/zoom and temporarily center the learner during clear-view avoidance; arrest interior framing is retained.",
+    "unitTests": {
+      "passed": 5,
+      "failed": 0
+    },
+    "browserFollowup": {
+      "passed": 6,
+      "failed": 0,
+      "tests": [
+        "tests/browser-city-camera.spec.ts:6:1 \u203a phone follow camera stays outside the pilot walls on an upper-district return (32.5s)",
+        "tests/browser-city-learning.spec.ts:86:1 \u203a every publication gets a district house and a learner can walk to a distant course entrance (26.9s)",
+        "tests/browser-inclusion.spec.ts:7:1 \u203a walking follows a panned camera with keyboard and screen buttons (11.3s)",
+        "tests/browser-world-policy.spec.ts:5:1 \u203a Learning Police NPC and protected breaks work without changing progress (4.0s)",
+        "tests/browser-world-policy.spec.ts:35:1 \u203a detention controls expose a free course release and an auditable appeal (43.1s)",
+        "tests/browser.spec.ts:216:1 \u203a rigged avatars load and the HUD remains aligned at desktop, tablet, and phone widths (18.6s)"
+      ]
+    }
+  },
+  "finalIntegration": {
+    "passed": 3,
+    "failed": 0,
+    "scope": "Latest centered-camera and wardrobe source, after the full163-test Node suite.",
+    "tests": [
+      "tests/browser-avatar-wardrobe.spec.ts:6:1 \u203a equipping a jacket changes every playable character's rendered fabric while preserving city uniforms and resident palettes (37.4s)",
+      "tests/browser-city-camera.spec.ts:7:1 \u203a phone follow camera stays outside the pilot walls on an upper-district return (32.6s)",
+      "tests/browser-inclusion.spec.ts:7:1 \u203a walking follows a panned camera with keyboard and screen buttons (10.7s)"
+    ]
+  },
+  "wardrobeCorrection": {
+    "review": "PR8 exact-head P2 at92afc96; corrected inbe3135f and approved by Codex.",
+    "behavior": "All four playable characters apply equipped starter/purchased fabric; residents/officer keep their palettes. Paid Azure/Plum use authored colors instead of teal fallback.",
+    "tests": "17 isolated asset checks and actual low/medium rendered material journey passed; combined final integration also passed."
+  }
+}
