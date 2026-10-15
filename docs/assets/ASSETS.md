@@ -2,13 +2,26 @@
 
 ## City characters and civic scene
 
-The four selectable `character-{amani,kofi,nia,tayo}.glb` profiles and `character-officer.glb` derive from the verified Low explorer (`b128411df5e3933880a9e357f7ff1e9ed2a753047c71a77391a1c4a1479656e9`). They inherit the Michelle/Mixamo body and rig provenance described below. The Kofi, Nia and Tayo heads, facial features, hairstyles, shoulder silhouettes and the navy officer uniform, cap, badge and belt are authored in `scripts/assets/build-city-characters.py`. Amani retains the original explorer head. These are stylized game characters with masculine and feminine presentations, not photographs or a demographic classifier.
+The four selectable `character-{amani,kofi,nia,tayo}.glb` profiles and `character-officer.glb` derive from the verified Low explorer (`b128411df5e3933880a9e357f7ff1e9ed2a753047c71a77391a1c4a1479656e9`). All five retain the connected Michelle/Mixamo facial anatomy, eyelids, lips, ears, neck, skin UVs and rig provenance described below. `scripts/assets/build-city-characters.py` authors contour and shoulder variations, fitted hairstyles, garment additions and the officer uniform on that source. The masculine profiles have broader jaw contours and individual short beard fibers that leave the underlying skin visible. The profiles share a stylized anatomical base and large source eyes; they are not independently sourced human scans or a claim of concept-art fidelity.
 
-Blended Head/Neck weights connect the authored neck through walking and seated poses. Each profile retains 25 joints, normalized weights, and twelve actual skeletal clips, including walking, running, sitting, restraint and restrained walking. Files are 0.83–0.94 MB. Only the selected player and the officer require these animated assets in the city. The three `character-*-resident.glb` derivatives have static standing poses without skeletons; each resident has a distinct face, hair and silhouette. The 256-pixel `character-*-portrait.png` files render the actual assets for the free character picker.
+Amani retains the braided explorer hairstyle. Kofi has a close textured crop and gold woven jacket, Nia a compact natural-curl silhouette and teal jacket, and Tayo short swept locs with a terracotta jacket. These use the existing project-authored fabric palettes. The officer has a fitted closed uniform vest, service cap and shield, collar and tie, shoulder boards, pockets, duty belt and geometry lettering. The new hair, fibers, clothing and uniform details are project-authored; no additional third-party character source is introduced.
 
-Rebuild from the repository root with Blender 4.3+: `blender --background --python scripts/assets/build-city-characters.py`, then `blender --background --python scripts/assets/build-city-residents.py`. The first script verifies the source checksum. Rebuild resident meshes and portraits whenever a character changes. `tests/avatar-asset.test.ts` validates provenance, weights, joints, walking samples, transport clips and the officer material contract.
+Each profile retains 25 joints, normalized skin weights and twelve actual skeletal clips, including walking, running, sitting, restraint and restrained walking. The source neck and its skin weights remain connected through those poses. Final animated asset budgets are:
 
-The permanent police station, interior cell, articulated patrol car, fraction bridge and relay workbench are original procedural geometry in `src/policeScene.ts` and `src/worldChallengeScene.ts`. Their rounded surfaces use the existing soft geometry helper. Transport and learning outcomes do not depend on an external asset service.
+| Asset                   |     Bytes | Triangles |
+| ----------------------- | --------: | --------: |
+| `character-amani.glb`   |   933,608 |    14,473 |
+| `character-kofi.glb`    | 1,304,248 |    21,371 |
+| `character-nia.glb`     | 1,335,464 |    24,867 |
+| `character-tayo.glb`    | 1,231,804 |    18,537 |
+| `character-officer.glb` | 1,305,096 |    19,263 |
+
+Only the selected player and the officer require these animated assets in the city. The three `character-*-resident.glb` derivatives have baked standing poses, no skeletons and an embedded `character_source_sha256` identifying the exact parent GLB. Their sizes are 495,616 bytes for Kofi, 507,300 bytes for Nia and 473,416 bytes for Tayo. The 256-pixel `character-*-portrait.png` files render the actual assets for the free character picker; they are not concept illustrations.
+
+Rebuild from the repository root with Blender 4.3+: `blender -b -t 2 --python-exit-code 1 -P scripts/assets/build-city-characters.py`, then `blender -b -t 2 --python-exit-code 1 -P scripts/assets/build-city-residents.py`. The first script verifies the checked-in source checksum and enforces the 25-joint, twelve-clip and 1.5 MB per-profile contracts. Rebuild resident meshes and portraits whenever a character changes. `tests/avatar-asset.test.ts` validates provenance, weights, joints, walking samples, transport clips and the officer material contract.
+
+The permanent police station and articulated four-seat patrol car are original procedural geometry in `src/policeScene.ts`. The station uses stone arches and window surrounds, terracotta trim, timber details, tiled interiors and an indoor cell. The car uses shaped bodywork, separate glazing, lights, wheel assemblies and door mechanisms. Materials and small tile textures are authored in code. These remain stylized game assets rather than scanned architecture or vehicle models.
+
 
 ## Explorer
 
@@ -81,7 +94,6 @@ Low renders two residents from each static asset. Medium and High use two animat
 
 `scripts/assets/build-world-materials.py` generates original tiling plaster, limestone, wood, and leaf textures in `public/assets/world/`. The four WebP files total approximately 16 KB. They are applied to geometry; they do not replace the rendered world with an illustration. Rebuilding requires Python and Pillow; runtime installation uses the checked-in files.
 
-
 ## Course Adventure Geometry
 
 `src/CourseScene.tsx` builds temple bridges, stone guardians, checkpoint rings,
@@ -95,7 +107,6 @@ The avatar wardrobe adds Azure and Plum material palettes to the existing jacket
 `public/assets/world/low/` contains 128-pixel WebP derivatives of the original project-authored world textures. Regenerate with Pillow by thumbnailing each source to 128×128 and saving at quality 65. These preserve source provenance and are selected from connection hints independently of rendering resolution.
 
 Low background residents are generated by `blender -b -t 2 --python scripts/assets/build-npc-low.py`. The originals are project-authored static human residents, separate from the rigged playable explorer. A rest-space 22% decimation produces the two `*-resident-low.glb`/`resident-low.glb` derivatives; no external asset is introduced.
-
 
 ## Softer procedural geometry and children’s worlds
 
