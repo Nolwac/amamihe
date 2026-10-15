@@ -9,6 +9,9 @@ import {
   cityHouses,
   walkCity,
   cityPath,
+  cityStreets,
+  followCityRoute,
+  cityStandingHeight,
 } from "../shared/city-layout.js";
 import { STORYTELLING_COURSE_ID } from "../shared/catalogue.js";
 
@@ -171,4 +174,97 @@ test("all houses in a bounded district have real entrances beyond the old moveme
     assert.deepEqual(path.at(-1), { x: house.x, z: house.z - 5 });
   }
   assert.ok(houses.some((h) => h.z > 30));
+});
+
+test("visible paving follows the walkable routes to every district house", () => {
+  const houses = cityHouses([
+    { id: STORYTELLING_COURSE_ID, title: "Model Makers" },
+    ...Array.from({ length: 6 }, (_, i) => ({
+      id: `course-${i}`,
+      title: `Course ${i}`,
+    })),
+  ]);
+  const paving = cityStreets(houses);
+  const onPaving = (point: { x: number; z: number }) =>
+    paving.some((street) => {
+      const dx = street.to.x - street.from.x,
+        dz = street.to.z - street.from.z;
+      const along = Math.max(
+        0,
+        Math.min(
+          1,
+          ((point.x - street.from.x) * dx + (point.z - street.from.z) * dz) /
+            (dx * dx + dz * dz),
+        ),
+      );
+      return (
+        Math.hypot(
+          point.x - street.from.x - along * dx,
+          point.z - street.from.z - along * dz,
+        ) <=
+        street.width / 2 + 0.01
+      );
+    });
+  for (const house of houses) {
+    const route = cityPath(
+      { x: 0, z: -5 },
+      { x: house.x, z: house.z - 5 },
+      houses,
+    );
+    assert.ok(route.length);
+    for (const point of route)
+      assert.ok(
+        onPaving(point),
+        `Visible path to ${house.id} at ${point.x},${point.z}`,
+      );
+    assert.ok(paving.some((street) => street.id === "door:" + house.id));
+  }
+});
+
+test("automatic walking reaches a distant porch without waypoint oscillation at one FPS", () => {
+  const houses = cityHouses([
+    { id: STORYTELLING_COURSE_ID, title: "Model Makers" },
+    ...Array.from({ length: 6 }, (_, i) => ({
+      id: `course-${i}`,
+      title: `Course ${i}`,
+    })),
+  ]);
+  const target = { x: 10, z: 39 };
+  for (const fps of [1, 3, 60]) {
+    let position = { x: 0, z: -5 };
+    let route = cityPath(position, target, houses);
+    for (let frame = 0; frame < 40 * fps && route.length; frame++) {
+      const next = followCityRoute(position, route, 1 / fps, houses);
+      assert.ok(
+        Math.hypot(
+          next.position.x - position.x,
+          next.position.z - position.z,
+        ) <=
+          3 / fps + 0.001,
+      );
+      position = next.position;
+      route = next.remaining;
+    }
+    assert.equal(route.length, 0);
+    assert.ok(Math.hypot(position.x - target.x, position.z - target.z) < 0.001);
+  }
+});
+
+test("standing actors follow the visible course steps and station floors", () => {
+  const houses = cityHouses([{ id: "course", title: "Course" }]);
+  const house = houses[0];
+  assert.equal(cityStandingHeight({ x: 0, z: -5 }, houses), 0.079);
+  assert.ok(
+    Math.abs(
+      cityStandingHeight({ x: house.x, z: house.z - 5 }, houses) - 0.31,
+    ) < 0.001,
+  );
+  assert.ok(
+    Math.abs(
+      cityStandingHeight({ x: house.x, z: house.z - 4.4 }, houses) - 0.43,
+    ) < 0.001,
+  );
+  assert.equal(cityStandingHeight({ x: house.x, z: house.z }, houses), 0.34);
+  assert.equal(cityStandingHeight(CITY_STATION.door, houses), 0.1);
+  assert.equal(cityStandingHeight(CITY_STATION.cell, houses), 0.1475);
 });

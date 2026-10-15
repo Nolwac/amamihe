@@ -7,7 +7,7 @@ import { createPeerRenderer } from "./peerScene";
 import { publishPosition } from "./socialPresence";
 import { gameAudio } from "./gameAudio";
 import type { Presence } from "../shared/social";
-import { nextRenderHeight } from "../shared/rendering";
+import { courseRenderDeadline, nextRenderHeight } from "../shared/rendering";
 import type {
   CourseResource,
   Theme,
@@ -41,6 +41,7 @@ import { Vector3, Matrix } from "@babylonjs/core/Maths/math.vector";
 import { Color3, Color4 } from "@babylonjs/core/Maths/math.color";
 import { ArcRotateCamera } from "@babylonjs/core/Cameras/arcRotateCamera";
 import { HemisphericLight } from "@babylonjs/core/Lights/hemisphericLight";
+import { DirectionalLight } from "@babylonjs/core/Lights/directionalLight";
 import { MeshBuilder } from "@babylonjs/core/Meshes/meshBuilder";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import { Mesh } from "@babylonjs/core/Meshes/mesh";
@@ -192,6 +193,21 @@ export default function CourseScene({
       );
       light.intensity = temple ? 1.25 : 1.1;
       light.groundColor = Color3.FromHexString("#6b6860");
+      if (worldStyle === "fraction-bridge" || worldStyle === "circuit-yard") {
+        light.intensity = 0.78;
+        const sun = new DirectionalLight(
+          "mission-afternoon-sun",
+          new Vector3(-0.6, -1, 0.5),
+          scene,
+        );
+        sun.diffuse = Color3.FromHexString("#ffe4ba");
+        sun.intensity = 0.85;
+        scene.clearColor = Color4.FromHexString("#d4e4e5ff");
+        scene.fogMode = Scene.FOGMODE_LINEAR;
+        scene.fogStart = 24;
+        scene.fogEnd = 72;
+        scene.fogColor = Color3.FromHexString("#d4e4e5");
+      }
       const environment = createCourseEnvironment(scene, theme, worldStyle);
       const mission = createWorldChallenge(scene);
       scene.onDisposeObservable.add(() => mission.dispose());
@@ -355,7 +371,7 @@ export default function CourseScene({
       let renderedStatus = live.current.game?.status ?? "preview";
       let clearedAt = -Infinity;
       type DiagnosticCanvas = HTMLCanvasElement & {
-        getAdventureSnapshot?: () => unknown;
+        getAdventureSnapshot?: (options?: { actorOnly?: boolean }) => unknown;
       };
       const identity = Matrix.Identity();
       const projectPoint = (
@@ -469,7 +485,12 @@ export default function CourseScene({
           occluder: hit?.pickedMesh?.name ?? null,
         };
       };
-      (element as DiagnosticCanvas).getAdventureSnapshot = () => {
+      (element as DiagnosticCanvas).getAdventureSnapshot = (options) => {
+        // Frequent gait sampling should not ray-pick the entire environment.
+        if (options?.actorOnly)
+          return {
+            actor: player ? { ...player.snapshot(), action: pose.mode } : null,
+          };
         const frame = adventureFrame(state);
         return {
           theme,
@@ -619,15 +640,12 @@ export default function CourseScene({
       };
       engine.runRenderLoop(() => {
         const now = performance.now();
-        if (
-          disposed ||
-          document.hidden ||
-          (!resizePending && now - lastRender < 100)
-        )
-          return;
+        if (disposed || document.hidden) return;
+        const deadline = courseRenderDeadline(now, lastRender, resizePending);
+        if (deadline === undefined) return;
         const dt = Math.min(250, Math.max(0, now - lastFrame));
         lastFrame = now;
-        lastRender = now;
+        lastRender = deadline;
         const g = live.current.game;
         if (g?.status === "cleared" && renderedStatus !== "cleared")
           clearedAt = now;
@@ -777,12 +795,17 @@ export default function CourseScene({
           if (isWorldTask) {
             const mobile = element.clientWidth < 600,
               scale = mobile ? 0.78 : 1;
-            player.root.position.set(-2.4 * scale, 0.03, -0.55);
+            const t = live.current.question?.worldTask;
+            const floorHeight = t?.kind === "circuit" ? 0.405 : 0.34;
+            player.root.position.set(
+              -2.4 * scale,
+              floorHeight * scale + 0.03,
+              -0.55,
+            );
             player.root.rotation.y = 0.35;
             const solved =
               g?.activity?.independent &&
               g.activity.questionId === live.current.question?.id;
-            const t = live.current.question?.worldTask;
             if (solved && t?.kind === "fraction-bridge") {
               const length =
                 t.targets.reduce((a, b) => a + b.numerator / b.denominator, 0) *
@@ -883,7 +906,9 @@ export default function CourseScene({
         );
         if (isWorldTask) {
           camera.target.set(0, 1.45, 3.0);
-          camera.radius = element.clientWidth < 600 ? 11 : 10;
+          const phone = element.clientWidth < 600;
+          camera.radius = phone ? 13.8 : 10;
+          camera.fov = phone ? 1.15 : 0.8;
           camera.beta = 1.1;
         }
         if (temple) {
@@ -902,7 +927,7 @@ export default function CourseScene({
                   Math.min(0.08, closingGap * 0.015) -
                   // Preserve room above the moving shoulder for the feet as
                   // the player lands after a hurdle, including the stride pose.
-                  Math.min(0.18, Math.max(0, closingGap - 3) * 0.09) -
+                  Math.min(0.4, Math.max(0, closingGap - 3) * 0.1) -
                   Math.max(0, frame.avatar.x) * 0.22,
               )
             : 1.35;
@@ -973,7 +998,7 @@ export default function CourseScene({
         if (now - sampleStart > 3000) {
           const fps = (sampleFrames * 1000) / (now - sampleStart);
           if (!live.current.renderHeight) {
-            adaptiveHeight = nextRenderHeight(adaptiveHeight, fps);
+            adaptiveHeight = nextRenderHeight(adaptiveHeight, fps, 360, 720);
             resize();
           }
           element.dataset.fps = String(Math.round(fps));

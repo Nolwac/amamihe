@@ -1,0 +1,81 @@
+{
+  "errors": [],
+  "target": {
+    "id": "7bbcf042-ea7a-492b-92d0-46ac0525296a",
+    "title": "Fraction Bridge",
+    "x": 10,
+    "z": 44,
+    "width": 7,
+    "pilot": false
+  },
+  "houses": [
+    {
+      "id": "amamihe-story-model",
+      "title": "Build a Small Language Model",
+      "x": 2.5,
+      "z": 14,
+      "width": 10,
+      "pilot": true
+    },
+    {
+      "id": "6a49ff46-ac13-4c2a-888a-10f9ade15145",
+      "title": "Fraction Bridge",
+      "x": -10,
+      "z": 4,
+      "width": 7,
+      "pilot": false
+    },
+    {
+      "id": "29aeacc5-7db6-42f6-8d97-f6cd5590d065",
+      "title": "Fraction Bridge",
+      "x": 10,
+      "z": 4,
+      "width": 7,
+      "pilot": false
+    },
+    {
+      "id": "23ab8b35-5668-41c5-895e-fc1bc0369963",
+      "title": "Fraction Bridge",
+      "x": -10,
+      "z": 24,
+      "width": 7,
+      "pilot": false
+    },
+    {
+      "id": "57f504c6-f50b-4b14-9de6-81381be3a110",
+      "title": "Fraction Bridge",
+      "x": 10,
+      "z": 24,
+      "width": 7,
+      "pilot": false
+    },
+    {
+      "id": "c07cb54b-dcff-4011-b6a5-85cb8ec7a987",
+      "title": "Fraction Bridge",
+      "x": -10,
+      "z": 44,
+      "width": 7,
+      "pilot": false
+    },
+    {
+      "id": "7bbcf042-ea7a-492b-92d0-46ac0525296a",
+      "title": "Fraction Bridge",
+      "x": 10,
+      "z": 44,
+      "width": 7,
+      "pilot": false
+    }
+  ],
+  "position": {
+    "x": -0.1422000000178716,
+    "z": 19,
+    "alpha": -3.0511624325495794
+  },
+  "navigation": {
+    "destination": "police-station",
+    "remaining": 57
+  },
+  "renderHeight": "720",
+  "environment": "Local Chromium software WebGL, Medium720; desktop1280x800 then phone390x844; not physical-device performance.",
+  "inspection": "Arrived at the actual distant course porch; then walked toward the station. Final phone capture keeps the full learner outside tower walls."
+}

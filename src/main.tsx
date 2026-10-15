@@ -48,6 +48,7 @@ import {
   CITY_DISTRICT_SIZE,
   cityHouses,
   cityExtent,
+  cityStreets,
   CITY_STATION,
 } from "../shared/city-layout";
 import { STORYTELLING_COURSE_ID, KIDS_COURSES } from "../shared/catalogue";
@@ -658,16 +659,15 @@ function App() {
                 </defs>
                 <g clipPath="url(#map-clip)">
                   <rect width="120" height="120" fill="#657a71" />
-                  <path
-                    d="M48-10v140M-10 50h140"
-                    stroke="#aa9c7d"
-                    strokeWidth="21"
-                  />
-                  <path
-                    d="M48-10v140M-10 50h140"
-                    stroke="#d4bfa1"
-                    strokeWidth="12"
-                  />
+                  {cityStreets(mapHouses).map((street) => (
+                    <path
+                      key={street.id}
+                      d={`M${60 + street.from.x * 3} ${mapZ(street.from.z)}L${60 + street.to.x * 3} ${mapZ(street.to.z)}`}
+                      stroke={street.kind === "road" ? "#748383" : "#e2cda4"}
+                      strokeWidth={street.width * 2.7}
+                      strokeLinecap="round"
+                    />
+                  ))}
                   {mapHouses.map((h) => (
                     <rect
                       key={h.id}
@@ -810,7 +810,7 @@ function App() {
                       setQuality(e.target.value as "low" | "medium" | "high")
                     }
                   >
-                    <option value="low">Low · adaptive 144–360p</option>
+                    <option value="low">Low · 144–360p</option>
                     <option value="medium">Medium · 720p</option>
                     <option value="high">High · 1080p</option>
                   </select>

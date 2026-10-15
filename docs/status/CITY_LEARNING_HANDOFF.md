@@ -1,5 +1,7 @@
 # Learning city and playable lessons handoff
 
+Visual refinement requested on 15 October 2026 is tracked in [VISUAL_WORLD_HANDOFF.md](VISUAL_WORLD_HANDOFF.md). Preserve the later inclusion and production-recovery changes on current main when continuing.
+
 ## All-branch reconciliation — 14 October 2026
 
 The desktop audit found that production correctly served `8d039bc51c8c6fb32281ce93b64c23817b2fb7fd`, but PR #6 at `c2a30b01a11280ff31fa48e5b49d57c7e5b0a635` was still outside `main`. The user requires every remote branch to be reconciled before claiming all changes are deployed. Integration is complete in `b3fc38e`, followed by reconciliation of the superseded deployment history in `38bfc33`. Every audited remote head is now an ancestor of the combined source. The branch's final [CI run](https://github.com/Nolwac/amamihe/actions/runs/38537105792) passed 136 Node checks and all 36 real-model browser journeys, with one optional external-PostgreSQL skip.

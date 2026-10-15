@@ -163,6 +163,7 @@ test("world bridge controls preserve unfinished work and verified construction o
   page,
   context,
 }) => {
+  test.setTimeout(180000);
   await createAccount(context.request, "Bridge Builder");
   const id = "amamihe-fraction-bridge";
   await page.goto("/");
@@ -176,9 +177,16 @@ test("world bridge controls preserve unfinished work and verified construction o
       exact: true,
     })
     .click();
+  const enrollment = page.waitForResponse(
+    (response) =>
+      response.url().endsWith(`/api/courses/${id}/enroll`) &&
+      response.request().method() === "POST",
+    { timeout: 90000 },
+  );
   await page
     .getByRole("button", { name: "Enroll & enter adventure", exact: true })
     .click();
+  expect((await enrollment).ok()).toBe(true);
   await openAdventurePanels(page);
   const canvas = page.locator("canvas.course-scene");
   await expect(canvas).toHaveAttribute("data-avatar-ready", "true", {
@@ -247,9 +255,70 @@ test("world bridge controls preserve unfinished work and verified construction o
     await page
       .getByRole("button", { name: "Add 1/8 beam", exact: true })
       .click();
+  // Check high-resolution rendering while the task's graphics control is open.
+  // Return to a fixed 360p for the short gait sample under software WebGL.
   await page
     .getByLabel("Adventure graphics", { exact: true })
     .selectOption("720");
+  await expect
+    .poll(async () => Number(await canvas.getAttribute("data-render-height")))
+    .toBeGreaterThanOrEqual(600);
+  const highFrame = Number(await canvas.getAttribute("data-render-frame"));
+  await expect
+    .poll(async () => Number(await canvas.getAttribute("data-render-frame")))
+    .toBeGreaterThan(highFrame + 2);
+  await page.screenshot({
+    path: "test-results/fraction-bridge-workbench-720.png",
+  });
+  await page
+    .getByLabel("Adventure graphics", { exact: true })
+    .selectOption("360");
+  await expect
+    .poll(async () => Number(await canvas.getAttribute("data-render-height")))
+    .toBe(360);
+  // Observe rendered frames before submitting: a short crossing can finish
+  // between remote browser polls under software WebGL.
+  // Keep actual root and bone poses so an idle actor or a sliding rig fails.
+  await canvas.evaluate((c: any) => {
+    const frames: {
+      animation: string;
+      animationFrame?: number;
+      capturedAt: number;
+      position: number[];
+      legs: number[];
+    }[] = [];
+    const observer = new MutationObserver(() => {
+      const actor = c.getAdventureSnapshot({ actorOnly: true }).actor;
+      if (!actor || !/Walk$/.test(actor.animation)) return;
+      frames.push({
+        animation: actor.animation,
+        animationFrame: actor.animationFrame,
+        capturedAt: performance.now(),
+        position: actor.position,
+        legs: ["LeftUpLeg", "RightUpLeg", "LeftLeg", "RightLeg"].flatMap(
+          (name) =>
+            [0, 4, 8].flatMap((column) => {
+              const axis = actor.bones[name].slice(column, column + 3);
+              const length = Math.hypot(...axis);
+              return axis.map((value: number) => value / length);
+            }),
+        ),
+      });
+      if (frames.length > 80) frames.shift();
+    });
+    const timer = setTimeout(() => observer.disconnect(), 60000);
+    c.bridgeMotion = {
+      frames,
+      stop: () => {
+        clearTimeout(timer);
+        observer.disconnect();
+      },
+    };
+    observer.observe(c, {
+      attributes: true,
+      attributeFilter: ["data-render-frame"],
+    });
+  });
   const answered = page.waitForResponse((r) =>
     r.url().endsWith(`/api/learning/${id}/answer`),
   );
@@ -267,13 +336,45 @@ test("world bridge controls preserve unfinished work and verified construction o
   );
   await expect
     .poll(() =>
-      canvas.evaluate((c: any) => c.getAdventureSnapshot().actor.animation),
+      canvas.evaluate(
+        (c: any) =>
+          c.bridgeMotion.frames.filter((frame: any) =>
+            /Walk$/.test(frame.animation),
+          ).length,
+      ),
     )
-    .toMatch(/Walk$/);
-  await page.getByRole("button", { name: "Hide task", exact: true }).click();
+    .toBeGreaterThanOrEqual(2);
+  // Walk starts during the take-off stance. Wait for the crossing before
+  // inspecting its retained motion, rather than sampling two stationary frames.
   await expect
-    .poll(async () => Number(await canvas.getAttribute("data-render-height")))
-    .toBeGreaterThanOrEqual(600);
+    .poll(() =>
+      canvas.evaluate(
+        (c: any) =>
+          c.getAdventureSnapshot({ actorOnly: true }).actor.position[0],
+      ),
+    )
+    .toBeCloseTo(-3.2 + targetUnits * 0.8, 1);
+  const walking = await canvas.evaluate((c: any) =>
+    c.bridgeMotion.frames.filter((frame: any) => /Walk$/.test(frame.animation)),
+  );
+  await test.info().attach("bridge-gait", {
+    body: JSON.stringify({ targetUnits, walking }),
+    contentType: "application/json",
+  });
+  const first = walking[0],
+    last = walking.at(-1)!;
+  expect(last.position[0] - first.position[0]).toBeGreaterThan(0.03);
+  // Compare both leg chains; a single shin may stay straight during stance.
+  // Root translation alone cannot pass.
+  expect(
+    Math.max(
+      ...walking.flatMap((frame: any) =>
+        frame.legs.map((v: number, i: number) => Math.abs(v - first.legs[i])),
+      ),
+    ),
+  ).toBeGreaterThan(0.01);
+  await canvas.evaluate((c: any) => c.bridgeMotion.stop());
+  await page.getByRole("button", { name: "Hide task", exact: true }).click();
   const frame = Number(await canvas.getAttribute("data-render-frame"));
   await expect
     .poll(async () => Number(await canvas.getAttribute("data-render-frame")))
