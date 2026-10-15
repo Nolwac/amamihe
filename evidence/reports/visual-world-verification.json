@@ -70,8 +70,8 @@
     "reviewedHead": "be3135fbc3c988ff7c655239f81a01a90a7046e5",
     "codexReview": "approved",
     "ci": "All4shards and verify passed after targeted registry503 retry, run38749962726 attempt2.",
-    "remainingWorldWork": "Stacked feature PR based on feat/character-police-art; exact tested source preserved.",
-    "approvalBoundary": "Automatic approval review rejected merging into main without explicit user permission. No main merge or deployment performed."
+    "remainingWorldWork": "PR9 targets main after PR8 merged as647a2c1333d07b96387beec469ffd678025be7a1; bridge browser assertion corrected, awaiting fresh exact-head CI/review.",
+    "approvalBoundary": "User explicitly authorized fixing CI, merging the entire work into main, and deploying. PR8 merged after exact-head approval and CI; PR9 and production acceptance pending."
   },
   "floorCorrection": {
     "reason": "Actual street capture showed shoes sinking into raised course steps.",
@@ -128,5 +128,12 @@
     "review": "PR8 exact-head P2 at92afc96; corrected inbe3135f and approved by Codex.",
     "behavior": "All four playable characters apply equipped starter/purchased fabric; residents/officer keep their palettes. Paid Azure/Plum use authored colors instead of teal fallback.",
     "tests": "17 isolated asset checks and actual low/medium rendered material journey passed; combined final integration also passed."
+  },
+  "ciCorrection": {
+    "failedRun": "https://github.com/Nolwac/amamihe/actions/runs/38763999224",
+    "failure": "Shard1 missed the brief Walk animation after accepted bridge construction; the actual CI capture shows the actor already on the far bank. Other3shards passed.",
+    "change": "Arm bounded actual-rendered-frame capture before submit; retain Walk frames and require root travel, normalized leg rotation and final far-bank arrival. Await actual enrollment response. No production motion or server evidence change.",
+    "localVerification": "Targeted real-model bridge journey passed twice (1.6m and1.4m); final fresh worker uses non-evicting Walk-frame history. Typecheck, formatting and diff check pass. Exact-head CI/review required before merge.",
+    "deployment": "Pending final approved main release and exact public server/client acceptance. See final main workflow and PR9 for deployment evidence."
   }
 }

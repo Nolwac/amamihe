@@ -163,6 +163,7 @@ test("world bridge controls preserve unfinished work and verified construction o
   page,
   context,
 }) => {
+  test.setTimeout(180000);
   await createAccount(context.request, "Bridge Builder");
   const id = "amamihe-fraction-bridge";
   await page.goto("/");
@@ -176,9 +177,16 @@ test("world bridge controls preserve unfinished work and verified construction o
       exact: true,
     })
     .click();
+  const enrollment = page.waitForResponse(
+    (response) =>
+      response.url().endsWith(`/api/courses/${id}/enroll`) &&
+      response.request().method() === "POST",
+    { timeout: 90000 },
+  );
   await page
     .getByRole("button", { name: "Enroll & enter adventure", exact: true })
     .click();
+  expect((await enrollment).ok()).toBe(true);
   await openAdventurePanels(page);
   const canvas = page.locator("canvas.course-scene");
   await expect(canvas).toHaveAttribute("data-avatar-ready", "true", {
@@ -250,6 +258,42 @@ test("world bridge controls preserve unfinished work and verified construction o
   await page
     .getByLabel("Adventure graphics", { exact: true })
     .selectOption("720");
+  // Observe rendered frames before submitting: a short crossing can finish
+  // between remote browser polls, especially while software WebGL draws 720p.
+  // Keep actual root and bone poses so an idle actor or a sliding rig fails.
+  await canvas.evaluate((c: any) => {
+    const frames: {
+      animation: string;
+      position: number[];
+      leftLeg: number[];
+    }[] = [];
+    const observer = new MutationObserver(() => {
+      const actor = c.getAdventureSnapshot().actor;
+      if (!actor || !/Walk$/.test(actor.animation)) return;
+      frames.push({
+        animation: actor.animation,
+        position: actor.position,
+        leftLeg: [0, 4, 8].flatMap((column) => {
+          const axis = actor.bones.LeftLeg.slice(column, column + 3);
+          const length = Math.hypot(...axis);
+          return axis.map((value: number) => value / length);
+        }),
+      });
+      if (frames.length > 80) frames.shift();
+    });
+    const timer = setTimeout(() => observer.disconnect(), 60000);
+    c.bridgeMotion = {
+      frames,
+      stop: () => {
+        clearTimeout(timer);
+        observer.disconnect();
+      },
+    };
+    observer.observe(c, {
+      attributes: true,
+      attributeFilter: ["data-render-frame"],
+    });
+  });
   const answered = page.waitForResponse((r) =>
     r.url().endsWith(`/api/learning/${id}/answer`),
   );
@@ -267,9 +311,36 @@ test("world bridge controls preserve unfinished work and verified construction o
   );
   await expect
     .poll(() =>
-      canvas.evaluate((c: any) => c.getAdventureSnapshot().actor.animation),
+      canvas.evaluate(
+        (c: any) =>
+          c.bridgeMotion.frames.filter((frame: any) =>
+            /Walk$/.test(frame.animation),
+          ).length,
+      ),
     )
-    .toMatch(/Walk$/);
+    .toBeGreaterThanOrEqual(2);
+  const walking = await canvas.evaluate((c: any) =>
+    c.bridgeMotion.frames.filter((frame: any) => /Walk$/.test(frame.animation)),
+  );
+  const first = walking[0],
+    last = walking.at(-1)!;
+  expect(last.position[0] - first.position[0]).toBeGreaterThan(0.03);
+  // Compare the limb's rotation basis; root translation alone cannot pass.
+  expect(
+    Math.max(
+      ...walking.flatMap((frame: any) =>
+        frame.leftLeg.map((v: number, i: number) =>
+          Math.abs(v - first.leftLeg[i]),
+        ),
+      ),
+    ),
+  ).toBeGreaterThan(0.01);
+  await expect
+    .poll(() =>
+      canvas.evaluate((c: any) => c.getAdventureSnapshot().actor.position[0]),
+    )
+    .toBeCloseTo(-3.2 + targetUnits * 0.8, 1);
+  await canvas.evaluate((c: any) => c.bridgeMotion.stop());
   await page.getByRole("button", { name: "Hide task", exact: true }).click();
   await expect
     .poll(async () => Number(await canvas.getAttribute("data-render-height")))
