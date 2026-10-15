@@ -65,7 +65,14 @@
     "No physical-phone GPU or memory validation.",
     "Stylized shared character anatomy and procedural environments remain below the illustrated concept references."
   ],
-  "publication": "Character/police art in PR8, exact-head Codex approved be3135f; a registry503 requires one CI shard rerun. Remaining world changes follow in a second PR. No production deployment is established by local checks.",
+  "publication": {
+    "characterPolicePR": "https://github.com/Nolwac/amamihe/pull/8",
+    "reviewedHead": "be3135fbc3c988ff7c655239f81a01a90a7046e5",
+    "codexReview": "approved",
+    "ci": "All4shards and verify passed after targeted registry503 retry, run38749962726 attempt2.",
+    "remainingWorldWork": "Stacked feature PR based on feat/character-police-art; exact tested source preserved.",
+    "approvalBoundary": "Automatic approval review rejected merging into main without explicit user permission. No main merge or deployment performed."
+  },
   "floorCorrection": {
     "reason": "Actual street capture showed shoes sinking into raised course steps.",
     "implementation": "Rendered course steps and actor standing support share coursePorchSteps; standing learner/officer heights follow streets, porches and station floors; vehicle seat transforms stay authoritative while seated.",
