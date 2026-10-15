@@ -256,6 +256,8 @@ export async function loadCourseHumans(
           "Spine",
           "LeftArm",
           "RightArm",
+          "LeftUpLeg",
+          "RightUpLeg",
           "LeftLeg",
           "RightLeg",
           "LeftFoot",
@@ -268,6 +270,7 @@ export async function loadCourseHumans(
         return {
           position: root.position.asArray(),
           animation: current?.name,
+          animationFrame: current?.getCurrentFrame(),
           rotation: root.rotation.asArray(),
           bones,
           materials: root

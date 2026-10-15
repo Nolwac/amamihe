@@ -7,7 +7,7 @@ import { createPeerRenderer } from "./peerScene";
 import { publishPosition } from "./socialPresence";
 import { gameAudio } from "./gameAudio";
 import type { Presence } from "../shared/social";
-import { nextRenderHeight } from "../shared/rendering";
+import { courseRenderDeadline, nextRenderHeight } from "../shared/rendering";
 import type {
   CourseResource,
   Theme,
@@ -640,15 +640,12 @@ export default function CourseScene({
       };
       engine.runRenderLoop(() => {
         const now = performance.now();
-        if (
-          disposed ||
-          document.hidden ||
-          (!resizePending && now - lastRender < 100)
-        )
-          return;
+        if (disposed || document.hidden) return;
+        const deadline = courseRenderDeadline(now, lastRender, resizePending);
+        if (deadline === undefined) return;
         const dt = Math.min(250, Math.max(0, now - lastFrame));
         lastFrame = now;
-        lastRender = now;
+        lastRender = deadline;
         const g = live.current.game;
         if (g?.status === "cleared" && renderedStatus !== "cleared")
           clearedAt = now;

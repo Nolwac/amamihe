@@ -133,11 +133,30 @@
     "failedRun": "https://github.com/Nolwac/amamihe/actions/runs/38763999224",
     "failure": "Shard1 missed the brief Walk animation after accepted bridge construction; the actual CI capture shows the actor already on the far bank. Other3shards passed.",
     "change": "Sample actual actor only, without full-environment ray picking. Retain bounded Walk frames and wait for far-bank arrival before requiring root travel and normalized leg rotation. Verify720p frames while graphics controls are available, then use fixed360p for gait. Preserve saved work, real enrollment and independent server evidence.",
-    "localVerification": "Final targeted real-model journey passed1.4m (1.5m total), including720p rendered frames before clearance, fixed360p actor-only gait sampling, real root travel/leg rotation, far-bank arrival, saved work and independent server evidence. Build/typecheck, formatting and diff check pass. Fresh exact-head CI/review required before merge.",
+    "localVerification": "Final both-leg-chain real-model bridge journey passed1.9m with the30FPS cadence,720p workbench rendering, fixed360p lightweight gait sampling, actual root travel and leg-chain rotation, far-bank arrival, saved work and independent server evidence. Actual sampled matrices are attached. Build/typecheck, formatting and diff check pass. Fresh exact-head CI/review required before merge.",
     "deployment": "Pending final approved main release and exact public server/client acceptance. See final main workflow and PR9 for deployment evidence.",
     "followupRun": "https://github.com/Nolwac/amamihe/actions/runs/38772430616",
     "followupFailure": "Initial revised check froze its first2Walkframes during the deliberate0.3-second stance before travel; three other shards passed and exact-head Codex approved8e95732.",
     "secondFollowupRun": "https://github.com/Nolwac/amamihe/actions/runs/38774320379",
-    "secondFollowupFailure": "Full-scene per-frame diagnostics and forced720p consumed the short gait frame budget; only1Walkframe was observed. Three other shards and exact-head Codex review passed."
+    "secondFollowupFailure": "The revised CI captured only1Walkframe while using full-scene per-frame diagnostics and forced720p. Three other shards and exact-head Codex review passed.",
+    "thirdFollowupRun": "https://github.com/Nolwac/amamihe/actions/runs/38798219571",
+    "thirdFollowupFailure": "The remaining gait assertion observed no change in one shin; final diagnostics cover both upper and lower leg chains and retain actual sampled matrices. Codex also found the unreachable automatic-resolution recovery threshold."
+  },
+  "automaticCorrection": {
+    "review": "https://github.com/Nolwac/amamihe/actions/runs/38798216234",
+    "reason": "10FPS ceiling made the24FPS automatic-resolution recovery threshold unreachable.",
+    "change": "Cadence-preserving30FPS ceiling, no catch-up loop after stalls; actual Automatic browser coverage and explicit144p retention.",
+    "unit": {
+      "passed": 5,
+      "failed": 0,
+      "scope": "Rendering policy, common40/60/75/90/120/144Hz refresh rates, forced resize and stalled-frame handling."
+    },
+    "browser": {
+      "passed": 1,
+      "failed": 0,
+      "duration": "1.6m",
+      "scope": "Real local-model enrollment and actual3D rendering; controlled RAF clock verifies Automatic recovery and explicit144p retention."
+    },
+    "limit": "Controlled animation time is not a physical-device FPS benchmark. Final both-leg-chain bridge follow-up also passed1.9m; fresh exact-head CI/review are required before merge."
   }
 }

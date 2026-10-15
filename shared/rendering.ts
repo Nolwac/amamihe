@@ -12,6 +12,20 @@ export function assetTier(connection?: Connection): "low" | "standard" {
     ? "low"
     : "standard";
 }
+/** A 30 FPS ceiling leaves automatic quality's 24 FPS recovery reachable. */
+export function courseRenderDeadline(
+  now: number,
+  previous: number,
+  force = false,
+): number | undefined {
+  if (force) return now;
+  const interval = 1000 / 30;
+  const ticks = Math.floor((now - previous + 0.001) / interval);
+  if (ticks < 1) return undefined;
+  // Preserve cadence across different display refresh rates, without replaying
+  // frames after a stall or a hidden tab.
+  return previous + ticks * interval;
+}
 export function nextRenderHeight(
   height: number,
   fps: number,

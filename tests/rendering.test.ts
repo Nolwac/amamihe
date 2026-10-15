@@ -1,7 +1,29 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFile, stat } from "node:fs/promises";
-import { assetTier, nextRenderHeight } from "../shared/rendering.js";
+import {
+  assetTier,
+  courseRenderDeadline,
+  nextRenderHeight,
+} from "../shared/rendering.js";
+test("course cadence sustains automatic recovery across display refresh rates", () => {
+  for (const refreshRate of [40, 60, 75, 90, 120, 144]) {
+    let previous = 0,
+      frames = 0;
+    for (let tick = 1; tick <= refreshRate * 2; tick++) {
+      const next = courseRenderDeadline((tick * 1000) / refreshRate, previous);
+      if (next !== undefined) {
+        previous = next;
+        frames++;
+      }
+    }
+    assert.equal(frames, 60, `${refreshRate}Hz should present 30 FPS`);
+    assert.equal(nextRenderHeight(360, frames / 2, 360, 720), 720);
+  }
+  assert.equal(courseRenderDeadline(5000, 0), 5000);
+  assert.equal(courseRenderDeadline(5001, 5000), undefined);
+  assert.equal(courseRenderDeadline(5001, 5000, true), 5001);
+});
 test("bandwidth tiers and render resolution are independent", () => {
   assert.equal(assetTier(), "low");
   assert.equal(assetTier({ saveData: true, downlink: 10 }), "low");

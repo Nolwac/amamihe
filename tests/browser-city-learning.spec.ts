@@ -282,20 +282,27 @@ test("world bridge controls preserve unfinished work and verified construction o
   await canvas.evaluate((c: any) => {
     const frames: {
       animation: string;
+      animationFrame?: number;
+      capturedAt: number;
       position: number[];
-      leftLeg: number[];
+      legs: number[];
     }[] = [];
     const observer = new MutationObserver(() => {
       const actor = c.getAdventureSnapshot({ actorOnly: true }).actor;
       if (!actor || !/Walk$/.test(actor.animation)) return;
       frames.push({
         animation: actor.animation,
+        animationFrame: actor.animationFrame,
+        capturedAt: performance.now(),
         position: actor.position,
-        leftLeg: [0, 4, 8].flatMap((column) => {
-          const axis = actor.bones.LeftLeg.slice(column, column + 3);
-          const length = Math.hypot(...axis);
-          return axis.map((value: number) => value / length);
-        }),
+        legs: ["LeftUpLeg", "RightUpLeg", "LeftLeg", "RightLeg"].flatMap(
+          (name) =>
+            [0, 4, 8].flatMap((column) => {
+              const axis = actor.bones[name].slice(column, column + 3);
+              const length = Math.hypot(...axis);
+              return axis.map((value: number) => value / length);
+            }),
+        ),
       });
       if (frames.length > 80) frames.shift();
     });
@@ -350,16 +357,19 @@ test("world bridge controls preserve unfinished work and verified construction o
   const walking = await canvas.evaluate((c: any) =>
     c.bridgeMotion.frames.filter((frame: any) => /Walk$/.test(frame.animation)),
   );
+  await test.info().attach("bridge-gait", {
+    body: JSON.stringify({ targetUnits, walking }),
+    contentType: "application/json",
+  });
   const first = walking[0],
     last = walking.at(-1)!;
   expect(last.position[0] - first.position[0]).toBeGreaterThan(0.03);
-  // Compare the limb's rotation basis; root translation alone cannot pass.
+  // Compare both leg chains; a single shin may stay straight during stance.
+  // Root translation alone cannot pass.
   expect(
     Math.max(
       ...walking.flatMap((frame: any) =>
-        frame.leftLeg.map((v: number, i: number) =>
-          Math.abs(v - first.leftLeg[i]),
-        ),
+        frame.legs.map((v: number, i: number) => Math.abs(v - first.legs[i])),
       ),
     ),
   ).toBeGreaterThan(0.01);
