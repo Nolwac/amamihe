@@ -371,7 +371,7 @@ export default function CourseScene({
       let renderedStatus = live.current.game?.status ?? "preview";
       let clearedAt = -Infinity;
       type DiagnosticCanvas = HTMLCanvasElement & {
-        getAdventureSnapshot?: () => unknown;
+        getAdventureSnapshot?: (options?: { actorOnly?: boolean }) => unknown;
       };
       const identity = Matrix.Identity();
       const projectPoint = (
@@ -485,7 +485,12 @@ export default function CourseScene({
           occluder: hit?.pickedMesh?.name ?? null,
         };
       };
-      (element as DiagnosticCanvas).getAdventureSnapshot = () => {
+      (element as DiagnosticCanvas).getAdventureSnapshot = (options) => {
+        // Frequent gait sampling should not ray-pick the entire environment.
+        if (options?.actorOnly)
+          return {
+            actor: player ? { ...player.snapshot(), action: pose.mode } : null,
+          };
         const frame = adventureFrame(state);
         return {
           theme,

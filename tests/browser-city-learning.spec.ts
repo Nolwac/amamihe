@@ -255,11 +255,29 @@ test("world bridge controls preserve unfinished work and verified construction o
     await page
       .getByRole("button", { name: "Add 1/8 beam", exact: true })
       .click();
+  // Check high-resolution rendering while the task's graphics control is open.
+  // Return to a fixed 360p for the short gait sample under software WebGL.
   await page
     .getByLabel("Adventure graphics", { exact: true })
     .selectOption("720");
+  await expect
+    .poll(async () => Number(await canvas.getAttribute("data-render-height")))
+    .toBeGreaterThanOrEqual(600);
+  const highFrame = Number(await canvas.getAttribute("data-render-frame"));
+  await expect
+    .poll(async () => Number(await canvas.getAttribute("data-render-frame")))
+    .toBeGreaterThan(highFrame + 2);
+  await page.screenshot({
+    path: "test-results/fraction-bridge-workbench-720.png",
+  });
+  await page
+    .getByLabel("Adventure graphics", { exact: true })
+    .selectOption("360");
+  await expect
+    .poll(async () => Number(await canvas.getAttribute("data-render-height")))
+    .toBe(360);
   // Observe rendered frames before submitting: a short crossing can finish
-  // between remote browser polls, especially while software WebGL draws 720p.
+  // between remote browser polls under software WebGL.
   // Keep actual root and bone poses so an idle actor or a sliding rig fails.
   await canvas.evaluate((c: any) => {
     const frames: {
@@ -268,7 +286,7 @@ test("world bridge controls preserve unfinished work and verified construction o
       leftLeg: number[];
     }[] = [];
     const observer = new MutationObserver(() => {
-      const actor = c.getAdventureSnapshot().actor;
+      const actor = c.getAdventureSnapshot({ actorOnly: true }).actor;
       if (!actor || !/Walk$/.test(actor.animation)) return;
       frames.push({
         animation: actor.animation,
@@ -323,7 +341,10 @@ test("world bridge controls preserve unfinished work and verified construction o
   // inspecting its retained motion, rather than sampling two stationary frames.
   await expect
     .poll(() =>
-      canvas.evaluate((c: any) => c.getAdventureSnapshot().actor.position[0]),
+      canvas.evaluate(
+        (c: any) =>
+          c.getAdventureSnapshot({ actorOnly: true }).actor.position[0],
+      ),
     )
     .toBeCloseTo(-3.2 + targetUnits * 0.8, 1);
   const walking = await canvas.evaluate((c: any) =>
@@ -344,9 +365,6 @@ test("world bridge controls preserve unfinished work and verified construction o
   ).toBeGreaterThan(0.01);
   await canvas.evaluate((c: any) => c.bridgeMotion.stop());
   await page.getByRole("button", { name: "Hide task", exact: true }).click();
-  await expect
-    .poll(async () => Number(await canvas.getAttribute("data-render-height")))
-    .toBeGreaterThanOrEqual(600);
   const frame = Number(await canvas.getAttribute("data-render-frame"));
   await expect
     .poll(async () => Number(await canvas.getAttribute("data-render-frame")))
