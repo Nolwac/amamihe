@@ -1229,6 +1229,57 @@ test("phone manual controls cause actual jump, obstacle Game Over and a checkpoi
   await expect
     .poll(async () => (await snapshot(page))!.actor.position[0])
     .toBeGreaterThan(1.5);
+  // Sample completed rendered frames while the native Run clip advances.
+  // A resolver that clears the previous stride can pass a paused-pose check.
+  await page.locator("canvas.course-scene").evaluate((c: any) => {
+    c.chaseVisibilityFrames = [];
+    const observer = new MutationObserver(() => {
+      c.chaseVisibilityFrames.push(
+        c.getAdventureSnapshot({ visibilityOnly: true }),
+      );
+      if (c.chaseVisibilityFrames.length >= 4) observer.disconnect();
+    });
+    observer.observe(c, {
+      attributes: true,
+      attributeFilter: ["data-render-frame"],
+    });
+    setTimeout(() => observer.disconnect(), 4000);
+  });
+  await expect
+    .poll(() =>
+      page
+        .locator("canvas.course-scene")
+        .evaluate((c: any) => c.chaseVisibilityFrames.length),
+    )
+    .toBe(4);
+  const motion = await page
+    .locator("canvas.course-scene")
+    .evaluate((c: any) => c.chaseVisibilityFrames);
+  await writeFile(
+    "test-results/adventure-phone-right-lane-motion.json",
+    JSON.stringify(motion, null, 2),
+  );
+  for (const frame of motion) {
+    expect(frame.active).toBe(true);
+    for (const foot of frame.feet) {
+      expect(foot.inFrame, foot.name + " rendered viewport").toBe(true);
+      expect(
+        foot.occluded,
+        foot.name + " rendered occluder " + foot.occluder,
+      ).toBe(false);
+    }
+  }
+  expect(
+    Math.max(
+      ...motion.flatMap((frame: any) =>
+        frame.feet.flatMap((foot: any, i: number) =>
+          foot.relativePosition.map((v: number, axis: number) =>
+            Math.abs(v - motion[0].feet[i].relativePosition[axis]),
+          ),
+        ),
+      ),
+    ),
+  ).toBeGreaterThan(0.01);
   await page
     .getByRole("button", { name: "Pause section", exact: true })
     .click();

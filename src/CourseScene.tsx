@@ -331,6 +331,59 @@ export default function CourseScene({
       let followBeta = 1.35;
       let previousStep = live.current.game?.stepKey,
         previousRun = live.current.game?.run;
+      // Babylon evaluates animation and camera inputs before this hook, then
+      // builds the view matrices. Resolve the pose that this frame will draw.
+      scene.onBeforeRenderObservable.add(() => {
+        if (
+          !temple ||
+          element.clientWidth >= 600 ||
+          !player ||
+          !guardian.root.isEnabled() ||
+          state.collision ||
+          live.current.game?.status === "game-over"
+        )
+          return;
+        const chasePlayer = player;
+        const manualBetaOffset = camera.beta - followBeta;
+        const requestedBeta = Math.max(
+          camera.lowerBetaLimit ?? 0.15,
+          Math.min(camera.upperBetaLimit ?? 1.45, camera.beta),
+        );
+        const framing = resolveChaseCamera(
+          {
+            alpha: camera.alpha,
+            beta: requestedBeta,
+            radius: camera.radius,
+            target: [camera.target.x, camera.target.y, camera.target.z],
+          },
+          ["LeftFoot", "RightFoot"].flatMap((name) => {
+            const joint = chasePlayer.joints.get(name);
+            if (!joint) return [];
+            joint.computeWorldMatrix(true);
+            const foot = joint.getAbsolutePosition();
+            return [[foot.x, foot.y, foot.z] as const];
+          }),
+          [...guardianMeshes].map((mesh) => {
+            mesh.computeWorldMatrix(true);
+            const box = mesh.getBoundingInfo().boundingBox;
+            return {
+              min: [
+                box.minimumWorld.x,
+                box.minimumWorld.y,
+                box.minimumWorld.z,
+              ] as const,
+              max: [
+                box.maximumWorld.x,
+                box.maximumWorld.y,
+                box.maximumWorld.z,
+              ] as const,
+            };
+          }),
+        );
+        camera.beta = framing.beta;
+        followBeta = framing.beta - manualBetaOffset;
+        camera.target.z = framing.target[2];
+      });
       let lastActivity: string | undefined,
         activityAt = -Infinity,
         bridgeElapsedMs = 0,
@@ -373,7 +426,10 @@ export default function CourseScene({
       let renderedStatus = live.current.game?.status ?? "preview";
       let clearedAt = -Infinity;
       type DiagnosticCanvas = HTMLCanvasElement & {
-        getAdventureSnapshot?: (options?: { actorOnly?: boolean }) => unknown;
+        getAdventureSnapshot?: (options?: {
+          actorOnly?: boolean;
+          visibilityOnly?: boolean;
+        }) => unknown;
       };
       const identity = Matrix.Identity();
       const projectPoint = (
@@ -488,6 +544,24 @@ export default function CourseScene({
         };
       };
       (element as DiagnosticCanvas).getAdventureSnapshot = (options) => {
+        if (options?.visibilityOnly)
+          return {
+            active: pose.active,
+            feet: player
+              ? ["LeftFoot", "RightFoot"].map((name) => {
+                  const joint = player!.joints.get(name)!;
+                  joint.computeWorldMatrix(true);
+                  const point = joint.getAbsolutePosition();
+                  return {
+                    name,
+                    relativePosition: point
+                      .subtract(player!.root.position)
+                      .asArray(),
+                    ...visibilityPoint(point, undefined, true),
+                  };
+                })
+              : [],
+          };
         // Frequent gait sampling should not ray-pick the entire environment.
         if (options?.actorOnly)
           return {
@@ -956,50 +1030,6 @@ export default function CourseScene({
             : 0.3;
           // Apply only the chase offset so dragging to orbit remains available.
           camera.alpha += nextFollowYaw - followYaw;
-          if (phone && player && !caught) {
-            const chasePlayer = player;
-            const manualBetaOffset = camera.beta - followBeta;
-            const requestedBeta = Math.max(
-              camera.lowerBetaLimit ?? 0.15,
-              Math.min(
-                camera.upperBetaLimit ?? 1.45,
-                nextFollowBeta + manualBetaOffset,
-              ),
-            );
-            const framing = resolveChaseCamera(
-              {
-                alpha: camera.alpha,
-                beta: requestedBeta,
-                radius: camera.radius,
-                target: [camera.target.x, camera.target.y, camera.target.z],
-              },
-              ["LeftFoot", "RightFoot"].flatMap((name) => {
-                const joint = chasePlayer.joints.get(name);
-                if (!joint) return [];
-                joint.computeWorldMatrix(true);
-                const foot = joint.getAbsolutePosition();
-                return [[foot.x, foot.y, foot.z] as const];
-              }),
-              [...guardianMeshes].map((mesh) => {
-                mesh.computeWorldMatrix(true);
-                const box = mesh.getBoundingInfo().boundingBox;
-                return {
-                  min: [
-                    box.minimumWorld.x,
-                    box.minimumWorld.y,
-                    box.minimumWorld.z,
-                  ] as const,
-                  max: [
-                    box.maximumWorld.x,
-                    box.maximumWorld.y,
-                    box.maximumWorld.z,
-                  ] as const,
-                };
-              }),
-            );
-            nextFollowBeta = framing.beta - manualBetaOffset;
-            camera.target.z = framing.target[2];
-          }
           // The wider closing-gap view rises above the surrounding temple walls.
           camera.beta += nextFollowBeta - followBeta;
           followYaw = nextFollowYaw;

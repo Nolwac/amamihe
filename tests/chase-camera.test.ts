@@ -36,7 +36,7 @@ test("phone chase clears actual guardian geometry for both feet across lanes and
   const meshes = guardian.root.getChildMeshes();
   let blockedOriginal = 0;
   try {
-    for (const lane of [-2.4, 0, 2.4])
+    for (const lane of [-2.4, -1.65, 0, 1.65, 2.4])
       for (const gap of [2.4, 2.8, 4, 7, 10])
         for (const stride of [-1.2, 0, 0.8]) {
           guardian.update(1.7, gap, 0, lane, false, false, false);

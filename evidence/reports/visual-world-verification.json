@@ -179,14 +179,113 @@
       "geometryChecks": {
         "passed": 2,
         "failed": 0,
-        "combinations": 45,
-        "footSightlines": 90,
-        "scope": "Actual Babylon guardian meshes with independent triangle-ray checks across three lanes, five pursuit gaps and three stride placements. Includes old-view occlusion and clear-orbit preservation."
+        "combinations": 75,
+        "footSightlines": 150,
+        "scope": "Actual Babylon guardian meshes with independent triangle-ray checks across physical lane widths and edge placements, five pursuit gaps and three stride placements. Clear-orbit preservation and old-view occlusion are checked."
       },
       "build": "passed",
       "format": "passed",
       "fullPhoneJourney": "Local real-model journey hit Game Over before the hurdle-approach pause (2.0m), before the new right-lane visibility check. Not accepted as phone validation. Complete native CI journey remains required.",
-      "publication": "Fresh exact-head CI/review required after this camera correction."
+      "publication": "Fresh exact-head CI/review required after this camera correction.",
+      "reviewOrderingCorrection": {
+        "review": "https://github.com/Nolwac/amamihe/actions/runs/38844124398",
+        "head": "3a75528e39c94256c72b78fc8508a5f88ff11edc",
+        "finding": "P2: pre-render-loop resolution sampled the previous stride before native animation advanced.",
+        "fix": "Resolve in scene.onBeforeRenderObservable after native animation and camera inputs, before view matrices. The phone journey now records four successive rendered foot poses, requires actual relative stride change and clear ray/viewport results, and uploads the motion JSON."
+      },
+      "presentationReplay": {
+        "passed": true,
+        "cases": [
+          {
+            "lane": -1,
+            "gap": 2.4,
+            "height": 140.74422661497252,
+            "animatedFrames": 4,
+            "strideChange": 1.9482526403739584,
+            "camera": {
+              "position": [
+                2.807923713737615, 11.852811701947225, 51.6095939970637
+              ],
+              "target": [-1.65, 1.75, 56.3064133333267]
+            },
+            "passed": true
+          },
+          {
+            "lane": -1,
+            "gap": 2.8,
+            "height": 129.49631976308524,
+            "animatedFrames": 4,
+            "strideChange": 1.3379135727882385,
+            "camera": {
+              "position": [
+                2.4152113229479295, 12.103684846177131, 49.43515843009252
+              ],
+              "target": [-1.65, 1.75, 53.93796499997957]
+            },
+            "passed": true
+          },
+          {
+            "lane": 0,
+            "gap": 2.4,
+            "height": 163.4551750562496,
+            "animatedFrames": 4,
+            "strideChange": 1.818134488518517,
+            "camera": {
+              "position": [
+                1.6504843539331042, 13.376949060527737, 52.057519521635044
+              ],
+              "target": [0, 1.75, 54.52530333334043]
+            },
+            "passed": true
+          },
+          {
+            "lane": 0,
+            "gap": 2.8,
+            "height": 174.69873472520112,
+            "animatedFrames": 4,
+            "strideChange": 1.960223547363313,
+            "camera": {
+              "position": [
+                3.1396452478889207, 12.337994303321457, 49.45043288721245
+              ],
+              "target": [0, 1.75, 54.144791666666876]
+            },
+            "passed": true
+          },
+          {
+            "lane": 1,
+            "gap": 2.4,
+            "height": 175.10683839344114,
+            "animatedFrames": 4,
+            "strideChange": 1.7552196508720073,
+            "camera": {
+              "position": [
+                2.7880885319921047, 13.178002838628561, 51.30500162080827
+              ],
+              "target": [1.65, 1.75, 54.78429833331291]
+            },
+            "passed": true
+          },
+          {
+            "lane": 1,
+            "gap": 2.8,
+            "height": 154.08594262990482,
+            "animatedFrames": 4,
+            "strideChange": 1.8829381274208785,
+            "camera": {
+              "position": [
+                3.068376743213897, 12.848908718287756, 51.430911137059695
+              ],
+              "target": [1.65, 1.75, 55.7670883333267]
+            },
+            "passed": true
+          }
+        ],
+        "animatedFrames": 24,
+        "pageErrors": [],
+        "screenshot": "evidence/screenshots/visual-world-phone-chase.png",
+        "scope": "Actual CourseScene, native Run animation and real assets, replaying captured CI runtime with explicit lane/gap placements and untimed assistance for inspection. Six presentation cases, not authenticated learner acceptance or a physical-device benchmark."
+      }
     }
   },
   "liveRelease": {
