@@ -8,6 +8,7 @@ import { publishPosition } from "./socialPresence";
 import { gameAudio } from "./gameAudio";
 import type { Presence } from "../shared/social";
 import { courseRenderDeadline, nextRenderHeight } from "../shared/rendering";
+import { resolveChaseCamera } from "../shared/chase-camera";
 import type {
   CourseResource,
   Theme,
@@ -181,7 +182,7 @@ export default function CourseScene({
       camera.lowerRadiusLimit = 7;
       if (temple) camera.fov = 0.9;
       camera.upperRadiusLimit = 15;
-      camera.lowerBetaLimit = 0.55;
+      camera.lowerBetaLimit = temple ? 0.15 : 0.55;
       camera.upperBetaLimit = 1.45;
       configureCameraControls(camera);
       camera.attachControl(element, true);
@@ -330,8 +331,62 @@ export default function CourseScene({
       let followBeta = 1.35;
       let previousStep = live.current.game?.stepKey,
         previousRun = live.current.game?.run;
+      // Babylon evaluates animation and camera inputs before this hook, then
+      // builds the view matrices. Resolve the pose that this frame will draw.
+      scene.onBeforeRenderObservable.add(() => {
+        if (
+          !temple ||
+          element.clientWidth >= 600 ||
+          !player ||
+          !guardian.root.isEnabled() ||
+          state.collision ||
+          live.current.game?.status === "game-over"
+        )
+          return;
+        const chasePlayer = player;
+        const manualBetaOffset = camera.beta - followBeta;
+        const requestedBeta = Math.max(
+          camera.lowerBetaLimit ?? 0.15,
+          Math.min(camera.upperBetaLimit ?? 1.45, camera.beta),
+        );
+        const framing = resolveChaseCamera(
+          {
+            alpha: camera.alpha,
+            beta: requestedBeta,
+            radius: camera.radius,
+            target: [camera.target.x, camera.target.y, camera.target.z],
+          },
+          ["LeftFoot", "RightFoot"].flatMap((name) => {
+            const joint = chasePlayer.joints.get(name);
+            if (!joint) return [];
+            joint.computeWorldMatrix(true);
+            const foot = joint.getAbsolutePosition();
+            return [[foot.x, foot.y, foot.z] as const];
+          }),
+          [...guardianMeshes].map((mesh) => {
+            mesh.computeWorldMatrix(true);
+            const box = mesh.getBoundingInfo().boundingBox;
+            return {
+              min: [
+                box.minimumWorld.x,
+                box.minimumWorld.y,
+                box.minimumWorld.z,
+              ] as const,
+              max: [
+                box.maximumWorld.x,
+                box.maximumWorld.y,
+                box.maximumWorld.z,
+              ] as const,
+            };
+          }),
+        );
+        camera.beta = framing.beta;
+        followBeta = framing.beta - manualBetaOffset;
+        camera.target.z = framing.target[2];
+      });
       let lastActivity: string | undefined,
         activityAt = -Infinity,
+        bridgeElapsedMs = 0,
         activityCorrect = false;
       let lastActionSerial = -1,
         collisionId: string | undefined,
@@ -371,7 +426,10 @@ export default function CourseScene({
       let renderedStatus = live.current.game?.status ?? "preview";
       let clearedAt = -Infinity;
       type DiagnosticCanvas = HTMLCanvasElement & {
-        getAdventureSnapshot?: (options?: { actorOnly?: boolean }) => unknown;
+        getAdventureSnapshot?: (options?: {
+          actorOnly?: boolean;
+          visibilityOnly?: boolean;
+        }) => unknown;
       };
       const identity = Matrix.Identity();
       const projectPoint = (
@@ -486,6 +544,24 @@ export default function CourseScene({
         };
       };
       (element as DiagnosticCanvas).getAdventureSnapshot = (options) => {
+        if (options?.visibilityOnly)
+          return {
+            active: pose.active,
+            feet: player
+              ? ["LeftFoot", "RightFoot"].map((name) => {
+                  const joint = player!.joints.get(name)!;
+                  joint.computeWorldMatrix(true);
+                  const point = joint.getAbsolutePosition();
+                  return {
+                    name,
+                    relativePosition: point
+                      .subtract(player!.root.position)
+                      .asArray(),
+                    ...visibilityPoint(point, undefined, true),
+                  };
+                })
+              : [],
+          };
         // Frequent gait sampling should not ray-pick the entire environment.
         if (options?.actorOnly)
           return {
@@ -669,6 +745,7 @@ export default function CourseScene({
         if (g?.activity && g.activity.id !== lastActivity) {
           lastActivity = g.activity.id;
           activityAt = now;
+          bridgeElapsedMs = 0;
           activityCorrect = g.activity.correct && g.activity.independent;
           event(
             activityCorrect ? "task-correct" : "task-incorrect",
@@ -807,12 +884,19 @@ export default function CourseScene({
               g?.activity?.independent &&
               g.activity.questionId === live.current.question?.id;
             if (solved && t?.kind === "fraction-bridge") {
+              // Keep the crossing visible after a busy frame or suspended tab.
+              // dt is bounded to 250 ms; wall time can skip the whole walk.
+              if (g?.status !== "paused")
+                bridgeElapsedMs = Math.min(
+                  now - activityAt,
+                  bridgeElapsedMs + dt,
+                );
               const length =
                 t.targets.reduce((a, b) => a + b.numerator / b.denominator, 0) *
                 6.4;
               const travel = Math.min(
                 length,
-                Math.max(0, (now - activityAt) / 1000 - 0.3) * 2.4,
+                Math.max(0, bridgeElapsedMs / 1000 - 0.3) * 2.4,
               );
               player.root.position.set(
                 (-3.2 + travel) * scale,
@@ -823,7 +907,7 @@ export default function CourseScene({
               player.setPose({
                 ...pose,
                 mode: travel < length ? "walk" : "celebrate",
-                active: true,
+                active: g?.status !== "paused",
                 speed: 2.4,
               });
             } else player.setPose(pose);
@@ -919,9 +1003,9 @@ export default function CourseScene({
           const closingGap = Math.max(0, 10 - frame.guardianGap);
           // Rise above the guardian as it closes, with extra elevation when
           // the right lane leaves less room for a clear quarter-view angle.
-          const nextFollowBeta = phone
+          let nextFollowBeta = phone
             ? Math.max(
-                camera.lowerBetaLimit ?? 0.75,
+                0.55,
                 1.35 -
                   Math.min(0.3, closingGap * 0.052) -
                   Math.min(0.08, closingGap * 0.015) -

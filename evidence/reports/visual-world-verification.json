@@ -6,9 +6,7 @@
   "build": {
     "command": "npm run build",
     "passed": true,
-    "notes": [
-      "Existing Vite large-chunk warning remains."
-    ]
+    "notes": ["Existing Vite large-chunk warning remains."]
   },
   "format": {
     "command": "npm run format:check",
@@ -173,7 +171,122 @@
       "headRayHeight": 4.575,
       "headTop": 3.725
     },
-    "local": "Local full phone journey exhausted180s before the hurdle check. The complete phone journey, including corrected guardian-foot visibility, subsequently passed in exact-head CI38803166351."
+    "local": "Local full phone journey exhausted180s before the hurdle check. The complete phone journey, including corrected guardian-foot visibility, subsequently passed in exact-head CI38803166351.",
+    "geometryFollowup": {
+      "failedRun": "https://github.com/Nolwac/amamihe/actions/runs/38842199606",
+      "observed": "Right-lane LeftFoot ray intersects guardian-head. Fixed0.55-radian floor cannot clear every stride at close separation. The bridge forced-stall regression passed.",
+      "change": "Resolve both actual foot sightlines against current guardian mesh bounds. Keep clear orbits; otherwise raise within bounded angles, with a bounded forward target fallback. Retain manual orbit offsets, zoom, guardian geometry, actual ray diagnostics and readability assertions.",
+      "geometryChecks": {
+        "passed": 2,
+        "failed": 0,
+        "combinations": 75,
+        "footSightlines": 150,
+        "scope": "Actual Babylon guardian meshes with independent triangle-ray checks across physical lane widths and edge placements, five pursuit gaps and three stride placements. Clear-orbit preservation and old-view occlusion are checked."
+      },
+      "build": "passed",
+      "format": "passed",
+      "fullPhoneJourney": "Local real-model journey hit Game Over before the hurdle-approach pause (2.0m), before the new right-lane visibility check. Not accepted as phone validation. Complete native CI journey remains required.",
+      "publication": "Fresh exact-head CI/review required after this camera correction.",
+      "reviewOrderingCorrection": {
+        "review": "https://github.com/Nolwac/amamihe/actions/runs/38844124398",
+        "head": "3a75528e39c94256c72b78fc8508a5f88ff11edc",
+        "finding": "P2: pre-render-loop resolution sampled the previous stride before native animation advanced.",
+        "fix": "Resolve in scene.onBeforeRenderObservable after native animation and camera inputs, before view matrices. The phone journey now records four successive rendered foot poses, requires actual relative stride change and clear ray/viewport results, and uploads the motion JSON."
+      },
+      "presentationReplay": {
+        "passed": true,
+        "cases": [
+          {
+            "lane": -1,
+            "gap": 2.4,
+            "height": 140.74422661497252,
+            "animatedFrames": 4,
+            "strideChange": 1.9482526403739584,
+            "camera": {
+              "position": [
+                2.807923713737615, 11.852811701947225, 51.6095939970637
+              ],
+              "target": [-1.65, 1.75, 56.3064133333267]
+            },
+            "passed": true
+          },
+          {
+            "lane": -1,
+            "gap": 2.8,
+            "height": 129.49631976308524,
+            "animatedFrames": 4,
+            "strideChange": 1.3379135727882385,
+            "camera": {
+              "position": [
+                2.4152113229479295, 12.103684846177131, 49.43515843009252
+              ],
+              "target": [-1.65, 1.75, 53.93796499997957]
+            },
+            "passed": true
+          },
+          {
+            "lane": 0,
+            "gap": 2.4,
+            "height": 163.4551750562496,
+            "animatedFrames": 4,
+            "strideChange": 1.818134488518517,
+            "camera": {
+              "position": [
+                1.6504843539331042, 13.376949060527737, 52.057519521635044
+              ],
+              "target": [0, 1.75, 54.52530333334043]
+            },
+            "passed": true
+          },
+          {
+            "lane": 0,
+            "gap": 2.8,
+            "height": 174.69873472520112,
+            "animatedFrames": 4,
+            "strideChange": 1.960223547363313,
+            "camera": {
+              "position": [
+                3.1396452478889207, 12.337994303321457, 49.45043288721245
+              ],
+              "target": [0, 1.75, 54.144791666666876]
+            },
+            "passed": true
+          },
+          {
+            "lane": 1,
+            "gap": 2.4,
+            "height": 175.10683839344114,
+            "animatedFrames": 4,
+            "strideChange": 1.7552196508720073,
+            "camera": {
+              "position": [
+                2.7880885319921047, 13.178002838628561, 51.30500162080827
+              ],
+              "target": [1.65, 1.75, 54.78429833331291]
+            },
+            "passed": true
+          },
+          {
+            "lane": 1,
+            "gap": 2.8,
+            "height": 154.08594262990482,
+            "animatedFrames": 4,
+            "strideChange": 1.8829381274208785,
+            "camera": {
+              "position": [
+                3.068376743213897, 12.848908718287756, 51.430911137059695
+              ],
+              "target": [1.65, 1.75, 55.7670883333267]
+            },
+            "passed": true
+          }
+        ],
+        "animatedFrames": 24,
+        "pageErrors": [],
+        "screenshot": "evidence/screenshots/visual-world-phone-chase.png",
+        "scope": "Actual CourseScene, native Run animation and real assets, replaying captured CI runtime with explicit lane/gap placements and untimed assistance for inspection. Six presentation cases, not authenticated learner acceptance or a physical-device benchmark."
+      }
+    }
   },
   "liveRelease": {
     "commit": "3039a4de1851bcb33b2111cf4c43775f35784e9f",
@@ -193,7 +306,7 @@
       "hashesMatch": true,
       "method": "Managed-proxy HTTPS requests compared with approved source SHA256."
     },
-    "remaining": "Public checker stopped at stale1MB budget. Follow-up aligns its limits with the documented1.5MB builder contract and adds pre-merge coverage.",
+    "remaining": "The asset-budget fix merged in PR10. Its main run stopped on a bridge wall-clock traversal defect; final production acceptance awaits the reviewed movement correction.",
     "verifiedAt": "2026-10-15T21:38:21.059061+00:00"
   },
   "assetBudgetCorrection": {
@@ -210,6 +323,57 @@
     },
     "typecheck": "passed",
     "format": "passed",
-    "fullLocalPublicCheck": "Blocked at HTTP redirect request by managed HTTP proxy; retained all TLS/redirect/privacy assertions. GitHub public acceptance remains required."
+    "fullLocalPublicCheck": "Blocked at HTTP redirect request by managed HTTP proxy; retained all TLS/redirect/privacy assertions. GitHub public acceptance remains required.",
+    "pr": "https://github.com/Nolwac/amamihe/pull/10",
+    "approvedHead": "dc2355f78b05d5be797fd0c544518efdfc0973a5",
+    "mergedMain": "368eae094d8474a3ef7f68e6a25537db6244eae5",
+    "ci": "https://github.com/Nolwac/amamihe/actions/runs/38811536873",
+    "status": "All four PR browser shards and exact-head Codex approval passed; merged. Main promotion stopped on the bridge gait regression below."
+  },
+  "bridgeStallCorrection": {
+    "failedMainRun": "https://github.com/Nolwac/amamihe/actions/runs/38839972373",
+    "baseCommit": "368eae094d8474a3ef7f68e6a25537db6244eae5",
+    "branch": "fix/bridge-crossing-frame-stalls",
+    "observed": "164 Node tests passed, one optional external-PostgreSQL test skipped; three browser shards passed. Bridge gait samples had no forward travel, so release promotion stopped.",
+    "cause": "Absolute wall time advanced the full bridge crossing during a main-thread stall, leaving only stationary take-off frames with the Walk clip.",
+    "negativeRegression": {
+      "result": "failed as intended against the original wall-clock crossing in the local built client",
+      "forcedStallMs": 3500,
+      "capturedGapMs": 3558.3,
+      "maxRenderedStepMetres": 4.2132,
+      "limitMetres": 0.600001,
+      "targetUnits": 6,
+      "frames": 4,
+      "walkFrames": 2,
+      "duration": "2.2m",
+      "scope": "Real local tev1 enrollment and independent grading; actual native rendering time and skeletal poses. No replaced model responses or motion data."
+    },
+    "change": "Accumulate at most250ms of presented crossing time per rendered frame; pause both travel and clip while paused. Keep authored bridge length,2.4m/s nominal speed and authoritative evidence.",
+    "regression": "Force a3.5s main-thread stall; require genuine forward movement, changing normalized leg-chain matrices, far-bank arrival and maximum0.6m rendered steps. Persist bridge-gait.json on assertion failure as well as success.",
+    "build": "passed",
+    "typecheck": "passed",
+    "format": "passed",
+    "correctedLocalRegression": {
+      "result": "passed",
+      "duration": "1.4m",
+      "scope": "Complete real-model bridge journey, saved unfinished construction, independent server evidence, actual720p workbench, forced3.5s stall, skeletal Walk, bounded steps and far-bank arrival",
+      "metrics": {
+        "frames": 14,
+        "walkFrames": 11,
+        "targetUnits": 6,
+        "maxRenderedStepMetres": 0.6000000000000001,
+        "maxCapturedGapMs": 3763.89999999851,
+        "walkTravelMetres": 4.68,
+        "maxLegMatrixChange": 0.7289389584774062,
+        "farBank": [1.6000000000000005, 0.76, 4.5]
+      },
+      "initialCorrectedProbe": "Movement bounded to0.6m and legs animated, but the old5s arrival wait expired on the local software renderer. Allow20s for actual post-stall frames without changing movement assertions."
+    },
+    "publication": "Fresh exact-head CI and Codex approval required before merge; final exact-release public desktop/phone checks required after deployment.",
+    "firstPRCI": {
+      "run": "https://github.com/Nolwac/amamihe/actions/runs/38842199606",
+      "bridgeJourney": "passed in42seconds",
+      "overall": "42 of43browser journeys passed; separate right-lane phone LeftFoot was hidden by guardian-head. Exact-head Codex approved3a4ce19, but merge correctly waits for a fresh fully passing revision."
+    }
   }
 }
