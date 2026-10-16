@@ -1234,6 +1234,10 @@ test("phone manual controls cause actual jump, obstacle Game Over and a checkpoi
     .click();
   await expect.poll(async () => (await snapshot(page))?.status).toBe("paused");
   const rightLane = (await snapshot(page))!;
+  await writeFile(
+    "test-results/adventure-phone-right-lane-pose.json",
+    JSON.stringify(rightLane, null, 2),
+  );
   readableActors(rightLane);
   for (const name of ["Hips", "LeftFoot", "RightFoot"]) {
     const point = rightLane.actorVisibility[name];

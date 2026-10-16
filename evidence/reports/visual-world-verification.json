@@ -171,7 +171,23 @@
       "headRayHeight": 4.575,
       "headTop": 3.725
     },
-    "local": "Local full phone journey exhausted180s before the hurdle check. The complete phone journey, including corrected guardian-foot visibility, subsequently passed in exact-head CI38803166351."
+    "local": "Local full phone journey exhausted180s before the hurdle check. The complete phone journey, including corrected guardian-foot visibility, subsequently passed in exact-head CI38803166351.",
+    "geometryFollowup": {
+      "failedRun": "https://github.com/Nolwac/amamihe/actions/runs/38842199606",
+      "observed": "Right-lane LeftFoot ray intersects guardian-head. Fixed0.55-radian floor cannot clear every stride at close separation. The bridge forced-stall regression passed.",
+      "change": "Resolve both actual foot sightlines against current guardian mesh bounds. Keep clear orbits; otherwise raise within bounded angles, with a bounded forward target fallback. Retain manual orbit offsets, zoom, guardian geometry, actual ray diagnostics and readability assertions.",
+      "geometryChecks": {
+        "passed": 2,
+        "failed": 0,
+        "combinations": 45,
+        "footSightlines": 90,
+        "scope": "Actual Babylon guardian meshes with independent triangle-ray checks across three lanes, five pursuit gaps and three stride placements. Includes old-view occlusion and clear-orbit preservation."
+      },
+      "build": "passed",
+      "format": "passed",
+      "fullPhoneJourney": "Local real-model journey hit Game Over before the hurdle-approach pause (2.0m), before the new right-lane visibility check. Not accepted as phone validation. Complete native CI journey remains required.",
+      "publication": "Fresh exact-head CI/review required after this camera correction."
+    }
   },
   "liveRelease": {
     "commit": "3039a4de1851bcb33b2111cf4c43775f35784e9f",
@@ -254,6 +270,11 @@
       },
       "initialCorrectedProbe": "Movement bounded to0.6m and legs animated, but the old5s arrival wait expired on the local software renderer. Allow20s for actual post-stall frames without changing movement assertions."
     },
-    "publication": "Fresh exact-head CI and Codex approval required before merge; final exact-release public desktop/phone checks required after deployment."
+    "publication": "Fresh exact-head CI and Codex approval required before merge; final exact-release public desktop/phone checks required after deployment.",
+    "firstPRCI": {
+      "run": "https://github.com/Nolwac/amamihe/actions/runs/38842199606",
+      "bridgeJourney": "passed in42seconds",
+      "overall": "42 of43browser journeys passed; separate right-lane phone LeftFoot was hidden by guardian-head. Exact-head Codex approved3a4ce19, but merge correctly waits for a fresh fully passing revision."
+    }
   }
 }

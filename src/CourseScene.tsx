@@ -8,6 +8,7 @@ import { publishPosition } from "./socialPresence";
 import { gameAudio } from "./gameAudio";
 import type { Presence } from "../shared/social";
 import { courseRenderDeadline, nextRenderHeight } from "../shared/rendering";
+import { resolveChaseCamera } from "../shared/chase-camera";
 import type {
   CourseResource,
   Theme,
@@ -181,7 +182,7 @@ export default function CourseScene({
       camera.lowerRadiusLimit = 7;
       if (temple) camera.fov = 0.9;
       camera.upperRadiusLimit = 15;
-      camera.lowerBetaLimit = 0.55;
+      camera.lowerBetaLimit = temple ? 0.15 : 0.55;
       camera.upperBetaLimit = 1.45;
       configureCameraControls(camera);
       camera.attachControl(element, true);
@@ -928,9 +929,9 @@ export default function CourseScene({
           const closingGap = Math.max(0, 10 - frame.guardianGap);
           // Rise above the guardian as it closes, with extra elevation when
           // the right lane leaves less room for a clear quarter-view angle.
-          const nextFollowBeta = phone
+          let nextFollowBeta = phone
             ? Math.max(
-                camera.lowerBetaLimit ?? 0.75,
+                0.55,
                 1.35 -
                   Math.min(0.3, closingGap * 0.052) -
                   Math.min(0.08, closingGap * 0.015) -
@@ -955,6 +956,50 @@ export default function CourseScene({
             : 0.3;
           // Apply only the chase offset so dragging to orbit remains available.
           camera.alpha += nextFollowYaw - followYaw;
+          if (phone && player && !caught) {
+            const chasePlayer = player;
+            const manualBetaOffset = camera.beta - followBeta;
+            const requestedBeta = Math.max(
+              camera.lowerBetaLimit ?? 0.15,
+              Math.min(
+                camera.upperBetaLimit ?? 1.45,
+                nextFollowBeta + manualBetaOffset,
+              ),
+            );
+            const framing = resolveChaseCamera(
+              {
+                alpha: camera.alpha,
+                beta: requestedBeta,
+                radius: camera.radius,
+                target: [camera.target.x, camera.target.y, camera.target.z],
+              },
+              ["LeftFoot", "RightFoot"].flatMap((name) => {
+                const joint = chasePlayer.joints.get(name);
+                if (!joint) return [];
+                joint.computeWorldMatrix(true);
+                const foot = joint.getAbsolutePosition();
+                return [[foot.x, foot.y, foot.z] as const];
+              }),
+              [...guardianMeshes].map((mesh) => {
+                mesh.computeWorldMatrix(true);
+                const box = mesh.getBoundingInfo().boundingBox;
+                return {
+                  min: [
+                    box.minimumWorld.x,
+                    box.minimumWorld.y,
+                    box.minimumWorld.z,
+                  ] as const,
+                  max: [
+                    box.maximumWorld.x,
+                    box.maximumWorld.y,
+                    box.maximumWorld.z,
+                  ] as const,
+                };
+              }),
+            );
+            nextFollowBeta = framing.beta - manualBetaOffset;
+            camera.target.z = framing.target[2];
+          }
           // The wider closing-gap view rises above the surrounding temple walls.
           camera.beta += nextFollowBeta - followBeta;
           followYaw = nextFollowYaw;
