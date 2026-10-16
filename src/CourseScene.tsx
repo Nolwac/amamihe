@@ -332,6 +332,7 @@ export default function CourseScene({
         previousRun = live.current.game?.run;
       let lastActivity: string | undefined,
         activityAt = -Infinity,
+        bridgeElapsedMs = 0,
         activityCorrect = false;
       let lastActionSerial = -1,
         collisionId: string | undefined,
@@ -669,6 +670,7 @@ export default function CourseScene({
         if (g?.activity && g.activity.id !== lastActivity) {
           lastActivity = g.activity.id;
           activityAt = now;
+          bridgeElapsedMs = 0;
           activityCorrect = g.activity.correct && g.activity.independent;
           event(
             activityCorrect ? "task-correct" : "task-incorrect",
@@ -807,12 +809,19 @@ export default function CourseScene({
               g?.activity?.independent &&
               g.activity.questionId === live.current.question?.id;
             if (solved && t?.kind === "fraction-bridge") {
+              // Keep the crossing visible after a busy frame or suspended tab.
+              // dt is bounded to 250 ms; wall time can skip the whole walk.
+              if (g?.status !== "paused")
+                bridgeElapsedMs = Math.min(
+                  now - activityAt,
+                  bridgeElapsedMs + dt,
+                );
               const length =
                 t.targets.reduce((a, b) => a + b.numerator / b.denominator, 0) *
                 6.4;
               const travel = Math.min(
                 length,
-                Math.max(0, (now - activityAt) / 1000 - 0.3) * 2.4,
+                Math.max(0, bridgeElapsedMs / 1000 - 0.3) * 2.4,
               );
               player.root.position.set(
                 (-3.2 + travel) * scale,
@@ -823,7 +832,7 @@ export default function CourseScene({
               player.setPose({
                 ...pose,
                 mode: travel < length ? "walk" : "celebrate",
-                active: true,
+                active: g?.status !== "paused",
                 speed: 2.4,
               });
             } else player.setPose(pose);

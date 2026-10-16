@@ -6,9 +6,7 @@
   "build": {
     "command": "npm run build",
     "passed": true,
-    "notes": [
-      "Existing Vite large-chunk warning remains."
-    ]
+    "notes": ["Existing Vite large-chunk warning remains."]
   },
   "format": {
     "command": "npm run format:check",
@@ -193,7 +191,7 @@
       "hashesMatch": true,
       "method": "Managed-proxy HTTPS requests compared with approved source SHA256."
     },
-    "remaining": "Public checker stopped at stale1MB budget. Follow-up aligns its limits with the documented1.5MB builder contract and adds pre-merge coverage.",
+    "remaining": "The asset-budget fix merged in PR10. Its main run stopped on a bridge wall-clock traversal defect; final production acceptance awaits the reviewed movement correction.",
     "verifiedAt": "2026-10-15T21:38:21.059061+00:00"
   },
   "assetBudgetCorrection": {
@@ -210,6 +208,52 @@
     },
     "typecheck": "passed",
     "format": "passed",
-    "fullLocalPublicCheck": "Blocked at HTTP redirect request by managed HTTP proxy; retained all TLS/redirect/privacy assertions. GitHub public acceptance remains required."
+    "fullLocalPublicCheck": "Blocked at HTTP redirect request by managed HTTP proxy; retained all TLS/redirect/privacy assertions. GitHub public acceptance remains required.",
+    "pr": "https://github.com/Nolwac/amamihe/pull/10",
+    "approvedHead": "dc2355f78b05d5be797fd0c544518efdfc0973a5",
+    "mergedMain": "368eae094d8474a3ef7f68e6a25537db6244eae5",
+    "ci": "https://github.com/Nolwac/amamihe/actions/runs/38811536873",
+    "status": "All four PR browser shards and exact-head Codex approval passed; merged. Main promotion stopped on the bridge gait regression below."
+  },
+  "bridgeStallCorrection": {
+    "failedMainRun": "https://github.com/Nolwac/amamihe/actions/runs/38839972373",
+    "baseCommit": "368eae094d8474a3ef7f68e6a25537db6244eae5",
+    "branch": "fix/bridge-crossing-frame-stalls",
+    "observed": "164 Node tests passed, one optional external-PostgreSQL test skipped; three browser shards passed. Bridge gait samples had no forward travel, so release promotion stopped.",
+    "cause": "Absolute wall time advanced the full bridge crossing during a main-thread stall, leaving only stationary take-off frames with the Walk clip.",
+    "negativeRegression": {
+      "result": "failed as intended against the original wall-clock crossing in the local built client",
+      "forcedStallMs": 3500,
+      "capturedGapMs": 3558.3,
+      "maxRenderedStepMetres": 4.2132,
+      "limitMetres": 0.600001,
+      "targetUnits": 6,
+      "frames": 4,
+      "walkFrames": 2,
+      "duration": "2.2m",
+      "scope": "Real local tev1 enrollment and independent grading; actual native rendering time and skeletal poses. No replaced model responses or motion data."
+    },
+    "change": "Accumulate at most250ms of presented crossing time per rendered frame; pause both travel and clip while paused. Keep authored bridge length,2.4m/s nominal speed and authoritative evidence.",
+    "regression": "Force a3.5s main-thread stall; require genuine forward movement, changing normalized leg-chain matrices, far-bank arrival and maximum0.6m rendered steps. Persist bridge-gait.json on assertion failure as well as success.",
+    "build": "passed",
+    "typecheck": "passed",
+    "format": "passed",
+    "correctedLocalRegression": {
+      "result": "passed",
+      "duration": "1.4m",
+      "scope": "Complete real-model bridge journey, saved unfinished construction, independent server evidence, actual720p workbench, forced3.5s stall, skeletal Walk, bounded steps and far-bank arrival",
+      "metrics": {
+        "frames": 14,
+        "walkFrames": 11,
+        "targetUnits": 6,
+        "maxRenderedStepMetres": 0.6000000000000001,
+        "maxCapturedGapMs": 3763.89999999851,
+        "walkTravelMetres": 4.68,
+        "maxLegMatrixChange": 0.7289389584774062,
+        "farBank": [1.6000000000000005, 0.76, 4.5]
+      },
+      "initialCorrectedProbe": "Movement bounded to0.6m and legs animated, but the old5s arrival wait expired on the local software renderer. Allow20s for actual post-stall frames without changing movement assertions."
+    },
+    "publication": "Fresh exact-head CI and Codex approval required before merge; final exact-release public desktop/phone checks required after deployment."
   }
 }

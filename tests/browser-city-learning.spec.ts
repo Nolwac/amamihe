@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { writeFile } from "node:fs/promises";
 import { createAccount, signupInBrowser } from "./auth-helpers";
 import { openCityMenu, openAdventurePanels } from "./game-ui-helpers";
 import type { CourseDraft, LearningProgress } from "../shared/course";
@@ -289,7 +290,7 @@ test("world bridge controls preserve unfinished work and verified construction o
     }[] = [];
     const observer = new MutationObserver(() => {
       const actor = c.getAdventureSnapshot({ actorOnly: true }).actor;
-      if (!actor || !/Walk$/.test(actor.animation)) return;
+      if (!actor || (!frames.length && !/Walk$/.test(actor.animation))) return;
       frames.push({
         animation: actor.animation,
         animationFrame: actor.animationFrame,
@@ -305,6 +306,14 @@ test("world bridge controls preserve unfinished work and verified construction o
         ),
       });
       if (frames.length > 80) frames.shift();
+      if (frames.length === 2) {
+        // A busy main thread must not skip the entire crossing between two
+        // rendered poses. Keep real time, real frames and real skeletal motion.
+        const resumeAt = performance.now() + 3500;
+        while (performance.now() < resumeAt) {
+          /* Simulate a rendering stall, as seen on the shared CI runner. */
+        }
+      }
     });
     const timer = setTimeout(() => observer.disconnect(), 60000);
     c.bridgeMotion = {
@@ -334,46 +343,69 @@ test("world bridge controls preserve unfinished work and verified construction o
     "data-learning-effect",
     `bridge:${result.levelProgress!.cleared / result.levelProgress!.total}`,
   );
-  await expect
-    .poll(() =>
-      canvas.evaluate(
-        (c: any) =>
-          c.bridgeMotion.frames.filter((frame: any) =>
-            /Walk$/.test(frame.animation),
-          ).length,
+  try {
+    await expect
+      .poll(() =>
+        canvas.evaluate(
+          (c: any) =>
+            c.bridgeMotion.frames.filter((frame: any) =>
+              /Walk$/.test(frame.animation),
+            ).length,
+        ),
+      )
+      .toBeGreaterThanOrEqual(2);
+    // Walk starts during the take-off stance. Wait for the crossing before
+    // inspecting its retained motion, rather than sampling two stationary frames.
+    await expect
+      .poll(
+        () =>
+          canvas.evaluate(
+            (c: any) =>
+              c.getAdventureSnapshot({ actorOnly: true }).actor.position[0],
+          ),
+        // Bounded visual time needs several actual frames after the forced stall.
+        { timeout: 20000 },
+      )
+      .toBeCloseTo(-3.2 + targetUnits * 0.8, 1);
+    const frames = await canvas.evaluate((c: any) => c.bridgeMotion.frames);
+    const walking = frames.filter((frame: any) =>
+      /Walk$/.test(frame.animation),
+    );
+    const first = walking[0],
+      last = walking.at(-1)!;
+    expect(last.position[0] - first.position[0]).toBeGreaterThan(0.03);
+    // Compare both leg chains; a single shin may stay straight during stance.
+    // Root translation alone cannot pass.
+    expect(
+      Math.max(
+        ...walking.flatMap((frame: any) =>
+          frame.legs.map((v: number, i: number) => Math.abs(v - first.legs[i])),
+        ),
       ),
-    )
-    .toBeGreaterThanOrEqual(2);
-  // Walk starts during the take-off stance. Wait for the crossing before
-  // inspecting its retained motion, rather than sampling two stationary frames.
-  await expect
-    .poll(() =>
-      canvas.evaluate(
-        (c: any) =>
-          c.getAdventureSnapshot({ actorOnly: true }).actor.position[0],
+    ).toBeGreaterThan(0.01);
+    // At 2.4 m/s, a bounded 250 ms frame can advance at most 0.6 m, including
+    // the final step into celebration. A wall-clock teleport fails this check.
+    expect(
+      Math.max(
+        ...frames
+          .slice(1)
+          .map((frame: any, i: number) =>
+            Math.abs(frame.position[0] - frames[i].position[0]),
+          ),
       ),
-    )
-    .toBeCloseTo(-3.2 + targetUnits * 0.8, 1);
-  const walking = await canvas.evaluate((c: any) =>
-    c.bridgeMotion.frames.filter((frame: any) => /Walk$/.test(frame.animation)),
-  );
-  await test.info().attach("bridge-gait", {
-    body: JSON.stringify({ targetUnits, walking }),
-    contentType: "application/json",
-  });
-  const first = walking[0],
-    last = walking.at(-1)!;
-  expect(last.position[0] - first.position[0]).toBeGreaterThan(0.03);
-  // Compare both leg chains; a single shin may stay straight during stance.
-  // Root translation alone cannot pass.
-  expect(
-    Math.max(
-      ...walking.flatMap((frame: any) =>
-        frame.legs.map((v: number, i: number) => Math.abs(v - first.legs[i])),
-      ),
-    ),
-  ).toBeGreaterThan(0.01);
-  await canvas.evaluate((c: any) => c.bridgeMotion.stop());
+    ).toBeLessThanOrEqual(0.600001);
+  } finally {
+    const frames = await canvas.evaluate((c: any) => {
+      c.bridgeMotion.stop();
+      return c.bridgeMotion.frames;
+    });
+    const gaitPath = test.info().outputPath("bridge-gait.json");
+    await writeFile(gaitPath, JSON.stringify({ targetUnits, frames }, null, 2));
+    await test.info().attach("bridge-gait", {
+      path: gaitPath,
+      contentType: "application/json",
+    });
+  }
   await page.getByRole("button", { name: "Hide task", exact: true }).click();
   const frame = Number(await canvas.getAttribute("data-render-frame"));
   await expect
